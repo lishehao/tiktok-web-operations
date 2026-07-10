@@ -1,23 +1,19 @@
 # TikTok Web Operations
 
-这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。仓库只保留两个顶层入口：本 README 和 `tiktok-web-operations/` Skill 目录。
+这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。仓库顶层只保留本 README 和 `tiktok-web-operations/` Skill 目录。
 
-Protocol version: `2026.07.10.3`
+Protocol version: `2026.07.10.4`
 
 ## 给用户的两句启动 Prompt
 
 ```text
-请打开 https://github.com/lishehao/tiktok-web-operations，完整读取根目录 README.md，并按照其中的机器执行协议从该仓库安装或升级 tiktok-web-operations Skill；先完成 Chrome、TikTok 登录和子智能体协作能力预检，通过后立即启动“主协调器 + 唯一 Chrome 子任务”持续运营。
+请打开 https://github.com/lishehao/tiktok-web-operations，完整读取根目录 README.md，并按机器协议安装或升级 Skill、只读检查 Chrome/TikTok/thread 依赖，然后创建两个持久化用户 Threads——“TikTok 运营主任务”和“TikTok Chrome执行任务”——两者都强制使用 gpt-5.6-luna + high；完成双向回调握手后直接开始运营并归档当前 bootstrap 任务，绝不使用 subagent。
 默认方向为北美 college/dorm life，并授权只在 strong core 视频下自动发布简短玩梗顶层评论（优先 2–12 个英文词、绝不超过 30 个词）；点赞、收藏、关注、回复、Not interested、发视频和其他外部动作均未授权。
 ```
 
-下面全部内容是给执行任务读取的机器协议。用户不需要复制其余章节。
+下面内容是执行任务必须完整读取一次的机器协议。用户不需要复制其余章节。
 
-## 机器执行协议
-
-完整读取一次本 README 后直接执行，不要递归寻找其他安装文档，不要先向用户复述技术步骤，也不要把运行结果回调给 Skill 开发任务。
-
-### 固定分发信息
+## 固定分发信息
 
 - Repository: `https://github.com/lishehao/tiktok-web-operations`
 - Archive: `https://codeload.github.com/lishehao/tiktok-web-operations/zip/refs/heads/main`
@@ -25,41 +21,59 @@ Protocol version: `2026.07.10.3`
 - Install path: `${CODEX_HOME:-$HOME/.codex}/skills/tiktok-web-operations`
 - Version source: `tiktok-web-operations/manifest.json`
 
-消费者不需要 Git、GitHub CLI、GitHub 账号、Token 或随附 ZIP。通过 HTTPS 把公开 archive 下载到临时目录，安全解压，并确认快照中只有一个目标 Skill 目录。
+完整读取本 README 后直接执行。不要递归寻找其他安装文档，不要先复述技术步骤，不要使用 Git、GitHub CLI、GitHub Token 或随附 ZIP。消费者只需通过 HTTPS 下载公开 archive。
 
 ## 第一阶段：安装与只读预检
 
-第一阶段不得调用运营流程，也不得进行任何 TikTok 互动。
+第一阶段不得进行任何 TikTok 互动，也不得创建运营 Thread。
 
 ### 安装或升级
 
-1. 读取 incoming `manifest.json`，并在写入安装目录前校验完整 incoming Skill。
-2. 有可用 `quick_validate.py` 时运行它。Python 是可选依赖；没有校验器时执行等价检查：archive 可完整解压、目标目录唯一、`SKILL.md` 有有效 `name`/`description` frontmatter、manifest 可读、`agents/openai.yaml` 和所有 references 可读、SKILL 直接引用的文件均存在。
-3. 按数字段比较 `YYYY.MM.DD.N` 版本：
+1. 下载 archive 到临时目录，安全解压，并确认快照中只有一个目标 Skill 目录。
+2. 读取 incoming `manifest.json`，在写入安装目录前校验完整 Skill。有 `quick_validate.py` 时运行；没有 Python/校验器时检查 archive 完整性、目录唯一性、有效 frontmatter、manifest、`agents/openai.yaml`、references 和 SKILL 直接引用。
+3. 按数字段比较 `YYYY.MM.DD.N`：
    - 未安装：`INSTALLED`。
-   - 同名安装没有 manifest：视为 legacy，先完整备份再升级。
-   - GitHub 版本更高：完整备份旧目录，再以同文件系统临时目录原子替换。
-   - 版本相同且内容相同：`NOOP`。
-   - 版本相同但内容不同：`BLOCKED_CONFLICT`，保留旧安装。
-   - GitHub 版本更低：`BLOCKED_DOWNGRADE`，除非用户明确要求降级，否则不覆盖。
-4. 替换后重新校验；失败立即恢复备份并返回 `ROLLED_BACK`。
+   - 同名安装无 manifest：视为 legacy，完整备份后升级。
+   - Incoming 更新：完整备份旧目录，再原子替换整个目录。
+   - 同版本同内容：`NOOP`。
+   - 同版本不同内容：`BLOCKED_CONFLICT`。
+   - Incoming 更旧：`BLOCKED_DOWNGRADE`，除非用户明确要求降级。
+4. 替换后重新校验；失败恢复备份并返回 `ROLLED_BACK`。
 
-升级必须替换整个受管 Skill 目录，不逐文件合并，也不把旧版未知文件混入新版。
+不逐文件合并，也不把旧版未知文件混入新版本。
 
-### 运行依赖检查
+### Chrome 与 TikTok
 
-读取已安装 Skill 的 `references/startup-health-check.md` 并依次证明：
+1. 必须存在 Chrome control，并能读取用户现有 Chrome 标签页；掉线最多重连两次。
+2. 只能通过 Chrome control 打开或复用 TikTok，读取准确 `@handle`。Computer Use、内置 Browser、Playwright、终端浏览器和 Web Search 不能替代。
+3. 检查错号、CAPTCHA、验证挑战、限流、warning 和 restriction。
+4. 不输入密码、OTP、passkey、验证码或恢复码。
+5. 建立可写的共享 ledger 路径，并初始化每个 mutation lane 的独立状态。预检不能通过点击来测试能力。
+6. 完成后释放 bootstrap 对 Chrome 的控制；后续只有执行 Thread 能碰 Chrome。
 
-1. Chrome control 存在并能读取用户已有 Chrome 标签页；控制连接掉线最多重连两次。
-2. 只能通过 Chrome control 打开或复用 TikTok，并读取准确登录 `@handle`。Computer Use、内置 Browser、Playwright、终端浏览器和 Web Search 都不能替代。
-3. 当前页面没有阻断运营的错号、CAPTCHA、验证挑战、限流、warning 或 restriction。
-4. 当前任务具备 spawn、复用、消息、检查和 interrupt 一个 subordinate agent 的 collaboration 能力；第二个用户自建 Codex 任务不能代替子智能体。
-5. 需要时能读取当地时间、时区和 UTC offset，并能创建可写 driver ledger。
-6. 每种 mutation lane 都有独立状态。预检本身完全只读，不通过点击测试能力。
+### Thread 与模型硬依赖
 
-模型选择是可选项。运行时真实暴露模型/effort 选择时，主协调器请求当前最强可用模型，Chrome driver 请求 `Luna + Extra High`；接口没有模型选择时继承实际 runtime 并继续，不得声称已经成功切换。
+必须证明下面工具真实存在：
 
-保留内部报告，不在健康状态下向用户展开：
+- `list_projects`
+- `create_thread`
+- `read_thread`
+- `send_message_to_thread`
+- `set_thread_title`
+- `set_thread_archived`
+
+`set_thread_pinned` 与 `navigate_to_codex_page` 是可选展示能力。
+
+必须证明 `create_thread` 和 `send_message_to_thread` 接受：
+
+```text
+model: gpt-5.6-luna
+thinking: high
+```
+
+这是用户明确指定的硬要求。任一运营 Thread 不能使用该组合时停止，不替换为其他模型或 effort，也不降级成单 Thread 或 subagent。
+
+内部保留：
 
 ```text
 install_action: INSTALLED | UPGRADED | NOOP | BLOCKED_CONFLICT | BLOCKED_DOWNGRADE | ROLLED_BACK
@@ -68,75 +82,112 @@ skill_validation: PASSED | FAILED
 chrome_control: AVAILABLE | RECONNECTED | UNAVAILABLE
 tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
-collaboration_support: SPAWN_REUSE_INTERRUPT | UNAVAILABLE
-model_runtime: requested | actual | fallback
-local_time_check: local time | timezone | UTC offset
+thread_support: CREATE_READ_SEND_TITLE_ARCHIVE | UNAVAILABLE
+model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
 ledger_path:
 dependency_status: READY | BLOCKED
 required_missing: []
 repair_actions: []
 ```
 
-阻塞时只返回第一项用户可以处理的问题、影响和 `完成后回复“继续”`，不要列出已通过项，也不要生成 Chrome driver。
+阻塞时只返回第一项可修复问题、影响和 `完成后回复“继续”`。不要列出成功项。
 
-- Chrome 不可用：要求用户打开 Chrome，安装或启用 ChatGPT Chrome Extension，并保持 Chrome 运行。
-- TikTok 未登录：保留 TikTok 页面，要求用户手动登录和完成页面验证；不要索取密码或验证码。
-- Collaboration 不可用：说明要求的主任务 + 子任务架构无法启动，TikTok 未发生任何互动；要求换到支持子智能体的 Codex 任务。
+## 第二阶段：创建两个持久化运营 Threads
 
-## 第二阶段：直接启动运营
+Bootstrap 任务只是安装器，不属于最终运营拓扑。依赖健康后按顺序执行：
 
-当 `dependency_status=READY` 时立即调用 `$tiktok-web-operations`，不再询问技术确认：
+1. 调用 `list_projects`。当前 saved project 明确可用时，两条 Thread 使用同一 local project target；否则两条都使用 projectless local target。
+2. 创建 `coordination_thread`：
+   - `create_thread(model="gpt-5.6-luna", thinking="high")`
+   - 标题设为 `TikTok 运营主任务`
+   - 初始 Prompt 要求读取 `$tiktok-web-operations`，声明只负责用户对话、方向、授权、executor 管理与风险，等待 executor registry，绝不碰 Chrome。
+3. 记录 coordinator Thread ID；可用时 pin。
+4. 创建 `execution_thread`：
+   - `create_thread(model="gpt-5.6-luna", thinking="high")`
+   - 标题设为 `TikTok Chrome执行任务`
+   - 初始 Prompt 包含准确 coordinator Thread ID、Skill、唯一 Chrome 所有权、ledger、默认 envelope、callback schema，以及先发送 `THREAD_READY` 的要求。
+5. 记录 executor Thread ID；可用时 pin。
+6. 用 `send_message_to_thread(model="gpt-5.6-luna", thinking="high")` 把 executor ID 与完整运营 envelope 发给 coordinator。
+7. 读取两条 Thread 最新 turns，验证双向注册：coordinator 知道准确 executor ID；executor 知道准确 coordinator ID；coordinator 已收到 executor 通过 `send_message_to_thread` 发来的 `THREAD_READY`。
+8. Coordinator 用 Luna/High 向该 executor ID 派发第一个 `search_heavy` block。
+9. 确认 executor 收到；可用时把 Codex UI 导航到 coordinator；然后归档当前 bootstrap 任务。
 
-1. 把当前用户任务设为唯一 `main_coordinator`，由它拥有用户对话、持续目标、策略、授权、风险和最终汇报。
-2. 在当前 collaboration tree 内 spawn 恰好一个 subordinate `chrome_driver`。不得创建第二个用户自建任务，不得传入外部 callback Thread ID，也不得允许 child spawn 后代。
-3. 把全部 Chrome/TikTok 导航与 mutation 所有权交给 child；child 存在时 parent 不得触碰 Chrome。
-4. 立即派发第一个 `search_heavy` block：三个不同的批准搜索簇，每簇按顺序观察五个结果，然后回到 For You 使用原生连续滑动观察二十条。
-5. Child 是 ledger 唯一写入者；每个 block 完成后向 parent 返回 Skill 定义的结构化结果并 idle。
-6. Parent 评估垂直度后用 `followup_task` 复用同一个 child，不得每轮新建 agent。
-7. 持续目标只属于 parent；child 每次只执行一个有边界 block。用户说停止时，parent interrupt child、确认释放 Chrome、写最终 ledger checkpoint，并结束持续目标。
+如果只创建出一条或握手失败，不得开始 TikTok 操作。只归档本次 bootstrap 创建且尚未执行任何外部动作的空 Thread，并报告阻塞。
 
-依赖健康后只简短返回：
+最终运营面严格只有：
 
-`状态健康。当前账号：@handle。已启动：主协调器 + 唯一 Chrome 子任务，第一轮定向校准正在进行。`
+```text
+TikTok 运营主任务       gpt-5.6-luna / high
+TikTok Chrome执行任务  gpt-5.6-luna / high
+```
 
-之后继续在 collaboration tree 内监督，不向其他 Codex 任务发送 routine callback。
+两者都是持久化、用户可见、可在侧边栏独立打开的 Codex Threads，不是 subagent。
 
-## 默认垂直方向
+## Thread-to-Thread 运行协议
 
-目标是让账号保持北美大学生 / dorm-life 语境：
+### 运营主任务
 
-- roommate move-in、roommate storytime、roommate chaos。
-- dorm move-in、freshman move-in day、dorm setup。
-- college day in my life、campus routine、GRWM for class。
-- campus friend group、college game day、tailgate。
-- finals survival、dorm bathroom/cooking/laundry failures。
+1. 只与用户沟通并维护方向、授权、能力矩阵、pending decisions 和 executor registry。
+2. 收到 executor callback 后，必要时只读最新 1–3 turns。
+3. 决定下一有边界 block；不需要用户决策时，用 `send_message_to_thread` 向同一 executor ID 派发，显式指定 Luna/High。
+4. 标记 executor 为 `running_current_task` 后结束 turn，不轮询、不 busy-wait、不碰 Chrome。
+5. 由下一次 executor callback 唤醒并继续。
 
-排除纯 admissions、SAT/GPA、申请建议、纯学习鸡血，以及没有校园生活语境的泛娱乐内容。完整搜索、采样和模式切换规则以 Skill references 为准。
+### Chrome 执行任务
 
-## 本 Prompt 的互动授权边界
+1. 只接受已注册 coordinator ID 的消息。
+2. 独占 Chrome/TikTok，执行一个有边界 block 或一个精确授权动作。
+3. 写入 sole-writer ledger，完成即时/刷新/账号级验证。
+4. 完成或阻塞时释放 Chrome control。
+5. 用 `send_message_to_thread(model="gpt-5.6-luna", thinking="high")` 把结构化结果发给 coordinator，然后 idle。
+6. 不自行开始下一轮、不创建 Thread、不使用 subagent、不回调 Skill 开发或 bootstrap 任务。
 
-用户发送 README 顶部的两句 Prompt 时，明确激活以下 standing envelope：
+普通顺序依赖 soft-hook callback，不持续轮询。只有用户明确要求定时唤醒、callback 不可靠或任务确实依赖未来时刻时才使用 heartbeat。
 
-- 只允许在 strong `core` 视频下发布一条主动顶层评论。
-- 必须理解 setup/payoff，并确认评论区文化支持轻松玩梗。
-- 使用视频语言；英文优先 2–12 个词，绝对不得超过 30 个词。
+## 第一轮垂直校准
+
+立即从 `search_heavy` 开始：
+
+1. 选择三个不同的批准搜索簇。
+2. 每簇按顺序观察五条结果，合计十五条；商品、陈旧、adjacent 和 irrelevant 都计入分母。
+3. 记录 query、URL、creator、freshness、relevance、setup/payoff 和评论区文化。
+4. 返回 For You，使用原生增量滑动连续观察二十条，不挑选或替换差结果。
+5. 计算 core/directional/drift shares，并按 Skill 的 `persistent-feed-operations.md` 选择下一模式。
+6. Executor callback 完整 block；coordinator 再派下一轮。
+
+## 默认方向
+
+- Roommate move-in、storytime、roommate chaos。
+- Dorm/freshman move-in、dorm setup。
+- College day in my life、campus routine、GRWM for class。
+- Campus friend group、game day、tailgate。
+- Finals survival、dorm bathroom/cooking/laundry failures。
+
+排除 admissions、SAT/GPA、申请建议、纯学习鸡血和无校园生活语境的泛内容。
+
+## 自动评论授权
+
+用户发送顶部两句 Prompt 时，明确激活：
+
+- 只允许 strong `core` 视频下的一条主动顶层评论。
+- 必须理解 setup/payoff，且评论区支持轻松玩梗。
+- 使用视频语言；英文优先 2–12 个词，绝不超过 30 个词。
 - 可以低俗、抽象、轻度损，但不得骚扰、歧视、身体羞辱、性化未成年人、针对真人恶意羞辱或复制他人评论。
-- 没有合格候选就跳过；零评论是合法结果，禁止为数量硬发。
+- 没有合格候选就跳过，零评论合法，不为数量硬发。
 
-如果同一账号和浏览器 runtime 没有连续可复用的评论持久化证据，先在第一个合格 core 候选上做一次已授权 persistence gate：只提交一次，然后刷新或重新打开，验证准确 `@handle` 和精确文本仍可见。验证通过后才启用后续 autonomous comments。
+没有连续可复用的评论持久化证据时，先做一次已授权 persistence gate：只提交一次，刷新或重新打开后确认准确 `@handle` 与精确文本仍可见。验证通过才启用后续自动评论。
 
-第一次失败、消失、不确定提交、验证码、warning、限流、账号变化或 hard runtime 变化会立即停用 comment lane，且不得重试。
+第一次失败、消失、不确定、验证码、warning、限流、账号变化或 hard runtime 变化立即停用 comment lane，不重试。
 
-本 Prompt **不授权**点赞、收藏、评论点赞、关注、回复、`Not interested`、发视频、改 profile、分享或私信。这些 lane 保持 `disabled` 或 `untested`，直到用户以后单独授权并各自完成持久化验证。
+本 Prompt不授权点赞、收藏、评论点赞、关注、回复、`Not interested`、发视频、改 profile、分享或私信。
 
-## 硬边界
+## 停止与生命周期
 
-- 不输入或保存凭据，不替用户处理 CAPTCHA、OTP、passkey 或恢复码。
-- 不批量注册账号、不群控、不 mass-comment、不操纵互动、不规避平台执法。
-- 原生滑动用于保持 feed 顺序与播放证据，不用于模拟真人或 stealth；不添加随机停顿、鼠标抖动或伪装行为。
-- 点赞、收藏、评论、评论点赞、关注、回复、`Not interested`、发帖和 profile 修改是彼此独立的能力，不能互相推断。
-- 点击、按钮高亮、数字动画、toast 或网络响应都不是持久化证据。
+- 用户说停止时，coordinator 向 executor 发送 `STOP_AND_RELEASE`。Executor 释放 Chrome、写 final checkpoint、callback `completed`，两条 Thread 都保留为 idle、unarchived。
+- 只有用户明确要求归档时才归档运营 Threads。
+- Executor 消失时，先检查 Chrome 所有权与 uncertain submission；只有用户明确授权后才创建新的 Luna/High 持久化 executor 并重新握手。
+- Coordinator 消失时，executor 停止 mutation、释放 Chrome 并等待，不猜测新的 callback 目标。
 
-## 维护与发布
+## 发布维护
 
-Skill 的 `references/distribution-and-upgrades.md` 是维护协议。任何 material change 必须递增版本、同步 README 与完整 Skill、重建本地最新版 ZIP，并从新的 GitHub public archive 反向下载验证。公共仓库不得包含凭据、cookies、Chrome profile、TikTok 导出、ledger 或账号私有数据。
+Skill 的 `references/distribution-and-upgrades.md` 是维护协议。任何 material change 都必须递增版本、同步 README 与完整 Skill、重建本地 ZIP，并从新的 GitHub archive 反向验证。公共仓库不得包含凭据、cookies、Chrome profile、TikTok 导出、ledger 或账号私有数据。
