@@ -43,6 +43,8 @@ Before enabling autonomous comments in a browser/runtime, require at least one p
 
 Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
 
+For proactive comments, record later organic likes and substantive replies when visible at normal review checkpoints. Use them to compare joke specificity, audience language, and community fit. Do not treat raw comment-like count as proof of recommendation weight, and do not rewrite comments into engagement bait merely to chase reactions.
+
 ## Comment reply packet
 
 Record the post URL, comment text/author, relationship to the account, reason to reply, factual basis, draft, tone, disclosure risk, and whether the reply makes a product claim. Confirm the exact bounded packet before sending.
