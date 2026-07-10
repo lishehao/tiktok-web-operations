@@ -1,0 +1,4 @@
+interface:
+  display_name: "TikTok Web Operations"
+  short_description: "Run a parent-child TikTok operations system"
+  default_prompt: "Use $tiktok-web-operations to make this Thread the TikTok main coordinator and spawn one subordinate Chrome driver."
