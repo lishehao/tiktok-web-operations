@@ -101,7 +101,7 @@ Keep these feedback lanes separate:
 
 - **Passive consumption:** view, completion, replay, early skip, opening creator/hashtag/sound. Observe directionally; do not claim a known ranking weight.
 - **Explicit negative:** `Not interested` only for clearly harmful-to-direction content. Require exact-post confirmation and a one-action capability test before using it as a lane.
-- **Explicit positive:** post like, favorite, or TikTok Repost only on strong-core content under exact or standing authorization. Use one separately authorized test per lane and enable continued use only after independent persistence proof. Repost is not generic Share, copy-link, or send-to-recipient.
+- **Explicit positive:** post like, favorite, or TikTok Repost only on strong-core content under exact or standing authorization. Use one separately authorized test per lane and enable continued use only after independent persistence proof. Repost is not generic Share, copy-link, or send-to-recipient. Opening the Share sheet is allowed read-only when needed to reveal an explicit Repost control; every other target in the sheet remains excluded.
 - **Community feedback:** comment like is its own capability type. Use it only for a comment that genuinely represents the desired community voice; do not mass-like comment sections.
 - **Social participation:** proactive comments require either exact confirmation or a matching active autonomous-comment envelope; replies still require exact confirmation. Submit once and require post-reload visibility.
 
