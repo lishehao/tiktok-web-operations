@@ -7,10 +7,10 @@ Assume the persistent `execution_thread` role defined in `operating-model.md`. T
 ## Calibration state machine
 
 1. **Audit** — Verify account identity, warnings, current feature visibility, driver ownership, and per-action capability state.
-2. **Baseline** — Sample the native For You feed in order. Record core/adjacent/irrelevant/harmful labels without outward actions.
+2. **Baseline** — Enter native For You once, then sample one continuous feed in order. Record core/adjacent/irrelevant/harmful labels without outward actions or page resets.
 3. **Seed** — Search one approved topic cluster. Open results from the search surface and watch enough to classify the setup and payoff.
 4. **Bridge** — Explore a relevant hashtag, creator, sound, or related-search path when it adds audience context rather than pure virality.
-5. **Re-sample** — Return to For You and measure whether the visible mix moved toward the target. Report composition, not causal certainty.
+5. **Re-sample** — After all search/bridge work is finished, enter For You once and measure one continuous native sequence. Report composition, not causal certainty.
 6. **Prepare feedback** — Build an exact packet for actions requiring confirmation, or select an eligible post like, favorite, or proactive comment when a matching standing envelope is active.
 7. **Authorize and execute** — Use exact action-time confirmation or the matching standing envelope, run one action once, and apply its independent persistence gate.
 8. **Reconcile** — Update the ledger, capability matrix, search seeds, exclusions, and next read-only calibration phase.
@@ -26,8 +26,10 @@ Use one block as the repeatable unit for a new, sparse, or visibly off-direction
 3. For each cluster, inspect five results in order. Count product/storefront, stale, adjacent, and irrelevant results in the denominator instead of silently cherry-picking only good posts.
 4. For each result, record source query, URL, freshness, creator, relevance label, whether the setup/payoff was understood, and whether the comment culture supports participation.
 5. When `autonomous_comment_mode` is active, comment only on a strong `core` result. Expect roughly zero or one qualifying comment per five results, but never treat that as a quota; zero is valid.
-6. After 15 search-result observations, return to For You and sample 20 sequential items through native scrolling. Do not open only attractive cards or replace bad results.
-7. Compute the block composition and choose the next mode with the heuristic below.
+6. After 15 search-result observations, enter For You once and sample 20 sequential items on that same page through the visible native next/down control or one incremental scroll per transition. Do not open only attractive cards, replace bad results, reload, reopen Home, call `goto` on the home route, or navigate away between positions.
+7. Record the exact before/after creator, URL, or stable card identity plus the transition action for every advance. If the feed does not advance, repeats unexpectedly, loses identity, or would require a reset, record `transition_failure`/`duplicate` and stop the checkpoint. Never reset to manufacture a sample.
+8. Append ledger checkpoints after each five-result search cluster and after For You positions 1, 5, 10, 15, and 20. A shorter or failed checkpoint is appended at its final observed position.
+9. Compute the block composition and choose the next mode with the heuristic below.
 
 Five items are an exploration unit for one search cluster, not enough to judge the recommendation feed. Twenty sequential For You items are the minimum default checkpoint; retain larger rolling samples when available.
 
@@ -67,6 +69,10 @@ Prefer recent posts from roughly the last 30 days when suitable current results 
 
 Prefer native next/previous controls or incremental scroll/wheel gestures when they preserve playback, ordered feed context, and visible watch state. Direct URLs are appropriate for exact verification and revisiting candidates, but they are not a complete replacement for feed sampling.
 
+For You sampling is one continuous-session invariant. Initial entry before position 1 may use the normal TikTok navigation link. After position 1, remain on the same page and preserve feed order. Do not use reload, `goto`, Home reopening, direct-post navigation, or a second For You entry as an ordinary transition. A reset is permitted only after the current block is explicitly stopped and reported as a separate hard recovery; recovered items belong to a new checkpoint, never the old denominator.
+
+For every transition store `position_before`, `identity_before`, `action`, `position_after`, `identity_after`, and `advanced=true|false`. A repeated identity stays in the raw denominator and is labeled `duplicate`; a control that does not advance or destroys stable identity is `transition_failure`. Stop rather than disguising either condition.
+
 The purpose is interface fidelity, not stealth. Never randomize timing, move the pointer artificially, insert fake indecision, or claim to be human. Respect CAPTCHA, verification, warnings, and rate limits.
 
 Watch long enough to understand the content. Do not encode a universal dwell-time formula: video length, clarity, replay need, and the research objective vary. Record whether the premise/payoff was understood, not a fabricated human-behavior score.
@@ -101,7 +107,7 @@ Do not stack like + favorite + comment on every good post. Use distinct posts fo
 
 ## Ledger and capability matrix
 
-For each viewed item record timestamp, source surface, ordered position when available, URL, freshness, creator, topic cluster, relevance label, premise/payoff understood, action candidate, and risk. For each block, summarize search denominators plus For You core/directional/drift shares.
+For each viewed item record timestamp, source surface, ordered position when available, URL, freshness, creator, topic cluster, relevance label, premise/payoff understood, action candidate, and risk. For each block, summarize search denominators plus For You core/directional/drift shares. Persist incrementally after every search cluster and every five For You positions, including the first and final/failed positions, so a runtime failure cannot erase the whole block.
 
 Track each action type as `untested`, `verified`, `failed`, `unverified`, or `disabled`, with account, browser/runtime, test URL, timestamp, immediate state, reload state, account-level state, and stop reason. `not_executed` is a batch result, not a capability result.
 

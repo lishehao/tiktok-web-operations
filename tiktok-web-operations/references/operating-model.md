@@ -21,12 +21,13 @@ After read-only dependency preflight:
 1. Use `list_projects` to select the current saved project when one is clearly available; otherwise create both as projectless local Threads. Use the same target type for both.
 2. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, account/audience defaults, and instruct it to wait for the executor registry without touching Chrome.
 3. Record the returned coordinator Thread ID and set title `TikTok 运营主任务`; pin it when the pin tool is available.
-4. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, sole Chrome ownership, ledger path, envelope, callback schema, and an instruction to send `THREAD_READY` to the coordinator with `send_message_to_thread` before doing mutations.
+4. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, sole Chrome ownership, ledger path, envelope, and callback schema, but must explicitly say: wait for `SELF_REGISTRY`; do not infer or guess your own Thread ID; do not send `THREAD_READY` and do not touch Chrome yet.
 5. Record the returned executor Thread ID and set title `TikTok Chrome执行任务`; pin it when available.
-6. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
-7. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor knows the exact coordinator ID, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`.
-8. The coordinator sends the first bounded block to the executor using its registered ID and Luna/High override. The executor begins only after the registry matches.
-9. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, and first dispatch are verified.
+6. Send `SELF_REGISTRY` to the returned executor ID with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`. Include the exact executor ID, coordinator ID, account, ledger, and sole-owner role. Only then may the executor echo those exact supplied IDs in `THREAD_READY` to the coordinator.
+7. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
+8. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor received that exact ID through `SELF_REGISTRY`, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`. Treat the callback transport `source_thread_id` plus bootstrap registry as authoritative; an ID mismatch blocks dispatch until corrected.
+9. The coordinator sends the first bounded block to the executor using its registered ID and Luna/High override. The executor begins only after the registry matches.
+10. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, and first dispatch are verified.
 
 The bootstrap task is not an operating Thread. If creation or handshake partially fails, do not operate TikTok. Archive only the empty Threads created by this failed bootstrap, preserve evidence, and return one repair action.
 
@@ -75,7 +76,7 @@ For each message from the registered coordinator ID:
 
 1. Verify sender/registry, exact account, sole Chrome ownership, capability matrix, ledger tail, and stop conditions.
 2. Execute only the bounded block or exact authorized action.
-3. Write raw events and persistence evidence to the sole ledger.
+3. Write raw events and persistence evidence to the sole ledger incrementally at the checkpoints defined by the active block; do not buffer a full browsing block only in conversational state.
 4. Release Chrome control at block completion or blocker.
 5. Send one structured callback to the coordinator ID with Luna/High override.
 6. Become idle. Never start the next block independently and never create another Thread or subagent.
@@ -91,6 +92,7 @@ Every dispatch includes:
 - Target audience, core/adjacent/excluded ontology, language, and region.
 - Approved search/hashtag/creator/sound clusters.
 - Current calibration mode and sample parameters.
+- Continuous For You invariant: one initial entry, then same-page native next/down or incremental scroll only; no reload, Home reset, `goto`, or navigation-away between positions; exact before/after identity; stop and callback on `transition_failure` rather than resetting.
 - Capability matrix and disabled lanes.
 - Like/favorite/comment authorization, each lane's capability state, comment voice, hard 30-word maximum, exclusions, and revocation state.
 - Ledger path and sole-writer rule.

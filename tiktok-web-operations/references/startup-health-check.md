@@ -44,9 +44,9 @@ If blocked, return only the first repairable issue and impact, ending with `完�
 Follow `operating-model.md` exactly:
 
 1. Create `TikTok 运营主任务` with `gpt-5.6-luna/high` and record its Thread ID.
-2. Create `TikTok Chrome执行任务` with `gpt-5.6-luna/high`, give it the coordinator ID, and record its ID.
-3. Give the coordinator the executor ID and full operating envelope.
-4. Verify two-way registry plus executor `THREAD_READY` callback through `send_message_to_thread`.
+2. Create `TikTok Chrome执行任务` with `gpt-5.6-luna/high`, give it the coordinator ID, require it to wait for `SELF_REGISTRY`, and record the returned executor ID. It must not infer its own ID or touch Chrome yet.
+3. Send `SELF_REGISTRY` containing the exact returned executor ID to that executor; then give the coordinator the same executor ID and full operating envelope.
+4. Verify two-way registry plus executor `THREAD_READY` callback through `send_message_to_thread`; reject any payload ID that conflicts with callback `source_thread_id` or the bootstrap registry.
 5. Coordinator dispatches the first `search_heavy` block to the executor with Luna/High override.
 6. Confirm the executor received the block, navigate the app to the coordinator when possible, and archive only the bootstrap task.
 

@@ -69,6 +69,7 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 2. Confirm this exact Thread is the registered sole Chrome executor. Verify TikTok account, time context, visible warnings, and capabilities.
 3. Read account health, current page state, recent relevant history, and ledger tail.
 4. For recommendation work, run the bounded block in `references/persistent-feed-operations.md`; label `core`, `adjacent`, `irrelevant`, and `harmful_to_direction`.
+   Treat each For You checkpoint as one continuous native feed: enter once, then advance only with the visible next/down control or one incremental scroll on the same page. Never reload, reopen Home, call `goto` on the home route, or navigate away between sampled positions.
 5. Run Check A before drafting and Check B on the exact action. Never mechanically reuse a comment, caption, hook, or asset.
 6. Before any mutation, require exact action-time confirmation or a matching active standing action envelope.
 7. Execute one state-changing action at a time. Gate every action type independently and verify persisted state.
@@ -85,6 +86,8 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
 - Use native next/previous controls and incremental scrolling for feed fidelity, never stealth. Do not add random delays, cursor jitter, or fake human behavior.
+- A For You checkpoint is invalid if page resets are used to obtain later samples. Record exact before/after card identity for every transition. If native movement does not advance, repeats a card, loses identity, or would require a reset, record `transition_failure` or `duplicate` and stop the checkpoint; never reset to manufacture another item. Reset is allowed only for the initial entry before position 1 or a separately declared hard recovery after the block has stopped.
+- Append raw evidence incrementally: after each five-result search cluster and at For You positions 1, 5, 10, 15, and 20 (or the final position of a shorter block). Do not wait until the entire block ends to persist all observations.
 - Keep post likes, favorites, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
 - A standing vertical-feed envelope may authorize selective post likes, favorites, and proactive comments, but each lane must first pass its own one-action persistence gate. A failure disables only that lane; do not cancel unrelated authorized lanes unless a platform warning, challenge, or uncertain submission makes all mutation unsafe.
 - Use distinct strong-core posts for first like, favorite, and comment gates so one action does not contaminate another lane's evidence. After verification, choose the smallest genuine signal rather than stacking all three actions on each post.
