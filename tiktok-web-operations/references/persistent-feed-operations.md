@@ -11,8 +11,8 @@ Assume the persistent `execution_thread` role defined in `operating-model.md`. T
 3. **Seed** — Search one approved topic cluster. Open results from the search surface and watch enough to classify the setup and payoff.
 4. **Bridge** — Explore a relevant hashtag, creator, sound, or related-search path when it adds audience context rather than pure virality.
 5. **Re-sample** — Return to For You and measure whether the visible mix moved toward the target. Report composition, not causal certainty.
-6. **Prepare feedback** — Build an exact packet for actions requiring confirmation, or select an eligible proactive comment when a matching autonomous-comment envelope is active.
-7. **Authorize and execute** — Use exact action-time confirmation or the matching standing comment envelope, run one action once, and apply its independent persistence gate.
+6. **Prepare feedback** — Build an exact packet for actions requiring confirmation, or select an eligible post like, favorite, or proactive comment when a matching standing envelope is active.
+7. **Authorize and execute** — Use exact action-time confirmation or the matching standing envelope, run one action once, and apply its independent persistence gate.
 8. **Reconcile** — Update the ledger, capability matrix, search seeds, exclusions, and next read-only calibration phase.
 
 Loop through Baseline → Seed → Bridge → Re-sample. Do not stay indefinitely in For You when the feed is off-direction, and do not stay indefinitely in search because that prevents measuring the actual recommendation mix.
@@ -93,11 +93,11 @@ Keep these feedback lanes separate:
 
 - **Passive consumption:** view, completion, replay, early skip, opening creator/hashtag/sound. Observe directionally; do not claim a known ranking weight.
 - **Explicit negative:** `Not interested` only for clearly harmful-to-direction content. Require exact-post confirmation and a one-action capability test before using it as a lane.
-- **Explicit positive:** post like or favorite only when context-fit, confirmed, and independently proven persistent for this account/runtime.
+- **Explicit positive:** post like or favorite only on strong-core content under exact or standing authorization. Use one separately authorized test per lane and enable continued use only after independent persistence proof.
 - **Community feedback:** comment like is its own capability type. Use it only for a comment that genuinely represents the desired community voice; do not mass-like comment sections.
 - **Social participation:** proactive comments require either exact confirmation or a matching active autonomous-comment envelope; replies still require exact confirmation. Submit once and require post-reload visibility.
 
-Do not stack like + favorite + comment on every good post. Use the smallest justified signal. A natural operating profile includes many read-only decisions, a few prepared candidates, and sparse confirmed mutations.
+Do not stack like + favorite + comment on every good post. Use distinct posts for first capability gates, then the smallest justified signal. A natural operating profile includes many read-only decisions, a few strong candidates, and sparse verified mutations.
 
 ## Ledger and capability matrix
 
