@@ -34,7 +34,7 @@ Treat feed signals as hypotheses rather than known algorithm weights:
 | `Not interested` | Explicit negative feedback for clearly off-direction content | Exact post confirmation plus persistence check |
 | Post like | Lightweight positive feedback | Independent post-like persistence gate |
 | Favorite/save | Strong intent hypothesis; useful only if the account can prove persistence | Independent favorite persistence gate |
-| Post repost | Public redistribution hypothesis; use only when the post genuinely fits the account voice | Independent Repost persistence gate with `Repost`/`Undo repost` state; never substitute generic Share |
+| Post repost | Public redistribution hypothesis; use only when the post genuinely fits the account voice | Independent Repost persistence gate with `Repost`/`Undo repost` state; the Share sheet may be opened read-only to reach Repost, but no generic Share/copy/send target may be executed |
 | Comment like | Community-context feedback | Independent comment-like persistence gate |
 | Proactive comment or reply | Social participation and voice shaping | Exact text/post confirmation plus reload visibility |
 
