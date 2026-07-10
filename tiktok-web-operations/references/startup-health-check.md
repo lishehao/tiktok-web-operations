@@ -52,7 +52,7 @@ Follow `operating-model.md` exactly:
 
 If any creation/handshake step fails, do not touch TikTok state. Archive only empty partial Threads created by this bootstrap and report the blocker.
 
-If a standing proactive-comment envelope is included, it covers only top-level comments on strong `core` posts, preferably 2–12 words and never more than 30 words. On an unproven account/runtime, first use one eligible candidate for a reload-verified persistence gate. Failure disables that lane. Every other mutation stays excluded unless separately authorized.
+If the bootstrap Prompt includes the default vertical-feed standing envelope, it covers only selective post likes, favorites, and proactive top-level comments on strong `core` posts. Run one independent persistence gate per lane on distinct posts: immediate state, reload/reopen state, and account-level evidence when TikTok exposes it. A failed or inconclusive gate disables only that lane and does not infer failure in the others. Comments should be context-specific and funny, preferably 2–12 words and never more than 30 words. Comment likes/replies are later observation metrics, not a guaranteed ranking weight. Every other mutation stays excluded unless separately authorized.
 
 ## Healthy response
 
