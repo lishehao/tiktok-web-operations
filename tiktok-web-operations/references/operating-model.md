@@ -1,97 +1,116 @@
-# Main Thread And Subordinate Driver Model
+# Two Persistent Thread Operating Model
 
-Use one user-owned TikTok main Thread and exactly one subordinate Chrome driver agent spawned inside that Thread. The main Thread owns the system; no Skill-development or external coordinator Thread participates in runtime operations.
+Use two separate user-owned Codex Threads. Both are persistent sidebar tasks and both run `gpt-5.6-luna` with `thinking=high`. Never use a collaboration subagent for either role.
 
 ## Topology
 
 ```text
-User
-  └─ TikTok main Thread (`main_coordinator`)
-       └─ spawned subordinate agent (`chrome_driver`)
+Temporary bootstrap task
+  ├─ TikTok 运营主任务 (`coordination_thread`, Luna/High)
+  └─ TikTok Chrome执行任务 (`execution_thread`, Luna/High)
+
+After registration and handshake: archive temporary bootstrap task.
 ```
 
-The main coordinator is the only user-facing operational agent. The subordinate is the only Chrome operator. Do not create another user-owned Codex Thread for the driver, do not keep a third analyst agent, and do not let the child spawn descendants.
+The two operational Threads are peers connected by registered Thread IDs. The coordinator is user-facing and owns decisions. The executor is the only Chrome operator and owns raw evidence.
 
-## Startup contract
+## Bootstrap creation contract
 
-When the user asks the main Thread to start persistent TikTok operation:
+After read-only dependency preflight:
 
-1. Declare `main_coordinator` and read the relevant Skill references.
-2. Create a long-running goal only when the user explicitly requested persistent or continuing operation.
-3. Establish account, audience ontology, search clusters, exclusions, calibration mode, capability matrix, autonomous-comment envelope, ledger path, and stop conditions.
-4. Spawn exactly one subordinate agent named for the Chrome-driver role. Pass only the execution envelope and the parent agent path; do not pass an external Codex Thread callback ID.
-5. Record the child agent path and keep it as the sole driver. Reuse it with `followup_task`; do not spawn a new child for every block.
+1. Use `list_projects` to select the current saved project when one is clearly available; otherwise create both as projectless local Threads. Use the same target type for both.
+2. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, account/audience defaults, and instruct it to wait for the executor registry without touching Chrome.
+3. Record the returned coordinator Thread ID and set title `TikTok 运营主任务`; pin it when the pin tool is available.
+4. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, sole Chrome ownership, ledger path, envelope, callback schema, and an instruction to send `THREAD_READY` to the coordinator with `send_message_to_thread` before doing mutations.
+5. Record the returned executor Thread ID and set title `TikTok Chrome执行任务`; pin it when available.
+6. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
+7. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor knows the exact coordinator ID, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`.
+8. The coordinator sends the first bounded block to the executor using its registered ID and Luna/High override. The executor begins only after the registry matches.
+9. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, and first dispatch are verified.
 
-If the collaboration/subagent tools are unavailable, report that the two-agent system cannot start. Do not silently replace the child with a second user-owned background Thread.
+The bootstrap task is not an operating Thread. If creation or handshake partially fails, do not operate TikTok. Archive only the empty Threads created by this failed bootstrap, preserve evidence, and return one repair action.
+
+## Hard tool and model requirements
+
+Require these Codex App thread capabilities:
+
+- `list_projects`
+- `create_thread`
+- `read_thread`
+- `send_message_to_thread`
+- `set_thread_title`
+- `set_thread_archived`
+
+`set_thread_pinned` and `navigate_to_codex_page` are optional presentation features.
+
+Require `gpt-5.6-luna` with `thinking=high` for both thread creation and every operational cross-thread dispatch. The user explicitly selected this combination; do not fall back silently.
 
 ## Authority split
 
-| Concern | Main coordinator | Subordinate Chrome driver |
+| Concern | Coordination Thread | Execution Thread |
 |-|-|-|
-| User conversation and goal | Owns | Never owns |
-| Audience ontology and query strategy | Owns | Follows the current envelope |
-| Standing authorization and exact decisions | Owns | Executes only matching authority |
-| Child lifecycle and next-block dispatch | Owns | Cannot spawn or replace agents |
-| Chrome and TikTok UI | Must not touch while child exists | Sole owner |
-| Raw event/action ledger | Read-only consumer | Sole writer |
-| Capability evidence | Interprets and changes policy | Collects immediate, reload, and account-level proof |
-| Final reporting | Owns | Returns structured block results to parent |
+| User conversation and strategy | Owns | Never owns |
+| Audience/search strategy | Owns | Executes current envelope |
+| Authorization and decisions | Owns | Matches exact authority |
+| Thread registry and lifecycle | Owns | Cannot create/replace Threads |
+| Chrome and TikTok | Never touches | Sole owner |
+| Raw ledger | Read-only consumer | Sole writer |
+| Capability evidence | Interprets policy | Collects immediate/reload/account proof |
+| Reports | User-facing | Structured callback to coordinator |
 
-## Main coordinator loop
+## Coordinator loop
 
-1. Read the last child result and ledger checkpoint.
-2. Reconcile core/directional/drift shares, query quality, capability changes, authorization state, and risks.
-3. Decide the next bounded block: `search_heavy`, `mixed`, `feed_led`, capability verification, publishing execution, or safe stop.
-4. Send one concrete follow-up task to the existing child with acceptance criteria and the current envelope.
-5. Wait for the child result or a collaboration message. Do not operate Chrome locally and do not poll unrelated Codex Threads.
-6. Report to the user only when requested, when a decision is genuinely needed, or when a meaningful checkpoint/risk occurs.
+1. Receive an executor callback; read only the latest relevant 1–3 turns when more evidence is needed.
+2. Reconcile composition, query quality, capability changes, authorization, pending decisions, and risk.
+3. Decide the next bounded block or safe stop.
+4. If no user decision is needed, send one concrete next block to the same executor ID with `send_message_to_thread`, `model=gpt-5.6-luna`, and `thinking=high`.
+5. Mark the executor `running_current_task` and end the coordinator turn. Do not poll, touch Chrome, or busy-wait.
+6. Let the executor callback trigger the next coordinator turn.
 
-The main coordinator may continue this loop under its own goal. The child does not need its own persistent goal; it performs bounded blocks and returns control.
+Queue unrelated next work while the executor is running. Send an immediate amendment only when it corrects/overrides the current block or prevents unsafe/wasted work.
 
-## Subordinate driver loop
+## Executor loop
 
-For each assigned block:
+For each message from the registered coordinator ID:
 
-1. Confirm it is the sole Chrome driver and verify the logged-in account.
-2. Read the execution envelope, current mode, capability matrix, ledger tail, and stop conditions.
-3. Execute only the bounded block described in `persistent-feed-operations.md` or the exact authorized action.
-4. Write raw events and verification evidence to the driver-owned ledger.
-5. Release or safely hand off Chrome ownership when the block finishes or stops.
-6. Return one structured result to the parent and become idle. Wait for `followup_task`; do not start another block independently after returning.
+1. Verify sender/registry, exact account, sole Chrome ownership, capability matrix, ledger tail, and stop conditions.
+2. Execute only the bounded block or exact authorized action.
+3. Write raw events and persistence evidence to the sole ledger.
+4. Release Chrome control at block completion or blocker.
+5. Send one structured callback to the coordinator ID with Luna/High override.
+6. Become idle. Never start the next block independently and never create another Thread or subagent.
 
-The child may message the parent mid-block only for a new blocker, key risk, authorization mismatch, hard runtime change, or uncertain submission. Use the collaboration parent path, never Codex App thread messaging.
+Send a mid-block callback only for `blocked`, `validation_failed`, `needs_decision`, `key_risk`, authorization mismatch, hard runtime change, or uncertain submission.
 
 ## Execution envelope
 
-Each child dispatch includes:
+Every dispatch includes:
 
-- Parent agent path.
-- Exact TikTok account and Chrome ownership rule.
+- Coordinator and executor Thread IDs.
+- Exact TikTok account and sole Chrome ownership.
 - Target audience, core/adjacent/excluded ontology, language, and region.
 - Approved search/hashtag/creator/sound clusters.
-- Current calibration mode, block parameters, and latest core/directional/drift shares.
+- Current calibration mode and sample parameters.
 - Capability matrix and disabled lanes.
-- Comment authorization mode, voice, hard 30-word maximum, exclusions, and revocation state.
+- Comment authorization, voice, hard 30-word maximum, exclusions, and revocation state.
 - Ledger path and sole-writer rule.
 - Exact action authority when applicable.
-- Hard stop conditions and expected result schema.
+- Stop conditions and callback schema.
 
-Do not include a Skill-development Thread ID or instructions to call `send_message_to_thread`.
+Never include a Skill-development or bootstrap callback ID.
 
 ## Authorization protocol
 
-The main coordinator owns all authorization. For actions outside a standing envelope:
+For actions outside a standing envelope:
 
-1. Child returns a candidate packet to the parent.
-2. Main coordinator reviews it and obtains the user's exact decision when needed.
-3. Main sends the exact approved packet to the existing child with `followup_task`.
-4. Child verifies the live URL/account/text, executes once, verifies persistence, and returns the result.
+1. Executor returns a candidate packet to the coordinator.
+2. Coordinator obtains the user's exact decision.
+3. Coordinator sends the approved packet to the same executor Thread.
+4. Executor verifies live URL/account/text, executes once, verifies persistence, and callbacks the result.
 
-For `autonomous_comment_mode`, the main sends the complete standing envelope once and keeps it in coordinator state. The child may publish matching proactive top-level comments without per-item approval, must reload-verify every send, and must stop that lane on the first new persistence failure, removal, warning, throttle, challenge, uncertain submission, account mismatch, or hard browser/runtime change. A proven soft control reconnect preserves the envelope.
+Under `autonomous_comment_mode`, the executor may publish matching proactive top-level comments without per-item approval, must reload-verify every send, and must stop that lane on the first failure, removal, warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change.
 
-## Result protocol
-
-Return one object or clearly structured report after every bounded block:
+## Callback schema
 
 ```text
 status: completed | blocked | validation_failed | needs_decision | key_risk
@@ -108,17 +127,15 @@ ledger_path:
 recommended_next_block:
 ```
 
-Routine successful comments and read-only events stay in the ledger during the block. The block result aggregates them for the parent; it is not sent to another Codex Thread.
+## Persistence and recovery
 
-## Lifecycle and recovery
+- Keep both user-owned Threads idle between turns; idleness does not end persistence.
+- Prefer soft-hook callbacks. Use a heartbeat only for an explicitly time-based wakeup, an unreliable callback path, or an explicit user request.
+- On user stop, coordinator sends `STOP_AND_RELEASE` to the executor. Executor releases Chrome, writes a final checkpoint, callbacks `completed`, and both Threads remain idle and unarchived.
+- Archive either operating Thread only when the user explicitly asks.
+- If the executor disappears or becomes unusable, coordinator first checks uncertain submissions and Chrome ownership. Create a replacement persistent Luna/High executor only with explicit user authorization, update the registry, and repeat the handshake.
+- If the coordinator disappears, executor stops mutation, releases Chrome, and waits. It must not redirect reports to another Thread by guesswork.
 
-- Keep exactly one subordinate driver alive or idle at a time.
-- Use `followup_task` to reuse an idle child. Use `send_message` only for tightly related mid-run corrections or risk prevention.
-- Use `interrupt_agent` when the user stops operation or the child must release Chrome immediately.
-- If the child disappears, confirm Chrome ownership and uncertain submissions before spawning a replacement.
-- On user stop, main interrupts the child, requires Chrome release and a final ledger checkpoint, then ends its own operating goal. The Skill-development Thread remains uninvolved.
-- Archive or retire a user-owned main Thread only at the user's request; subordinate-agent cleanup belongs to that main Thread.
+## No fallback
 
-## Single-agent fallback
-
-Use a single Thread that combines coordinator and driver roles only when the user explicitly asks not to use the two-agent architecture or collaboration tools are unavailable and the user accepts the fallback. Keep Chrome serialization, authorization, verification, and ledger rules unchanged.
+Do not replace this topology with a subagent, agent tree, single combined Thread, different model, or different thinking level. If a hard requirement is unavailable, report the exact blocker before TikTok operation starts.
