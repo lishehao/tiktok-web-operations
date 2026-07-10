@@ -1,0 +1,71 @@
+# Engagement And Analytics
+
+## Engagement order
+
+1. Read account warnings and creator/account notifications.
+2. Read comments on the account's own recent posts.
+3. Use comment insights when available to find recurring topics, questions, suggestions, and confusion.
+4. Draft replies only where the account can add a concrete answer, clarification, acknowledgment, or useful follow-up.
+5. Treat proactive comments on other creators' posts as a separate explicitly requested lane. Once requested, use `feed-browsing-and-comments.md`; do not turn it into an activity quota.
+
+Do not set a reply quota. Do not copy-paste replies, use repetitive CTAs, insert irrelevant promotion, or reply merely to inflate activity.
+
+Before enabling any active engagement lane for a browser/account combination, run one bounded persistence test per action type. Treat at least these as distinct types: post like, favorite/save, proactive comment, own-post reply, comment like, `Not interested`, follow, publish, and profile edit. Require:
+
+1. Immediate UI state change.
+2. The same state after reload or reopening the post.
+3. Account-level evidence when TikTok exposes it.
+
+If any required signal fails, disable that action type for the session. Do not infer that a sibling type failed; test it later only through a separately confirmed one-action packet. Keep research, comment reading, drafting, Studio management, and analytics available.
+
+Comment drafting is not comment publication. Use either exact per-item confirmation or a currently active standing autonomous-comment envelope. Submit once, then reload the post and locate the account's comment before recording success.
+
+Gate active engagement per action type, not per account. A verified comment does not re-enable likes, favorites, follows, or any action whose own persistence test failed or remains inconclusive.
+
+## Directional feedback ladder
+
+Treat feed signals as hypotheses rather than known algorithm weights:
+
+| Signal | Operational use | Gate |
+|-|-|-|
+| Short view / early skip | Passive observation of weak fit | Read-only, but do not claim a known recommendation effect |
+| Completed view / replay / creator or hashtag exploration | Stronger evidence of genuine relevance | Read-only when no outward control is changed |
+| Search and open a result cluster | Seed a missing topic and gather candidates | Read-only |
+| `Not interested` | Explicit negative feedback for clearly off-direction content | Exact post confirmation plus persistence check |
+| Post like | Lightweight positive feedback | Independent post-like persistence gate |
+| Favorite/save | Strong intent hypothesis; useful only if the account can prove persistence | Independent favorite persistence gate |
+| Comment like | Community-context feedback | Independent comment-like persistence gate |
+| Proactive comment or reply | Social participation and voice shaping | Exact text/post confirmation plus reload visibility |
+
+For proactive comments, the gate may instead be an active `autonomous_comment_mode` envelope. This exception does not apply to replies, comment likes, follows, favorites, post likes, `Not interested`, publishing, profile edits, or DMs.
+
+Before enabling autonomous comments in a browser/runtime, require at least one proactive-comment persistence test that survives reload. After activation, verify every comment; routine successes stay in the ledger, while the first new persistence failure, removal, warning, throttle, CAPTCHA, or submission uncertainty disables autonomous comments and triggers an event callback.
+
+Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
+
+## Comment reply packet
+
+Record the post URL, comment text/author, relationship to the account, reason to reply, factual basis, draft, tone, disclosure risk, and whether the reply makes a product claim. Confirm the exact bounded packet before sending.
+
+## History ledger
+
+Track at minimum:
+
+- Post URL/ID, publish/schedule time, language, region, pillar, format, hook, footage, sound, cover, caption, hashtags, disclosure, and rights source.
+- Comment/reply URL or parent context, draft, sent time, and result.
+- Views, average watch time, completion/retention when available, likes, comments, shares, saves/favorites, profile visits, follows, traffic source, audience activity, and moderation state.
+- Measurement timestamp and source surface. Do not compare metrics captured at different ages without labeling the difference.
+
+## Review windows
+
+Use 24 hours, 72 hours, and 7 days as operational observation windows, not official TikTok thresholds. For a new or sparse account, establish a baseline before declaring a winner.
+
+Compare content on:
+
+- First-second and early retention when available.
+- Average watch time and completion.
+- Shares, saves/favorites, and substantive comments.
+- Profile visits and follows relative to views.
+- Comment themes, questions, confusion, and repeated audience language.
+
+Do not optimize only for views. A smaller post that produces strong saves, shares, profile visits, or clear audience language can be more useful for Loci.
