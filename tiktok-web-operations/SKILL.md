@@ -69,7 +69,7 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 2. Confirm this exact Thread is the registered sole Chrome executor. Verify TikTok account, time context, visible warnings, and capabilities.
 3. Read account health, current page state, recent relevant history, and ledger tail.
 4. For recommendation work, run the bounded block in `references/persistent-feed-operations.md`; label `core`, `adjacent`, `irrelevant`, and `harmful_to_direction`.
-   Treat each For You checkpoint as one continuous native feed: enter once, then advance only with the visible next/down control or one incremental scroll on the same page. Never reload, reopen Home, call `goto` on the home route, or navigate away between sampled positions.
+   Treat each For You checkpoint as one continuous native feed: enter once, then use the visible TikTok next/down control as the default transition. An incremental scroll is allowed only in a separately declared fallback block when no unambiguous visible control exists; never mix button and scroll transitions inside one checkpoint. Never reload, reopen Home, call `goto` on the home route, or navigate away between sampled positions.
 5. Run Check A before drafting and Check B on the exact action. Never mechanically reuse a comment, caption, hook, or asset.
 6. Before any mutation, require exact action-time confirmation or a matching active standing action envelope.
 7. Execute one state-changing action at a time. Gate every action type independently and verify persisted state.
@@ -85,7 +85,7 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 - Use only registered cross-thread IDs. The executor reports solely to `TikTok 运营主任务`; never callback to a Skill-development or bootstrap task.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
-- Use native next/previous controls and incremental scrolling for feed fidelity, never stealth. Do not add random delays, cursor jitter, or fake human behavior.
+- Prefer TikTok's visible native next/down control for feed fidelity. Use incremental scrolling only when the control is unavailable and the coordinator explicitly dispatches a scroll-only fallback block. Never switch transition methods inside one checkpoint. Do not add random delays, cursor jitter, or fake human behavior.
 - A For You checkpoint is invalid if page resets are used to obtain later samples. Record exact before/after card identity for every transition. If native movement does not advance, repeats a card, loses identity, or would require a reset, record `transition_failure` or `duplicate` and stop the checkpoint; never reset to manufacture another item. Reset is allowed only for the initial entry before position 1 or a separately declared hard recovery after the block has stopped.
 - Append raw evidence incrementally: after each five-result search cluster and at For You positions 1, 5, 10, 15, and 20 (or the final position of a shorter block). Do not wait until the entire block ends to persist all observations.
 - Keep post likes, favorites, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.

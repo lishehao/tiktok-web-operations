@@ -2,7 +2,7 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。仓库顶层只保留本 README 和 `tiktok-web-operations/` Skill 目录。
 
-Protocol version: `2026.07.10.6`
+Protocol version: `2026.07.10.7`
 
 ## 给用户的两句启动 Prompt
 
@@ -152,8 +152,8 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 1. 选择三个不同的批准搜索簇。
 2. 每簇按顺序观察五条结果，合计十五条；商品、陈旧、adjacent 和 irrelevant 都计入分母。
 3. 记录 query、URL、creator、freshness、relevance、setup/payoff 和评论区文化。
-4. 完成全部搜索后只进入一次 For You，把它当作同一条连续自然流；位置 1 之后只能使用页面上可见的 next/down 控件或一次增量滚动前进。
-5. 每次前进记录准确的 before/after creator、URL 或稳定卡片身份。禁止中途 reload、重新打开 Home、`goto` 首页、离开页面后重进；不能前进、重复或身份丢失时记录 `transition_failure`/`duplicate` 并停止，绝不重置页面补样本。
+4. 完成全部搜索后只进入一次 For You，把它当作同一条连续自然流；位置 1 之后默认只点击页面上可见的 TikTok next/down 控件，每次只点一次。开始前记录该按钮的 accessibility/locator 证据。
+5. 每次前进记录准确的 before/after creator、URL 或稳定卡片身份。禁止中途 reload、重新打开 Home、`goto` 首页、离开页面后重进；不能前进、重复或身份丢失时记录 `transition_failure`/`duplicate` 并停止，绝不重置页面补样本。只有按钮不存在或无法明确识别时，coordinator 才能另开一个 scroll-only fallback block；同一 checkpoint 不能混用按钮和滚轮。
 6. 每个五条搜索簇结束后，以及 For You 的 1、5、10、15、20（或提前停止的最终位置）增量写入 ledger。
 7. 计算 core/directional/drift shares，并按 Skill 的 `persistent-feed-operations.md` 选择下一模式。
 8. Executor callback 完整 block；coordinator 再派下一轮。

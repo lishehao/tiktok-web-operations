@@ -26,7 +26,7 @@ Use one block as the repeatable unit for a new, sparse, or visibly off-direction
 3. For each cluster, inspect five results in order. Count product/storefront, stale, adjacent, and irrelevant results in the denominator instead of silently cherry-picking only good posts.
 4. For each result, record source query, URL, freshness, creator, relevance label, whether the setup/payoff was understood, and whether the comment culture supports participation.
 5. When `autonomous_comment_mode` is active, comment only on a strong `core` result. Expect roughly zero or one qualifying comment per five results, but never treat that as a quota; zero is valid.
-6. After 15 search-result observations, enter For You once and sample 20 sequential items on that same page through the visible native next/down control or one incremental scroll per transition. Do not open only attractive cards, replace bad results, reload, reopen Home, call `goto` on the home route, or navigate away between positions.
+6. After 15 search-result observations, enter For You once and sample 20 sequential items on that same page through the visible native next/down control. Do not open only attractive cards, replace bad results, reload, reopen Home, call `goto` on the home route, or navigate away between positions. If no unambiguous down/next control exists, stop; a coordinator may later declare a separate scroll-only fallback checkpoint, but methods must not be mixed.
 7. Record the exact before/after creator, URL, or stable card identity plus the transition action for every advance. If the feed does not advance, repeats unexpectedly, loses identity, or would require a reset, record `transition_failure`/`duplicate` and stop the checkpoint. Never reset to manufacture a sample.
 8. Append ledger checkpoints after each five-result search cluster and after For You positions 1, 5, 10, 15, and 20. A shorter or failed checkpoint is appended at its final observed position.
 9. Compute the block composition and choose the next mode with the heuristic below.
@@ -67,7 +67,9 @@ Prefer recent posts from roughly the last 30 days when suitable current results 
 
 ## Native browsing versus imitation
 
-Prefer native next/previous controls or incremental scroll/wheel gestures when they preserve playback, ordered feed context, and visible watch state. Direct URLs are appropriate for exact verification and revisiting candidates, but they are not a complete replacement for feed sampling.
+Prefer the visible native next/down control when it preserves playback, ordered feed context, and visible watch state. Before position 1, record how the control was identified through accessible name, role, stable UI placement, or another unambiguous locator. Click it exactly once per transition and verify the before/after identity packet before continuing.
+
+Incremental scroll/wheel gestures are a fallback, not a peer default. Use them only in a separately declared scroll-only checkpoint when the visible control is absent or cannot be identified unambiguously. Never mix button and scroll transitions in one checkpoint, because mixed methods make failures and repeats harder to attribute. Direct URLs remain appropriate for exact verification and revisiting candidates, but they are not a replacement for feed sampling.
 
 For You sampling is one continuous-session invariant. Initial entry before position 1 may use the normal TikTok navigation link. After position 1, remain on the same page and preserve feed order. Do not use reload, `goto`, Home reopening, direct-post navigation, or a second For You entry as an ordinary transition. A reset is permitted only after the current block is explicitly stopped and reported as a separate hard recovery; recovered items belong to a new checkpoint, never the old denominator.
 
