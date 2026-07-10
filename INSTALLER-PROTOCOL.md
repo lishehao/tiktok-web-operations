@@ -2,7 +2,7 @@
 
 Machine execution protocol. Follow it directly after the user-facing bootstrap Prompt fetches this file. Do not ask the user to read or copy this protocol.
 
-Protocol version: `2026.07.10.1`
+Protocol version: `2026.07.10.2`
 
 ## Canonical distribution
 
