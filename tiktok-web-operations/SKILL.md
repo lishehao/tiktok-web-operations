@@ -36,6 +36,7 @@ The main Thread must spawn exactly one `chrome_driver` through the collaboration
 |-|-|
 | Inspect, explain, install, or troubleshoot | `references/runtime-and-recovery.md` |
 | Install from GitHub, run dependency checks, or bootstrap a fresh operating Thread | `references/startup-health-check.md`, `references/runtime-and-recovery.md`, and `references/operating-model.md` |
+| Package, publish, upgrade, or distribute this Skill | `references/distribution-and-upgrades.md` |
 | Broad request such as `帮我运营 TikTok` | all references except load only the relevant sections |
 | Research trends or choose content | `references/loci-content-system.md` and `references/platform-boundaries.md` |
 | Browse/scroll videos or leave short comments | `references/feed-browsing-and-comments.md`, `references/engagement-and-analytics.md`, and `references/platform-boundaries.md` |
