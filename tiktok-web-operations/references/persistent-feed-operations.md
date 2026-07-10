@@ -2,7 +2,7 @@
 
 Use this reference for long-running feed calibration, keyword/community seeding, or user-requested multi-task operation.
 
-Assume the subordinate `chrome_driver` role defined in `operating-model.md`. This file defines browsing and recommendation-calibration behavior only; it does not grant authority or change the main/child ownership model.
+Assume the persistent `execution_thread` role defined in `operating-model.md`. This file defines browsing and recommendation-calibration behavior only; it does not grant authority or change the two-Thread ownership model.
 
 ## Calibration state machine
 
