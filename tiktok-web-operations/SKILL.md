@@ -50,7 +50,7 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
 | `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, follows, or comments. |
 | `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Use the two persistent user-owned Threads. The coordinator dispatches bounded blocks to the same execution Thread with `send_message_to_thread`. |
-| `刷视频并评论`, `去发几个评论` | Find context-fit candidates, confirm the exact batch unless standing authorization applies, send once, and reload-verify. |
+| `刷视频并互动`, `点赞收藏评论`, `去发几个评论` | Find strong core candidates and use only independently verified like, favorite, or proactive-comment lanes covered by the exact standing envelope. |
 | `评论不用问我`, `自动发短评论` | Activate `autonomous_comment_mode` only for the exact account/audience/voice envelope; enforce the 30-word hard limit and every persistence stop rule. |
 | `发视频`, `上传`, `排期` | Validate the exact asset/settings, confirm, execute one item, and verify. |
 | `看数据`, `复盘` | Use account/TikTok Studio analytics read-only. |
@@ -70,7 +70,7 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 3. Read account health, current page state, recent relevant history, and ledger tail.
 4. For recommendation work, run the bounded block in `references/persistent-feed-operations.md`; label `core`, `adjacent`, `irrelevant`, and `harmful_to_direction`.
 5. Run Check A before drafting and Check B on the exact action. Never mechanically reuse a comment, caption, hook, or asset.
-6. Before any mutation, require exact action-time confirmation or a matching active standing comment envelope.
+6. Before any mutation, require exact action-time confirmation or a matching active standing action envelope.
 7. Execute one state-changing action at a time. Gate every action type independently and verify persisted state.
 8. Update the sole-writer ledger.
 9. At block completion or a meaningful event, call `send_message_to_thread` to the registered coordinator ID with `model=gpt-5.6-luna`, `thinking=high`, and the structured result. Then become idle until the next message.
@@ -86,8 +86,11 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 - Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
 - Use native next/previous controls and incremental scrolling for feed fidelity, never stealth. Do not add random delays, cursor jitter, or fake human behavior.
 - Keep post likes, favorites, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
+- A standing vertical-feed envelope may authorize selective post likes, favorites, and proactive comments, but each lane must first pass its own one-action persistence gate. A failure disables only that lane; do not cancel unrelated authorized lanes unless a platform warning, challenge, or uncertain submission makes all mutation unsafe.
+- Use distinct strong-core posts for first like, favorite, and comment gates so one action does not contaminate another lane's evidence. After verification, choose the smallest genuine signal rather than stacking all three actions on each post.
 - Do not set engagement quotas. Zero outward actions is valid when quality, audience fit, rights, or persistence gates fail.
 - Never automate account creation, operate accounts in bulk, manipulate engagement, evade enforcement, or distribute high-volume repetitive content.
+- Optimize comments for contextual wit and organic community response, not a claimed ranking formula. Record later comment likes/replies when visible, but never promise that they increase account weight and never use engagement bait.
 - Record content rights, disclosures, and AIGC labeling before publishing.
 - Use Chinese for user reports; retain exact URLs, handles, hashtags, and UI labels.
 
