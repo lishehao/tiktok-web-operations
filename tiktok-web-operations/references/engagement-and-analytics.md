@@ -10,7 +10,7 @@
 
 Do not set a reply quota. Do not copy-paste replies, use repetitive CTAs, insert irrelevant promotion, or reply merely to inflate activity.
 
-Before enabling any active engagement lane for a browser/account combination, run one bounded persistence test per action type. Treat at least these as distinct types: post like, favorite/save, proactive comment, own-post reply, comment like, `Not interested`, follow, publish, and profile edit. Require:
+Before enabling any active engagement lane for a browser/account combination, run one bounded persistence test per action type. Treat at least these as distinct types: post like, favorite/save, post repost, generic share, proactive comment, own-post reply, comment like, `Not interested`, follow, publish, and profile edit. Require:
 
 1. Immediate UI state change.
 2. The same state after reload or reopening the post.
@@ -20,7 +20,7 @@ If any required signal fails, disable that action type for the session. Do not i
 
 Comment drafting is not comment publication. Use either exact per-item confirmation or a currently active standing autonomous-comment envelope. Submit once, then reload the post and locate the account's comment before recording success.
 
-Gate active engagement per action type, not per account. A verified comment does not re-enable likes, favorites, follows, or any action whose own persistence test failed or remains inconclusive.
+Gate active engagement per action type, not per account. A verified comment does not re-enable likes, favorites, reposts, follows, or any action whose own persistence test failed or remains inconclusive.
 
 ## Directional feedback ladder
 
@@ -34,10 +34,11 @@ Treat feed signals as hypotheses rather than known algorithm weights:
 | `Not interested` | Explicit negative feedback for clearly off-direction content | Exact post confirmation plus persistence check |
 | Post like | Lightweight positive feedback | Independent post-like persistence gate |
 | Favorite/save | Strong intent hypothesis; useful only if the account can prove persistence | Independent favorite persistence gate |
+| Post repost | Public redistribution hypothesis; use only when the post genuinely fits the account voice | Independent Repost persistence gate with `Repost`/`Undo repost` state; never substitute generic Share |
 | Comment like | Community-context feedback | Independent comment-like persistence gate |
 | Proactive comment or reply | Social participation and voice shaping | Exact text/post confirmation plus reload visibility |
 
-For proactive comments, the gate may instead be an active `autonomous_comment_mode` envelope. This exception does not apply to replies, comment likes, follows, favorites, post likes, `Not interested`, publishing, profile edits, or DMs.
+For proactive comments, the gate may instead be an active `autonomous_comment_mode` envelope. This exception does not apply to replies, comment likes, follows, favorites, reposts, post likes, `Not interested`, publishing, profile edits, or DMs.
 
 Before enabling autonomous comments in a browser/runtime, require at least one proactive-comment persistence test that survives reload. After activation, verify every comment; routine successes stay in the ledger, while the first new persistence failure, removal, warning, throttle, CAPTCHA, or submission uncertainty disables autonomous comments and triggers an event callback.
 

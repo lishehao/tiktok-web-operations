@@ -2,13 +2,13 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。仓库顶层只保留本 README 和 `tiktok-web-operations/` Skill 目录。
 
-Protocol version: `2026.07.10.7`
+Protocol version: `2026.07.11.1`
 
 ## 给用户的两句启动 Prompt
 
 ```text
 请打开 https://github.com/lishehao/tiktok-web-operations，完整读取根目录 README.md，并按机器协议安装或升级 Skill、只读检查 Chrome/TikTok/thread 依赖，然后创建两个持久化用户 Threads——“TikTok 运营主任务”和“TikTok Chrome执行任务”——两者都强制使用 gpt-5.6-luna + high；完成双向回调握手后直接开始运营并归档当前 bootstrap 任务，绝不使用 subagent。
-默认方向为北美 college/dorm life，并授权在 strong core 视频上选择性点赞、收藏或发布简短玩梗顶层评论；点赞与收藏必须各自在不同视频上先通过一次刷新及账号级持久化 gate，评论优先 2–12 个英文词且绝不超过 30 个词，其他外部动作均未授权。
+默认方向为北美 college/dorm life；点赞保持停用，授权在不同的 strong core 视频上选择性收藏、TikTok Repost 或发布简短玩梗顶层评论，收藏与 Repost 必须分别先通过一次刷新及账号级持久化 gate，评论优先 2–12 个英文词且绝不超过 30 个词，generic Share 等其他外部动作均未授权。
 ```
 
 下面内容是执行任务必须完整读取一次的机器协议。用户不需要复制其余章节。
@@ -168,15 +168,16 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 
 排除 admissions、SAT/GPA、申请建议、纯学习鸡血和无校园生活语境的泛内容。
 
-## 点赞、收藏与自动评论授权
+## 收藏、Repost 与自动评论授权（点赞停用）
 
-用户发送顶部两句 Prompt 时，明确激活三个彼此独立的 lane：post like、favorite/save、proactive top-level comment。
+用户发送顶部两句 Prompt 时，保持 post like 停用，并激活三个彼此独立的 lane：favorite/save、post repost、proactive top-level comment。
 
-- 三个 lane 都只用于 strong `core` 视频。
-- 点赞和收藏分别选择不同视频做一次 one-action persistence gate：只点击一次，检查即时状态、刷新/重开状态，以及 TikTok 可提供的账号级证据。
+- 三个启用 lane 都只用于 strong `core` 视频。
+- 收藏和 Repost 分别选择不同视频做一次 one-action persistence gate：只执行一次，检查即时状态、刷新/重开状态，以及 TikTok 可提供的账号级证据。
+- Repost 只指 TikTok 的实际 `Repost`/`Undo repost` 状态，不能用 generic Share、复制链接或发送给他人替代。
 - Gate 通过后才允许该 lane 后续选择性使用；失败或证据不足只停用该 lane，不推断另外两个 lane 失败。
-- 不在同一个视频机械堆叠 like + favorite + comment；根据真实内容选择最小的合适信号。
-- 历史 `@shehaolili` post-like 失败和 favorite 未验证证据仍有效，除非本 Prompt 明确授权的新 gate 产生更强的持久化证据。
+- 不在同一个视频机械堆叠 favorite + repost + comment；根据真实内容选择最小的合适信号。
+- 历史 `@shehaolili` post-like 失败证据继续生效，不重试；favorite 未验证、repost 未测试，只有新 gate 产生持久化证据后才可启用。
 
 - 必须理解 setup/payoff，且评论区支持轻松玩梗。
 - 使用视频语言；英文优先 2–12 个词，绝不超过 30 个词。
@@ -188,7 +189,7 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 
 任一 lane 第一次失败、消失或证据不足时停用该 lane，不重试。验证码、warning、限流、账号变化、hard runtime 变化或 uncertain submission 会停止所有 mutation，直到重新审计。
 
-本 Prompt不授权评论点赞、关注、回复、`Not interested`、发视频、改 profile、分享或私信。
+本 Prompt不授权点赞、评论点赞、关注、回复、`Not interested`、发视频、改 profile、generic Share、复制链接、发送给他人或私信。
 
 ## 停止与生命周期
 

@@ -94,7 +94,7 @@ Every dispatch includes:
 - Current calibration mode and sample parameters.
 - Continuous For You invariant: one initial entry, then same-page native next/down or incremental scroll only; no reload, Home reset, `goto`, or navigation-away between positions; exact before/after identity; stop and callback on `transition_failure` rather than resetting.
 - Capability matrix and disabled lanes.
-- Like/favorite/comment authorization, each lane's capability state, comment voice, hard 30-word maximum, exclusions, and revocation state.
+- Like/favorite/repost/comment authorization, each lane's capability state, comment voice, hard 30-word maximum, exclusions, and revocation state. Keep Repost distinct from generic Share.
 - Ledger path and sole-writer rule.
 - Exact action authority when applicable.
 - Stop conditions and callback schema.
@@ -110,7 +110,7 @@ For actions outside a standing envelope:
 3. Coordinator sends the approved packet to the same executor Thread.
 4. Executor verifies live URL/account/text, executes once, verifies persistence, and callbacks the result.
 
-Under the default standing envelope, the executor may selectively like, favorite, or publish a proactive top-level comment on matching strong-core posts without per-item approval only after that exact lane passes its independent gate. Use separate first-gate posts, do not stack all actions mechanically, and stop only the failed lane unless a warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change makes all mutation unsafe. Every comment must be reload-verified.
+Under the packaged default standing envelope for `@shehaolili`, post like remains disabled; the executor may selectively favorite, repost, or publish a proactive top-level comment on matching strong-core posts without per-item approval only after that exact lane passes its independent gate. Use separate first-gate posts, never substitute generic Share for Repost, do not stack all actions mechanically, and stop only the failed lane unless a warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change makes all mutation unsafe. Every comment must be reload-verified. A different account may enable post like only through explicit authorization plus its own fresh gate.
 
 ## Callback schema
 

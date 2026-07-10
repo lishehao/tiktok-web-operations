@@ -8,7 +8,8 @@ description: >-
   authorization, publishing, comment follow-up, verification, and a
   two-persistent-thread coordinator/executor system. Use when the user asks to
   browse or scroll TikTok, train recommendations, search communities or
-  keywords, like/favorite/comment, operate, grow, audit, publish, schedule, or
+  keywords, like/favorite/repost/comment, operate, grow, audit, publish,
+  schedule, or
   maintain a TikTok account from the web, or package this workflow.
 ---
 
@@ -48,9 +49,9 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 |-|-|
 | `帮我运营 TikTok`, `开始运营` | Run read-only preflight, then build the smallest useful operating batch. Outward actions still require exact confirmation unless a matching standing envelope is active. |
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
-| `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, follows, or comments. |
+| `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, reposts, follows, or comments. |
 | `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Use the two persistent user-owned Threads. The coordinator dispatches bounded blocks to the same execution Thread with `send_message_to_thread`. |
-| `刷视频并互动`, `点赞收藏评论`, `去发几个评论` | Find strong core candidates and use only independently verified like, favorite, or proactive-comment lanes covered by the exact standing envelope. |
+| `刷视频并互动`, `点赞收藏评论`, `收藏并 repost`, `去发几个评论` | Find strong core candidates and use only independently verified like, favorite, repost, or proactive-comment lanes covered by the exact standing envelope. Treat Repost as distinct from generic Share. |
 | `评论不用问我`, `自动发短评论` | Activate `autonomous_comment_mode` only for the exact account/audience/voice envelope; enforce the 30-word hard limit and every persistence stop rule. |
 | `发视频`, `上传`, `排期` | Validate the exact asset/settings, confirm, execute one item, and verify. |
 | `看数据`, `复盘` | Use account/TikTok Studio analytics read-only. |
@@ -88,9 +89,10 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 - Prefer TikTok's visible native next/down control for feed fidelity. Use incremental scrolling only when the control is unavailable and the coordinator explicitly dispatches a scroll-only fallback block. Never switch transition methods inside one checkpoint. Do not add random delays, cursor jitter, or fake human behavior.
 - A For You checkpoint is invalid if page resets are used to obtain later samples. Record exact before/after card identity for every transition. If native movement does not advance, repeats a card, loses identity, or would require a reset, record `transition_failure` or `duplicate` and stop the checkpoint; never reset to manufacture another item. Reset is allowed only for the initial entry before position 1 or a separately declared hard recovery after the block has stopped.
 - Append raw evidence incrementally: after each five-result search cluster and at For You positions 1, 5, 10, 15, and 20 (or the final position of a shorter block). Do not wait until the entire block ends to persist all observations.
-- Keep post likes, favorites, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
-- A standing vertical-feed envelope may authorize selective post likes, favorites, and proactive comments, but each lane must first pass its own one-action persistence gate. A failure disables only that lane; do not cancel unrelated authorized lanes unless a platform warning, challenge, or uncertain submission makes all mutation unsafe.
-- Use distinct strong-core posts for first like, favorite, and comment gates so one action does not contaminate another lane's evidence. After verification, choose the smallest genuine signal rather than stacking all three actions on each post.
+- Keep post likes, favorites, reposts, generic shares, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
+- A standing vertical-feed envelope may authorize selective post likes, favorites, reposts, and proactive comments, but each lane must first pass its own one-action persistence gate. A failure disables only that lane; do not cancel unrelated authorized lanes unless a platform warning, challenge, or uncertain submission makes all mutation unsafe.
+- Repost means TikTok's actual `Repost`/`Undo repost` state. Never substitute the generic Share menu, copy-link, or send-to-recipient action, and never infer repost persistence from the share sheet merely opening.
+- Use distinct strong-core posts for first like, favorite, repost, and comment gates so one action does not contaminate another lane's evidence. After verification, choose the smallest genuine signal rather than stacking multiple actions on each post.
 - Do not set engagement quotas. Zero outward actions is valid when quality, audience fit, rights, or persistence gates fail.
 - Never automate account creation, operate accounts in bulk, manipulate engagement, evade enforcement, or distribute high-volume repetitive content.
 - Optimize comments for contextual wit and organic community response, not a claimed ranking formula. Record later comment likes/replies when visible, but never promise that they increase account weight and never use engagement bait.

@@ -10,7 +10,7 @@ Treat `刷视频` as read-only browsing unless the user separately authorizes an
 4. Watch enough to understand the setup and payoff. Use native next/previous or incremental scrolling after the relevant evidence is captured. Skip without forcing a comment when the context is unclear, stale, unsafe, or irrelevant.
 5. Label the post `core`, `adjacent`, `irrelevant`, or `harmful_to_direction`; keep the post URL and a one-line reason. Stop when the sample is sufficient for the objective or the user-supplied time limit ends.
 6. Rotate back to a small search-seeded cluster when the feed drifts, then re-sample For You to see whether the composition changes. Treat any change as observed correlation, not proof of TikTok's ranking mechanism.
-7. Do not like, favorite, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Each action type keeps its own confirmation and persistence gate.
+7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Each action type keeps its own confirmation and persistence gate; TikTok Repost is distinct from generic Share.
 
 Do not manufacture human-like pauses or scrolling patterns to evade detection. Respect CAPTCHA, rate limits, warnings, and feature restrictions as hard stops.
 
@@ -55,7 +55,7 @@ The standing envelope must record:
 - Voice: short, meme-aware, context-specific, non-promotional.
 - Hard maximum: 30 words; prefer 2-12.
 - Eligible action: one proactive top-level comment on a qualifying post.
-- Excluded actions: replies, comment likes, post likes, favorites, follows, shares, `Not interested`, video posts, profile edits, and DMs unless separately authorized.
+- Excluded actions: replies, comment likes, post likes, favorites, reposts, follows, generic shares, `Not interested`, video posts, profile edits, and DMs unless separately authorized.
 - Start time, revocation state, capability state, and hard stops.
 
 In autonomous mode, comment only when the post is `core` to the active audience direction, the setup/payoff is understood, the visible comment culture supports playful participation, and a strong original joke survives the safety checks. Skip rather than ask when the fit is merely adjacent, emotionally sensitive, politically charged, directed at a vulnerable person, unclear, stale, repetitive, or dependent on insulting a real person.
@@ -73,4 +73,4 @@ In `per_item_confirmation`, present the exact creator/post URL and exact final t
 3. Reload or reopen the post and locate the exact comment again.
 4. Record success, failure, removal, warning, or uncertainty before moving on.
 
-A successful comment does not prove that likes, favorites, follows, or later comments will persist. Verify every send after reload even in autonomous mode. Stop the comment lane on CAPTCHA, warning, throttling, removal, an uncertain submission, account mismatch, or a failed persistence check. Do not retry and do not substitute another candidate to fill the slot.
+A successful comment does not prove that likes, favorites, reposts, follows, or later comments will persist. Verify every send after reload even in autonomous mode. Stop the comment lane on CAPTCHA, warning, throttling, removal, an uncertain submission, account mismatch, or a failed persistence check. Do not retry and do not substitute another candidate to fill the slot.

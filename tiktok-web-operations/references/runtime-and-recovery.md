@@ -54,6 +54,7 @@ Current `@shehaolili` evidence snapshot for this Chrome/runtime on 2026-07-10:
 |-|-|-|
 | Post like | `failed` / `disabled` | Three immediate successes all rolled back after reload; latest target absent from Liked tab |
 | Favorite/save | `unverified` / `disabled` | One visible count increment without persistent selected or account-level saved-item proof |
+| Post repost | `untested` / `disabled_pending_gate` | User reports the control is usable, but no independent immediate/reload/account-level persistence evidence is in the current ledger |
 | Proactive comment | `verified` | Multiple comments have survived post reload; still verify every later send independently |
 | Comment like | `untested` | No persistence test |
 | `Not interested` | `untested` | No persistence test |
