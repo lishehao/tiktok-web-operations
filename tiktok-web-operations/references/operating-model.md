@@ -92,7 +92,7 @@ Every dispatch includes:
 - Approved search/hashtag/creator/sound clusters.
 - Current calibration mode and sample parameters.
 - Capability matrix and disabled lanes.
-- Comment authorization, voice, hard 30-word maximum, exclusions, and revocation state.
+- Like/favorite/comment authorization, each lane's capability state, comment voice, hard 30-word maximum, exclusions, and revocation state.
 - Ledger path and sole-writer rule.
 - Exact action authority when applicable.
 - Stop conditions and callback schema.
@@ -108,7 +108,7 @@ For actions outside a standing envelope:
 3. Coordinator sends the approved packet to the same executor Thread.
 4. Executor verifies live URL/account/text, executes once, verifies persistence, and callbacks the result.
 
-Under `autonomous_comment_mode`, the executor may publish matching proactive top-level comments without per-item approval, must reload-verify every send, and must stop that lane on the first failure, removal, warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change.
+Under the default standing envelope, the executor may selectively like, favorite, or publish a proactive top-level comment on matching strong-core posts without per-item approval only after that exact lane passes its independent gate. Use separate first-gate posts, do not stack all actions mechanically, and stop only the failed lane unless a warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change makes all mutation unsafe. Every comment must be reload-verified.
 
 ## Callback schema
 
