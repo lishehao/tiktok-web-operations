@@ -16,6 +16,7 @@ tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_support: CREATE_READ_SEND_TITLE_ARCHIVE | UNAVAILABLE
 model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
+incumbent_executor: NONE | SAME_REGISTERED_EXECUTOR | RETIRED_AND_RELEASED | ACTIVE_OR_UNCERTAIN
 local_time_check: local time | timezone | UTC offset
 ledger_path:
 dependency_status: READY | BLOCKED
@@ -32,11 +33,12 @@ Run checks in order:
 4. Open/reuse TikTok read-only, read the exact logged-in identity, and inspect warnings/challenges. Never enter credentials or verification codes.
 5. Prove `list_projects`, `create_thread`, `read_thread`, `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
 6. Prove `create_thread` and `send_message_to_thread` support `model=gpt-5.6-luna` with `thinking=high`. This is a hard requirement for both operating Threads.
-7. Read local time and create a writable shared ledger path.
-8. Initialize every mutation lane independently. Reuse prior evidence only when the same account and runtime continuity are proven. Do not mutate TikTok during preflight.
-9. Release bootstrap Chrome control.
+7. Query recent TikTok-related Threads. Inspect every active/in-progress candidate and prove no other Chrome executor or descendant agent owns the session. If the user explicitly asked to replace an incumbent, require its `STOPPED_AND_RELEASED` checkpoint before continuing; archiving alone is insufficient.
+8. Read local time and create a writable shared ledger path.
+9. Initialize every mutation lane independently. Reuse prior evidence only when the same account and runtime continuity are proven. Do not mutate TikTok during preflight.
+10. Release bootstrap Chrome control.
 
-Hard dependencies are the valid Skill, Chrome control, logged-in TikTok identity, required thread tools, exact Luna/High creation/dispatch support, local time, and writable ledger. Do not silently fall back.
+Hard dependencies are the valid Skill, Chrome control, logged-in TikTok identity, required thread tools, exact Luna/High creation/dispatch support, exclusive executor ownership, local time, and writable ledger. Do not silently fall back.
 
 If blocked, return only the first repairable issue and impact, ending with `完成后回复“继续”`. A blocked `继续` rechecks only the missing item; it is not an operation start word.
 
@@ -88,11 +90,11 @@ Follow `operating-model.md` exactly:
 2. Create `TikTok Chrome执行任务` with `gpt-5.6-luna/high`, give it the coordinator ID, require it to wait for `SELF_REGISTRY`, and record the returned executor ID. It must not infer its own ID or touch Chrome yet.
 3. Send `SELF_REGISTRY` containing the exact returned executor ID to that executor; then give the coordinator the same executor ID and full operating envelope.
 4. Verify two-way registry plus executor `THREAD_READY` callback through `send_message_to_thread`; reject any payload ID that conflicts with callback `source_thread_id` or the bootstrap registry.
-5. Coordinator dispatches the first `search_heavy` block to the executor with Luna/High override.
-6. Require first-operation proof in the same startup turn: at least one verified, direction-relevant page search/browse micro-round or a concrete page-based no-action/blocker result. Thread creation, handshake, dispatch, planning, or a future callback alone is not proof.
-7. After proof, navigate the app to the coordinator when possible and archive only the bootstrap task. Keep both operating Threads unarchived and persistent.
+5. Coordinator dispatches `stability_smoke_01` from `stability-and-circuit-breakers.md` with Luna/High override. It is read-only: one search query × three results, then one continuous five-position For You native-down sample.
+6. Require first-operation proof in the same startup turn. A completed smoke needs three observed search results, five reliable For You identities, four verified native-control advances, zero reset, and zero mutation. A concrete page-based blocker is real evidence but does not count as a stability pass.
+7. Only after the smoke passes may the coordinator dispatch a full `search_heavy` block or any mutation. Navigate the app to the coordinator when possible and archive only the bootstrap task. Keep both operating Threads unarchived and persistent.
 
-If creation, handshake, or first proof fails, do not claim startup. Do not touch TikTok state unless the registered executor owns Chrome and the active envelope permits it. Archive only empty partial Threads created by this failed bootstrap.
+If creation, handshake, or the stability smoke fails, do not claim stable operation. Apply the circuit breaker; do not create a subagent or another executor. Do not touch TikTok state unless the registered executor owns Chrome and the active envelope permits it. Archive only empty partial Threads created by this failed bootstrap.
 
 ## Default action envelope
 
