@@ -26,7 +26,7 @@ For persistent operation, use exactly two user-owned Codex Threads. Both must be
 | `coordination_thread` — title `TikTok 运营主任务` | User conversation, direction, standing authorization, executor supervision, decisions, risk, and final reporting | Navigate or operate TikTok |
 | `execution_thread` — title `TikTok Chrome执行任务` | The logged-in Chrome session, ordered browsing, searches, authorized actions, verification, and raw evidence ledger | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
 
-The short-lived installer/bootstrap task creates both persistent Threads through Codex App thread tools, registers their IDs, proves a two-way `send_message_to_thread` handshake, dispatches the first block, then archives itself. Never use a subagent, agent tree, or agent-path callback for this system.
+The short-lived installer/bootstrap task first installs and runs read-only preflight, returns the guided direction/duration prompt, and waits. Only after the user replies with a direction/duration or the default start word does it create both persistent Threads, register their IDs, prove a two-way `send_message_to_thread` handshake, obtain first real operation proof, then archive itself. Never use a subagent, agent tree, or agent-path callback for this system.
 
 Use `references/operating-model.md` for the exact creation, handshake, callback, lifecycle, and recovery protocol.
 
@@ -47,7 +47,8 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 
 | User says | Execute |
 |-|-|
-| `帮我运营 TikTok`, `开始运营` | Run read-only preflight, then build the smallest useful operating batch. Outward actions still require exact confirmation unless a matching standing envelope is active. |
+| Installer Prompt or first `帮我运营 TikTok` before bootstrap is initialized | Install/upgrade and run read-only preflight, return the guided direction/duration handoff, and wait. Do not create operating Threads or touch TikTok state yet. |
+| Healthy handoff followed by `继续`, `开始`, a direction, or a duration | Resolve the `direction_profile`, fill missing fields from defaults, create the two persistent Threads, obtain first operation proof, and begin the bounded run. |
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
 | `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, reposts, follows, or comments. |
 | `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Use the two persistent user-owned Threads. The coordinator dispatches bounded blocks to the same execution Thread with `send_message_to_thread`. |
@@ -59,10 +60,16 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 
 ## Two-Phase Bootstrap
 
-1. **Install and preflight:** install or upgrade the complete versioned Skill, validate it, prove Chrome control, exact TikTok login, absence of blocking warnings, required thread tools, exact `gpt-5.6-luna/high` thread creation support, time when needed, and a writable ledger. Keep TikTok read-only.
-2. **Create and operate:** create `TikTok 运营主任务` and `TikTok Chrome执行任务` as two separate persistent user-owned Threads with Luna/High; exchange both Thread IDs; prove executor-to-coordinator callback; transfer Chrome ownership to the executor; dispatch the first vertical-calibration block; archive only the bootstrap task.
+1. **Install, preflight, and ask:** install or upgrade the complete versioned Skill, validate it, prove Chrome control, exact TikTok login, absence of blocking warnings, required thread tools, exact `gpt-5.6-luna/high` thread creation support, local time, and a writable ledger. Keep TikTok read-only, release Chrome, return the exact guided direction/duration prompt from `startup-health-check.md`, and wait one user turn.
+2. **Resolve and operate:** after the healthy user replies, resolve the requested direction/persona and duration. Missing direction defaults to North American college/dorm life; missing duration defaults to 3 hours. Create `TikTok 运营主任务` and `TikTok Chrome执行任务` as two separate persistent user-owned Threads with Luna/High; exchange both Thread IDs; prove executor-to-coordinator callback; transfer Chrome ownership to the executor; dispatch the first vertical-calibration block; require first real page proof before claiming startup; then archive only the bootstrap task.
 
 A failed hard dependency stops phase 2 and returns one concrete repair action. Do not silently fall back to a subagent, a different model, a different reasoning effort, or one combined Thread.
+
+## Direction Profile Contract
+
+Treat direction as a product and audience decision, not merely a keyword list. Resolve `persona_name`, `target_audience`, `region_language`, `content_pillars`, `excluded_topics`, `voice_and_comment_style`, `search_seed_clusters`, `future_post_alignment`, `duration`, and `operation_stop_at`. This profile keeps searches, consumption, engagement, comment voice, and future publishing coherent. Describe it as a consistent audience signal hypothesis; never promise a particular recommendation or distribution outcome.
+
+When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. The coordinator owns later direction changes and must update the executor envelope before the next block.
 
 ## Execution Thread Loop
 
