@@ -2,7 +2,7 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。公开仓库只保留一个安装入口和一个完整 Skill；详细运营规则以 Skill 内 references 为准。
 
-Protocol version: `2026.07.11.5`
+Protocol version: `2026.07.11.6`
 
 ## 直接安装
 
@@ -157,6 +157,8 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 - 只从 CAPTCHA、challenge、系统 dialog/banner/toast、账号 warning 等明确系统 UI 判断风险；caption、hashtag、comment 或搜索内容里的 `warning`/`verify` 字样不是平台警告。
 - 一个失败类型最多允许一个窄 recovery；同类连续失败两次立即开断路器、释放 Chrome、callback 并 idle。改关键词、删 hashtag、换输入法或宣称“fresh audit”不能重置断路器。
 - Native next/down 失败后不自动切 PageDown、ArrowDown、wheel、script scroll、reload 或 reset。Scroll-only fallback 必须由用户在收到 blocker 后重新明确授权。
+- Native next/down 必须从位置 1 起锁定方向特定的精确签名；禁止使用 `button:not([disabled])` 一类宽 locator，因为第一次推进后 up/down 通常都会 enabled。每次 DOM 移动后重新解析同一 down 签名。
+- 预期 UI gate 失败必须在当前判断分支直接写终态、释放 Chrome、callback；不能用 `throw` 返回 reasoning 后继续换 locator 诊断。
 
 ### 互动能力
 
