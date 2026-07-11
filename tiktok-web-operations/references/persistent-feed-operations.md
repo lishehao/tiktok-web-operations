@@ -53,7 +53,7 @@ Use these operating heuristics, not as claims about TikTok's official algorithm:
 
 Do not switch to feed-led mode from one favorable checkpoint. If `core_share` stays below 10% for three complete blocks, change query wording or cluster mix and recheck account/region context; do not compensate by posting more comments.
 
-## Current college/dorm block
+## Packaged default college/dorm block
 
 Rotate among these families so the account stays vertically coherent without collapsing into one narrow microtopic:
 
@@ -81,7 +81,7 @@ Watch long enough to understand the content. Do not encode a universal dwell-tim
 
 ## Search-seed policy
 
-Organize queries into clusters with a reason and an exclusion boundary. For the current North American college/dorm-life direction:
+Organize queries into clusters with a reason and an exclusion boundary. Build the live clusters from the resolved `direction_profile`. For the packaged North American college/dorm-life default:
 
 | Cluster | Examples | Keep distinct from |
 |-|-|-|
