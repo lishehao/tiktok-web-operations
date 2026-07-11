@@ -25,6 +25,11 @@ operation_stop_at:
 automation_owner_thread_id:
 heartbeat_automation_id: NONE | exact id
 heartbeat_target_thread_id: NONE | exact id
+first_install_supervision_state: NOT_APPLICABLE | PENDING | ACTIVE | CONSUMED | DEGRADED
+first_install_supervision_started_at: NONE | timestamp
+first_install_supervision_ends_at: NONE | timestamp
+first_install_supervision_checkpoints: NONE | timestamps
+durable_install_state_path: NONE | local path outside managed Skill tree
 identity_state: UNVERIFIED | VERIFIED | MISMATCH
 pair_state:
 ```

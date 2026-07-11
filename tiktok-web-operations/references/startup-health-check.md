@@ -28,6 +28,9 @@ automation_support: AVAILABLE | UNAVAILABLE | NOT_REQUESTED
 automation_owner_thread_id: NONE | exact coordinator id
 heartbeat_automation_id: NONE | exact id
 heartbeat_target_thread_id: NONE | exact id
+durable_install_state_path: ${CODEX_HOME:-$HOME/.codex}/state/tiktok-web-operations/install-state.json
+first_install_supervision: NOT_APPLICABLE | PENDING | ACTIVE | CONSUMED | DEGRADED
+first_install_supervision_checkpoints: NONE | timestamps
 incumbent_executor: NONE | SAME_REGISTERED_EXECUTOR | RETIRED_AND_RELEASED | ACTIVE_OR_UNCERTAIN
 dedicated_tab_creation: AVAILABLE | UNAVAILABLE
 same_account_external_activity:
@@ -51,6 +54,9 @@ Run checks in order:
    targets, and roll both back if either replacement fails. Never mix old/new
    files. Upgrade discovery is not a stopping point; after successful installed-
    tree validation continue with step 3 in this same turn.
+   On a true first `INSTALL`, create the private installation-state record with
+   `first_install_supervision=PENDING`; never place it in either managed Skill
+   tree. Upgrade/NOOP/reinstall must preserve an existing consumed state.
 3. Prove Chrome control with one disposable `chrome.tabs.new()` tab. Retry a
    dropped control connection at most twice; never claim another task's tab.
 4. Open TikTok read-only in that tab, prove the logged-in `@handle`, and inspect
@@ -134,7 +140,12 @@ Follow `operating-model.md` exactly:
    creates its own heartbeat with explicit `targetThreadId` equal to its exact
    ID, views the returned automation, verifies the same binding, and stores the
    automation ID. Any mismatch stops with no dispatch.
-7. Only after the smoke passes and any requested heartbeat binding verifies may
+7. If the durable install state is `PENDING`, this first real run consumes the
+   one-time supervision contract after smoke: activate a coordinator-owned
+   watch through approximately `+15/+35/+60` minutes, capped by stop time, or
+   mark `DEGRADED` and callback-only if automation is unavailable. This window
+   is silent when healthy and never touches TikTok.
+8. Only after the smoke passes and any requested heartbeat binding verifies may
    the coordinator dispatch a full calibration
    or mutation block. Keep both tasks persistent and unarchived.
 

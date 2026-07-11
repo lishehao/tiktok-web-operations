@@ -147,6 +147,17 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   coordinator ID, then viewed and stored only after exact binding proof. The
   executor and every bootstrap, Skill-development, sibling, or historical task
   never own or manage it.
+- On a true first install, persist
+  `first_install_supervision=PENDING` outside the managed Skill tree. After the
+  user's first real run completes identity handshake and stability smoke, the
+  verified `主控台` consumes that marker and owns one first-hour read-only watch
+  window with cumulative checkpoints near `+15`, `+35`, and `+60` minutes,
+  capped by `operation_stop_at`. Each checkpoint reads only the registered
+  executor's status/callback/ledger, stays silent when healthy, and centralizes
+  risk in `主控台`. Delete the heartbeat and persist `CONSUMED` at one hour,
+  early stop, or run end. Never recreate it after an upgrade, restart, or later
+  operation. If automation is unavailable, mark `DEGRADED`, disclose once, use
+  callbacks only, and still consume it.
 - On heartbeat wakeup require
   `waking_thread_id == targetThreadId == coordinator_thread_id` and the exact
   registered automation ID. A mismatch returns

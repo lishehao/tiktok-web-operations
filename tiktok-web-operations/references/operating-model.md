@@ -19,7 +19,8 @@ Starter task
   phase 2: temporary nonce title -> prove own ID -> final title 主控台
            -> create one executor -> final title 执行器
            -> handshake -> smoke
-           -> optional coordinator-owned heartbeat -> bounded operating rounds
+           -> first-install-only supervision window or optional heartbeat
+           -> bounded operating rounds
 ```
 
 The starter task remains the user-facing coordinator and is never archived as
@@ -152,6 +153,35 @@ wakeup, require
 `waking_thread_id == heartbeat_target_thread_id == coordinator_thread_id` and
 the registered automation ID. A mismatch returns
 `MISBOUND_HEARTBEAT_NO_ACTION` and dispatches nothing.
+
+## First-install supervision window
+
+Use `${CODEX_HOME:-$HOME/.codex}/state/tiktok-web-operations/install-state.json`
+as private machine state outside both managed Skill trees. Store no handle,
+credential, cookie, browser state, or content history.
+
+- A true `INSTALL` writes `first_install_supervision=PENDING`. `UPGRADE`,
+  `NOOP`, force reinstall, and later missions never create or reset it.
+- Phase 1 does not start the clock because no executor exists. On the first real
+  operation, after verified handshake and successful stability smoke, set the
+  marker to `ACTIVE`, record start/end, and create one coordinator-owned
+  one-shot watch heartbeat with exact binding proof.
+- Target cumulative checkpoints are approximately `+15`, `+35`, and `+60`
+  minutes from activation. Reuse/update the same exact owned automation for the
+  next checkpoint; never create three concurrent automations. Cap the last
+  checkpoint at `operation_stop_at` when the run is shorter than one hour.
+- On wake, verify run/owner/target/automation identity, read the executor's
+  latest 1-3 relevant turns plus callback and ledger state, and do nothing to
+  Chrome/TikTok. Do not interrupt an in-progress executor.
+- Stay silent on ordinary healthy progress. A missed callback or non-completed
+  state follows the main-console risk consolidation contract and pauses new
+  dispatch until the user decides there.
+- At final checkpoint, early user stop, or run end, delete/pause the exact owned
+  watch heartbeat and persist `CONSUMED`. Never recreate the window for another
+  run, upgrade, reinstall over the same managed installation, or task restart.
+- If automation creation/readback is unavailable, persist `DEGRADED`, disclose
+  callback-only supervision once in `主控台`, then treat the one-time window as
+  consumed rather than retrying on every future mission.
 
 ## Executor loop
 

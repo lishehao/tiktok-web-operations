@@ -259,6 +259,31 @@ On heartbeat:
   - 30-60 minutes for long-running or low-risk tracking
 - delete the automation when no active thread or unacknowledged result remains
 
+### One-time first-run supervision window
+
+When a calling domain Skill explicitly requires first-install monitoring, let
+the verified coordinator own one low-frequency, time-bounded watch window. This
+is not a recurring default:
+
+- require a durable state marker outside the managed Skill tree with
+  `PENDING | ACTIVE | CONSUMED | DEGRADED`;
+- activate only on the first real run after a true first install, after the
+  coordinator/executor identity handshake and initial proof;
+- use sparse checkpoints such as cumulative `+15`, `+35`, and `+60` minutes,
+  capped by the operation stop time, rather than keeping a turn open or polling;
+- at each checkpoint read only the registered worker's latest relevant turns,
+  callbacks, and ledger state; never touch the external system or interrupt a
+  running worker;
+- stay silent when healthy; centralize any block, validation failure, decision,
+  or key risk in the coordinator;
+- delete the owned heartbeat at the final checkpoint, early user stop, or run
+  end, and persist `CONSUMED` so upgrades, restarts, and later missions cannot
+  recreate the first-run window.
+
+If automation support is unavailable, mark the one-time window `DEGRADED`, keep
+callback-only supervision, disclose the limitation once in the coordinator,
+and still consume the marker. Do not retry it on every later mission.
+
 ## Result reminders
 
 - If an important result has not been acknowledged, keep a reminder.
