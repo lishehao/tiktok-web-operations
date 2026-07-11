@@ -90,9 +90,13 @@ card plus a bounded input contract before dispatch.
   Use the temporary nonce registration title in
   `references/identity-and-automation.md`, resolve the exact matching task with
   `list_threads`, confirm it with `read_thread`, record the returned ID, then set
-  the final title to `主控台`. Record the executor ID returned by `create_thread`
-  before setting its final title to `执行器`. Do not guess an ID from a final
+  the caller-supplied `coordinator_title` (generic default `主控台`). Record the
+  executor ID returned by `create_thread` before setting the caller-supplied
+  `executor_title` (generic default `执行器`). Do not guess an ID from a final
   title, directory name, stale prompt, or previous run.
+- Treat title, pin, and archive as presentation/lifecycle fields in the registry.
+  Apply the calling domain's policy only after exact task identity is verified;
+  none of these fields proves ownership.
 - Create the executor with `create_thread`; never substitute `spawn_agent`, a
   collaboration subagent, Goal Mode, or an agent tree when the contract requires
   a persistent sidebar task.

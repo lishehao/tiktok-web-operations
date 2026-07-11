@@ -16,8 +16,8 @@ evidence contract.
 ```text
 Starter task
   phase 1: install/upgrade -> read-only preflight -> ask direction/duration -> wait
-  phase 2: temporary nonce title -> prove own ID -> final title 主控台
-           -> create one executor -> final title 执行器
+  phase 2: temporary nonce title -> prove own ID -> final title TikTok 主控台 [pinned]
+           -> create one executor -> final title TikTok 执行台 [unpinned]
            -> handshake -> smoke
            -> one durable run timer with optional first-install overlay
            -> bounded operating rounds
@@ -30,7 +30,7 @@ sole same-account mutation writer, and is the sole raw-ledger writer.
 ## Role cards
 
 ```text
-主控台
+TikTok 主控台
 objective: advance or stop the authorized run at the correct time and own every
 user decision.
 inputs: direction profile, authorization, capability matrix, callback, timer,
@@ -39,7 +39,7 @@ output: one next bounded dispatch, one consolidated user decision, or stop.
 never: Chrome/TikTok work, raw per-item analysis, Skill development, concurrent
 dispatches.
 
-执行器
+TikTok 执行台
 objective: execute exactly the current bounded block, record evidence, release
 Chrome, callback, and idle.
 inputs: immutable registry plus one bounded dispatch.
@@ -58,7 +58,7 @@ The coordinator must know its exact Thread ID before creating the executor:
 
 1. Generate a short unique `run_nonce` and temporarily rename the current task,
    using the self-targeting title operation, to
-   `主控台注册 · <run_nonce>`.
+   `TikTok 主控台注册 · <run_nonce>`.
 2. Use `list_threads` with that exact title and require one matching current
    local task in the expected project/directory context.
 3. Use `read_thread` on the returned ID and confirm the current bootstrap state,
@@ -66,10 +66,13 @@ The coordinator must know its exact Thread ID before creating the executor:
 4. Record that returned ID as `coordinator_thread_id`. Never derive an ID from a
    directory name, old prompt, previous run, or another task's callback.
 5. Create the run registry with `run_id`, `run_nonce`, coordinator ID/host,
-   executor ID initially `NONE`, account, Luna/High profile, ledger, authority
-   envelope version, stop time, automation owner equal to the coordinator ID,
-   and heartbeat fields initially `NONE`.
-6. Rename the verified coordinator to the final title `主控台`. Final title is
+   `coordinator_title=TikTok 主控台`, `coordinator_pinned=true`, executor ID
+   initially `NONE`, `executor_title=TikTok 执行台`, `executor_pinned=false`,
+   account, Luna/High profile, ledger, authority envelope version, stop time,
+   automation owner equal to the coordinator ID, and heartbeat fields initially
+   `NONE`.
+6. Rename the verified coordinator to the final title `TikTok 主控台`, pin it,
+   and verify presentation state when the tool exposes it. Final title/pin are
    presentation only and must never replace the registered ID.
 7. If zero or multiple candidates remain, stop with
    `BLOCKED_COORDINATOR_ID_UNVERIFIED`. Do not create a disposable coordinator or
@@ -91,7 +94,8 @@ accepts defaults:
    the executor. Its initial prompt includes the coordinator ID,
    account, envelope, ledger, dedicated-tab rule, sole mutation-writer role, and
    callback schema, and says to wait for `SELF_REGISTRY` without touching Chrome.
-6. Record the returned executor ID and set its final title to `执行器`.
+6. Record the returned executor ID, set its final title to `TikTok 执行台`, and
+   explicitly keep it unpinned.
 7. Send `SELF_REGISTRY` to the exact returned executor ID with Luna/High. Include
    both IDs, account, ledger, authority, role, and stop time byte-for-byte.
 8. Require the executor to callback `THREAD_READY` to the registered coordinator
@@ -104,7 +108,8 @@ accepts defaults:
     include `run_id` in its name/prompt, view the returned automation ID, require
     exact binding readback, and store it in the run registry. The executor never
     creates an automation.
-11. Keep both tasks unarchived. Navigate the app to the coordinator when useful.
+11. Keep both tasks unarchived. Pin only `TikTok 主控台`; keep `TikTok 执行台`
+    unpinned. Navigate the app to the coordinator when useful.
 
 If self-registration, creation, handshake, or smoke fails, do not claim stable
 operation. Do not create a second executor or another coordinator. Archive an
@@ -114,7 +119,9 @@ empty executor only when the user requests cleanup; otherwise preserve evidence.
 
 Require `list_projects`, `create_thread`, `list_threads`, `read_thread`,
 `send_message_to_thread`, `set_thread_title`, and `set_thread_archived`.
-Presentation-only pin/navigation tools are optional.
+Use `set_thread_pinned` when available to pin the coordinator and unpin the
+executor. Missing presentation-only pin/navigation tools do not block operation;
+record the unavailable action internally.
 Require `automation_update` when the resolved run is timed and expected to span
 more than one bounded block, or when the user requests unattended continuation.
 If unavailable, mark the timer degraded, keep callback-driven manual
@@ -152,11 +159,11 @@ Fast Mode unless the tool surface exposes and confirms that field.
 3. Reconcile composition, query quality, capability changes, pending user work,
    authorization, deadline, and risk.
 4. If status is `blocked`, `validation_failed`, `needs_decision`, or `key_risk`,
-   pause all new dispatches. Consolidate one user-facing decision in `主控台`:
+   pause all new dispatches. Consolidate one user-facing decision in `TikTok 主控台`:
    risk, evidence, affected lane/block/run, what has already stopped, whether
    read-only work remains safe, one recommendation, and at most three options.
-   Do not tell the user to inspect or reply in `执行器`.
-5. Resume only after the user decides in `主控台` or a verifiable external-state
+   Do not tell the user to inspect or reply in `TikTok 执行台`.
+5. Resume only after the user decides in `TikTok 主控台` or a verifiable external-state
    change clears the blocker. Never treat a worker-local reply or its final
    message as user authorization.
 6. Otherwise choose one next bounded block or stop. A normal block should amortize callback
@@ -235,7 +242,7 @@ credential, cookie, browser state, or content history.
   watch heartbeat and persist `CONSUMED`. Never recreate the window for another
   run, upgrade, reinstall over the same managed installation, or task restart.
 - If automation creation/readback is unavailable, persist `DEGRADED`, disclose
-  callback-only supervision once in `主控台`, then treat the one-time window as
+  callback-only supervision once in `TikTok 主控台`, then treat the one-time window as
   consumed rather than retrying on every future mission.
 
 ## Executor loop
@@ -251,7 +258,7 @@ For each message from the registered coordinator ID:
 5. Callback once to the coordinator with Luna/High and the schema below.
 6. For any non-`completed` result, set `decision_required: true`; do not ask the
    user a question or propose continuation in the executor Thread. Its final
-   response may only say that the result was sent to `主控台` and it is idle.
+   response may only say that the result was sent to `TikTok 主控台` and it is idle.
 7. Become idle. Never self-dispatch, create another Thread, spawn an agent, or
    create/update/delete an automation.
 
@@ -315,8 +322,11 @@ records non-actionable observations in `risks`.
 `STOP_AND_RELEASE` overrides an active block. The executor stops without another
 probe, releases its tab, records submission certainty, appends a final
 checkpoint, callbacks `STOPPED_AND_RELEASED`, and remains idle. The coordinator
-then verifies and pauses/deletes only its own registered heartbeat. It does not
-archive either task unless the user explicitly asks.
+then verifies and pauses/deletes only its own registered heartbeat. Keep the
+active/idle registered pair unarchived unless the user explicitly asks for full
+cleanup. When a released executor has been replaced in the registry and owns no
+heartbeat, Chrome tab, or uncertain mutation, unpin and archive that retired
+executor so it does not remain in the active task list.
 
 If the executor disappears, first resolve uncertain submissions and incumbent
 mutation authority. Create a replacement only with explicit user authorization,

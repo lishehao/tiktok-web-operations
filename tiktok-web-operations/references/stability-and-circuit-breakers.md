@@ -10,7 +10,7 @@ Before creating or dispatching an executor, query recent TikTok-related Codex Th
 - the exact incumbent was explicitly retired by the user, returned `STOPPED_AND_RELEASED`, released Chrome, and has no mutation or submission in flight; or
 - the incumbent is the same registered executor being resumed.
 
-Do not create a second same-account mutation executor while write authority is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first, verify, then archive only when the user requested archival.
+Do not create a second same-account mutation executor while write authority is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first and verify. Keep the registered active/idle pair unarchived; archive completed temporary probes automatically, and archive a retired executor only after it has been replaced in the registry and owns no heartbeat, Chrome tab, or uncertain mutation.
 
 ## Dedicated-tab isolation
 

@@ -26,8 +26,8 @@ generic registry, callback, heartbeat, and lifecycle mechanics.
 
 | Thread | Owns | Must not do |
 |-|-|-|
-| Current starter task, final title `主控台` | One objective: advance or stop the authorized run at the correct time and own every user decision | Navigate or operate TikTok |
-| `execution_thread` — final title `执行器` | One objective: execute exactly the current bounded block, record evidence, release Chrome, callback, and idle | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
+| Current starter task, final title `TikTok 主控台` | One objective: advance or stop the authorized run at the correct time and own every user decision | Navigate or operate TikTok |
+| `execution_thread` — final title `TikTok 执行台` | One objective: execute exactly the current bounded block, record evidence, release Chrome, callback, and idle | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
 
 Direction, persona, authorization, capability matrix, risk rules, ledger, and
 deadline are role inputs and constraints. They are never additional independent
@@ -40,6 +40,11 @@ message, it self-registers its exact Thread ID, becomes the coordinator, creates
 one persistent executor, proves the callback handshake, and obtains first real
 operation proof. It does not archive itself. Never use a subagent, agent tree,
 or agent-path callback for this system.
+
+Naming follows `<platform> <responsibility>台`. After exact identity proof, pin
+`TikTok 主控台` and explicitly keep `TikTok 执行台` unpinned. Keep the registered
+pair unarchived, including while idle. Archive only completed temporary probes or
+a released, retired executor after removing its heartbeat/tab/mutation ownership.
 
 Use `references/operating-model.md` for the exact creation, handshake, callback, lifecycle, and recovery protocol.
 Before any persistent Thread or heartbeat action, also read
@@ -89,8 +94,8 @@ Before any persistent Thread or heartbeat action, also read
 2. **Resolve and operate:** after the healthy user replies, resolve the requested
    direction/persona and duration. Missing direction defaults to North American
    college/dorm life; missing duration defaults to 3 hours. Rename this task
-   `主控台` after temporary nonce-based self-registration, prove its exact ID,
-   and create only one `执行器`
+   `TikTok 主控台` after temporary nonce-based self-registration, prove its exact
+   ID, pin it, and create only one unpinned `TikTok 执行台`
    with Luna/High, exchange both IDs, prove executor-to-coordinator callback,
    dispatch the read-only first-run stability smoke, and require real page proof
    before a full calibration block or mutation. Keep both tasks persistent and
@@ -125,24 +130,27 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - Keep exactly two persistent operating Threads: this coordinator plus one
   executor. Do not create a second coordinator, use subagents, or create
   analyst/driver descendants.
+- Pin only `TikTok 主控台`. Keep the registered `TikTok 执行台` unpinned and
+  unarchived, including while idle between blocks.
 - Do not use Goal Mode for persistence. Neither operating Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create replacement workers.
 - Before every executor creation or replacement, inspect active TikTok Threads. Block same-account mutation only when another mutation executor is active/uncertain or a submission may be in flight. An unrelated task using Chrome or another TikTok tab is not a global blocker and must not be interrupted or archived. If it browses the same account concurrently, record recommendation-attribution contamination; do not attribute feed changes to one task. Archiving alone is not release proof for an incumbent mutation executor.
 - Use only registered cross-thread IDs. The executor reports solely to this
-  starter task after it becomes `主控台`; never callback to a
+  starter task after it becomes `TikTok 主控台`; never callback to a
   Skill-development task or any other bootstrap task.
-- Treat `主控台` as the only user decision surface. On `blocked`,
+- Treat `TikTok 主控台` as the only user decision surface. On `blocked`,
   `validation_failed`, `needs_decision`, `key_risk`, uncertain submission, or a
   platform risk, the executor stops the block, releases its own Chrome, writes
   evidence, callbacks only the registered coordinator, and becomes idle. It
-  never asks the user to continue inside `执行器`, self-recovers, or dispatches
+  never asks the user to continue inside `TikTok 执行台`, self-recovers, or dispatches
   another block. The coordinator pauses dispatch, consolidates one risk prompt,
-  and resumes only after a decision in `主控台` or a verified external-state
+  and resumes only after a decision in `TikTok 主控台` or a verified external-state
   change.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
 - Include `run_id`, coordinator/executor IDs, host/project identity, automation
-  owner, heartbeat ID/target, authority version, ledger, and stop time in the
-  immutable run registry. Re-read it before every dispatch, callback,
-  heartbeat, stop, replacement, or archive.
+  owner, heartbeat ID/target, authority version, ledger, stop time, exact titles,
+  and pin policy in the immutable run registry. Re-read it before every dispatch,
+  callback, heartbeat, stop, replacement, or archive. Titles and pin state remain
+  presentation fields; IDs remain authoritative identity.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
 - Run exactly one bounded block per executor turn. For an unattended duration,
@@ -163,11 +171,11 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - On a true first install, persist
   `first_install_supervision=PENDING` outside the managed Skill tree. After the
   user's first real run completes identity handshake and stability smoke, the
-  verified `主控台` consumes that marker and owns one first-hour read-only watch
+  verified `TikTok 主控台` consumes that marker and owns one first-hour read-only watch
   window with cumulative checkpoints near `+15`, `+35`, and `+60` minutes,
   capped by `operation_stop_at`. Each checkpoint reads only the registered
   executor's status/callback/ledger, stays silent when healthy, and centralizes
-  risk in `主控台`. Delete the heartbeat and persist `CONSUMED` at one hour,
+  risk in `TikTok 主控台`. Delete the heartbeat and persist `CONSUMED` at one hour,
   early stop, or run end. Never recreate it after an upgrade, restart, or later
   operation. If automation is unavailable, mark `DEGRADED`, disclose once, use
   callbacks only, and still consume it.
@@ -242,7 +250,7 @@ recommended_next_block:
 
 For every non-`completed` status, set `decision_required: true`. The executor's
 own final response is only a terse handoff stating that evidence was sent to
-`主控台` and the executor is idle; it must not contain a user-facing question or
+`TikTok 主控台` and the executor is idle; it must not contain a user-facing question or
 invite the user to reply there.
 
 The coordinator reports meaningful checkpoints to the user with:

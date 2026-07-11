@@ -18,6 +18,10 @@ coordinator_project_or_cwd:
 executor_thread_id:
 executor_title:
 executor_host_id:
+coordinator_pinned: true | false
+executor_pinned: true | false
+archive_temporary_on_complete: true | false
+archive_retired_executor_after_release: true | false
 execution_profile:
 authority_envelope_hash_or_version:
 ledger_path:
@@ -51,26 +55,34 @@ Never derive identity from a directory suffix, copied URL, remembered ID,
 focused Codex window, task ordering, matching title alone, another coordinator's
 registry, or an automation prompt.
 
-## Thread title contract
+## Thread presentation contract
 
-Keep final user-facing titles minimal:
+The calling domain supplies final titles and lifecycle policy. Use these generic
+defaults only when no domain values exist:
 
 ```text
-主控台
-执行器
+coordinator_title = 主控台
+executor_title = 执行器
+coordinator_pinned = false
+executor_pinned = false
 ```
 
-Because these final titles are intentionally non-unique, never use them to
-discover identity. For starter self-registration, temporarily rename the task to
-`主控台注册 · <run_nonce>`, resolve and verify the exact Thread ID, store that ID
-in the registry, then set the final title to `主控台`. The executor identity is
-the exact ID returned by `create_thread`; set its final title to `执行器` only
-after recording that ID.
+Final titles may collide and must never be used to discover identity. For starter
+self-registration, temporarily rename the task to
+`<coordinator_title>注册 · <run_nonce>`, resolve and verify the exact Thread ID,
+store that ID in the registry, then set `coordinator_title` and its pin state.
+The executor identity is the exact ID returned by `create_thread`; set
+`executor_title` and its pin state only after recording that ID.
 
 Keep account, platform, run ID, model, duration, status, version, and strategy in
 the immutable registry or description, not the title. After final naming, do not
 rename either task for routine state changes. A matching final title is never
 identity or ownership proof.
+
+Pinning is presentation state, not ownership proof. Never archive an active task,
+a task with an owned heartbeat or tab, or a task with unresolved external-action
+certainty. A domain may keep registered idle workers unarchived for reuse and
+archive only completed temporary diagnostics or released, retired workers.
 
 ## Pair state machine
 

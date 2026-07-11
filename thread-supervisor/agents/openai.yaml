@@ -1,4 +1,4 @@
 interface:
   display_name: "Thread Supervisor"
   short_description: "Coordinate persistent tasks with callbacks"
-  default_prompt: "Use $thread-supervisor to verify the coordinator and executor IDs, name them 主控台 and 执行器, and bind any heartbeat only to the exact coordinator."
+  default_prompt: "Use $thread-supervisor to verify exact coordinator/executor IDs, apply caller-supplied titles and pin policy (or generic defaults), and bind any heartbeat only to the exact coordinator."

@@ -66,6 +66,8 @@ Run checks in order:
    explicit platform warnings/challenges. Never enter credentials or codes.
 5. Prove `list_projects`, `create_thread`, `list_threads`, `read_thread`,
    `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
+   Detect `set_thread_pinned` for automatic main-console pinning; absence is a
+   non-blocking presentation limitation.
 6. Prove the current starter task can self-rename and can later resolve its exact
    ID through unique-title `list_threads` plus `read_thread`. Phase 1 may use a
    temporary nonce/title and then restore a user-friendly bootstrap title.
@@ -126,11 +128,11 @@ application advice, pure study motivation, and generic non-campus content.
 
 Follow `operating-model.md` exactly:
 
-1. Temporarily rename this task `主控台注册 · <run_nonce>`, resolve and verify its
+1. Temporarily rename this task `TikTok 主控台注册 · <run_nonce>`, resolve and verify its
    exact Thread ID, create the immutable run registry with automation owner
-   equal to that coordinator ID, then set the final title to `主控台`.
+   equal to that coordinator ID, then set the final title to `TikTok 主控台` and pin it.
 2. Create one executor with `gpt-5.6-luna/high`, record its returned ID, set its
-   final title to `执行器`, and include the
+   final title to `TikTok 执行台`, keep it unpinned, and include the
    coordinator ID and require it to wait for `SELF_REGISTRY`.
 3. Send the exact returned executor ID through `SELF_REGISTRY`, then require a
    `THREAD_READY` callback to the coordinator.
@@ -153,7 +155,8 @@ Follow `operating-model.md` exactly:
    is silent when healthy and never touches TikTok.
 8. Only after the smoke passes and any requested heartbeat binding verifies may
    the coordinator dispatch a full calibration
-   or mutation block. Keep both tasks persistent and unarchived.
+   or mutation block. Keep both tasks persistent and unarchived; pin only the
+   coordinator.
 
 If creation, registry, callback, or smoke fails, do not create another task or
 claim stable operation.
