@@ -94,6 +94,8 @@ starter task becomes coordinator
 The calling domain Skill owns what a round means, which actions are authorized,
 and how evidence is validated. Thread Supervisor owns only registration,
 dispatch, callback, work state, heartbeat fallback, stop/release, and archival.
+Before creating a persistent pair or any heartbeat, read
+`references/identity-and-automation.md` and enforce its immutable run registry.
 
 Callback shape:
 
@@ -208,6 +210,15 @@ For iterative design/review loops, define the loop contract up front:
 ## Heartbeat fallback
 
 Use heartbeat automation only when soft hooks are unavailable, unreliable, or the user wants proactive reminders.
+
+Create, update, fire, pause, or delete a heartbeat only from its verified owner
+coordinator. Require
+`automation_owner_thread_id == targetThreadId == coordinator_thread_id`, pass
+the exact `targetThreadId` when supported, then view the returned automation ID
+and verify its binding. The executor and unrelated bootstrap, Skill-development,
+or sibling Threads never own or manage the coordinator's heartbeat. On any
+mismatch, follow `references/identity-and-automation.md` and take no external
+action.
 
 Heartbeat automations are stable mechanisms, not project status documents.
 Do not update a heartbeat just because a worker completed, a decision list changed,
@@ -432,16 +443,16 @@ existing matching heartbeat instead of creating duplicates only when the
 heartbeat mechanism itself must change. Do not rewrite the heartbeat prompt to
 mirror each new callback or current decision list.
 
-Name reminder automations consistently:
+Name reminder automations consistently and include the owning run nonce:
 
 ```text
-未处理信息提醒 - <cadence> - <Coordinator thread name>
+未处理信息提醒 - <cadence> - <Coordinator thread name> - <run_nonce>
 ```
 
 Examples:
 
-- `未处理信息提醒 - 30分钟 - Personal Projects Coordinator`
-- `未处理信息提醒 - 每小时 - HAOMAI Coordinator`
+- `未处理信息提醒 - 30分钟 - Personal Projects Coordinator - a7k2`
+- `未处理信息提醒 - 每小时 - HAOMAI Coordinator - p91m`
 
 For the exact unhandled-item rules and compact reminder prompt, read
 `references/hourly-reminders.md` only when creating or updating such a heartbeat.

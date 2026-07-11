@@ -37,6 +37,8 @@ operation proof. It does not archive itself. Never use a subagent, agent tree,
 or agent-path callback for this system.
 
 Use `references/operating-model.md` for the exact creation, handshake, callback, lifecycle, and recovery protocol.
+Before any persistent Thread or heartbeat action, also read
+`$thread-supervisor/references/identity-and-automation.md`.
 
 ## Route The Request
 
@@ -121,9 +123,23 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   starter task after it becomes `TikTok 运营主任务`; never callback to a
   Skill-development task or any other bootstrap task.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
+- Include `run_id`, coordinator/executor IDs, host/project identity, automation
+  owner, heartbeat ID/target, authority version, ledger, and stop time in the
+  immutable run registry. Re-read it before every dispatch, callback,
+  heartbeat, stop, replacement, or archive.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
-- Run exactly one bounded block per executor turn. For an unattended duration, an optional coordinator-only heartbeat may schedule the next block after a completed callback or enforce `operation_stop_at`; it never touches Chrome, overlaps a running turn, or bypasses a blocker.
+- Run exactly one bounded block per executor turn. For an unattended duration,
+  an optional coordinator-only heartbeat may schedule the next block after a
+  completed callback or enforce `operation_stop_at`. It must be created from
+  the verified coordinator with explicit `targetThreadId` equal to the
+  coordinator ID, then viewed and stored only after exact binding proof. The
+  executor and every bootstrap, Skill-development, sibling, or historical task
+  never own or manage it.
+- On heartbeat wakeup require
+  `waking_thread_id == targetThreadId == coordinator_thread_id` and the exact
+  registered automation ID. A mismatch returns
+  `MISBOUND_HEARTBEAT_NO_ACTION`; it must not inspect TikTok or dispatch work.
 - A `blocked` or `key_risk` callback opens the recovery circuit in `stability-and-circuit-breakers.md`. Do not self-declare a fresh audit, rebuild a worker, or hop across transition methods. Wait for a user instruction or verified external-state change after the bounded recovery budget is exhausted.
 - Treat an expected gate failure as a terminal data branch, not an exception that returns to reasoning. Once `count/visible/enabled/identity` fails, write the result, release Chrome, and callback without another diagnostic.
 - Prefer TikTok's visible native next/down control for feed fidelity. Use incremental scrolling only when the control is unavailable and the coordinator explicitly dispatches a scroll-only fallback block. Never switch transition methods inside one checkpoint. Do not add random delays, cursor jitter, or fake human behavior.
@@ -169,6 +185,9 @@ The execution Thread returns one structured callback after every bounded block:
 
 ```text
 status: completed | blocked | validation_failed | needs_decision | key_risk
+run_id:
+coordinator_thread_id:
+executor_thread_id:
 block_id:
 summary:
 sample_counts:

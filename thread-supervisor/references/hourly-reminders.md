@@ -4,18 +4,28 @@ Use only when creating or updating a supervisor heartbeat for unhandled items.
 
 ## Before creating
 
+- Read `identity-and-automation.md` and prove the current Thread is the exact
+  registered coordinator and automation owner.
 - Inspect existing automations first.
-- Reuse/update a matching heartbeat for the same coordinator.
+- Reuse/update a matching heartbeat only when its viewed `targetThreadId`, run
+  ID, purpose, and coordinator all match the immutable registry.
 - If an existing heartbeat belongs to another project group, create a separate one.
-- Use the fixed name format `未处理信息提醒 - <cadence> - <Coordinator thread name>`.
+- Pass explicit `targetThreadId=coordinator_thread_id`, view the returned
+  automation ID, and verify the stored binding before treating creation as
+  successful.
+- Use the fixed name format `未处理信息提醒 - <cadence> - <Coordinator thread name> - <run_nonce>`.
 - If an older matching heartbeat uses a different name, rename it instead of
   creating a duplicate.
+
+Never create or update a heartbeat from an executor, installer,
+Skill-development task, sibling coordinator, or any task that cannot prove it
+is the registered owner. Never retarget another Thread's automation.
 
 ## Stable mechanism vs dynamic state
 
 The heartbeat is a stable reminder mechanism. It should answer:
 
-- which coordinator owns this reminder
+- which coordinator, Thread ID, automation ID, and run ID own this reminder
 - which active watchlist it may inspect
 - what events are worth interrupting the user for
 - when it should stay silent
@@ -59,6 +69,8 @@ if one already exists. Do not mirror the live ledger into the automation prompt.
 
 ## Heartbeat prompt requirements
 
+- Include immutable `run_id`, coordinator ID, executor/watchlist IDs,
+  automation ID when available, and a no-action rule for identity mismatch.
 - Check only the coordinator's current active watchlist.
 - Read recent callbacks or latest 1-3 turns per active target.
 - Stay silent if nothing is actionable unless the user explicitly asks for all-clear messages.
@@ -68,6 +80,12 @@ if one already exists. Do not mirror the live ledger into the automation prompt.
   unless they are stable ownership boundaries. Dynamic pending items should be
   discovered from callbacks, the management brief, or the coordinator's recent
   turns at heartbeat runtime.
+
+On wakeup, first verify
+`waking_thread_id == targetThreadId == coordinator_thread_id` and the exact
+registered automation ID. A misbound wakeup returns
+`MISBOUND_HEARTBEAT_NO_ACTION`; it must not forward itself, inspect unrelated
+work, or dispatch an executor.
 
 Use this output shape:
 

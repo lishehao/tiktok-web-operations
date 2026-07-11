@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.11`
+Protocol version: `2026.07.11.12`
 
 ## 直接安装
 
@@ -59,9 +59,11 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 2. 在这个新标签页里只读打开 TikTok，确认它继承同一 Chrome profile 的登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码，也不要 claim 其他任务的标签页。
 3. 当前页面没有阻塞性的 CAPTCHA、验证挑战、rate limit、warning、restriction 或账号错配。
 4. Codex App 能创建、列出、读取、命名、归档和跨任务发送消息；当前启动任务能通过唯一标题 nonce 自注册准确 Thread ID；`create_thread` 与 `send_message_to_thread` 支持 `gpt-5.6-luna` + `high`。
-5. 用 `list_threads`/`read_thread` 检查所有 active TikTok 任务；不得在旧的同账号 mutation executor、Goal Mode 或其 subagent 仍 active/uncertain 时创建新 executor。无关任务占用另一个 Chrome tab 不构成全局 blocker；若它同时只读浏览同一 TikTok 账号，只标记推荐流归因污染。若用户要求替换 mutation executor，先取得 `STOPPED_AND_RELEASED`，不能把 archive 当成 release proof。
-6. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
-7. 完成后只关闭/释放 bootstrap 自己创建的临时标签页。
+5. 能建立 immutable run registry，保存 run ID、主/执行 Thread ID、host/project、授权、ledger、stop time，以及 automation owner/ID/target。
+6. 若用户要求无人值守持续运行，`automation_update` 必须支持显式 `targetThreadId` 与 view readback。真实 heartbeat 只能在主任务自注册后由主任务自己创建，不能预先挂到 installer、Skill-development 或其他任务。
+7. 用 `list_threads`/`read_thread` 检查所有 active TikTok 任务；不得在旧的同账号 mutation executor、Goal Mode 或其 subagent 仍 active/uncertain 时创建新 executor。无关任务占用另一个 Chrome tab 不构成全局 blocker；若它同时只读浏览同一 TikTok 账号，只标记推荐流归因污染。若用户要求替换 mutation executor，先取得 `STOPPED_AND_RELEASED`，不能把 archive 当成 release proof。
+8. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
+9. 完成后只关闭/释放 bootstrap 自己创建的临时标签页。
 
 Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 Browser、终端浏览器和普通 Web Search 不能替代。启动任务本身必须留下来成为持久化主任务，并只创建一个用户可见的持久化执行任务；不能用 subagent、agent tree、单个合并任务或其他模型替代。
 
@@ -130,15 +132,35 @@ TikTok 运营主任务       gpt-5.6-luna / high
 TikTok Chrome执行任务  gpt-5.6-luna / high
 ```
 
+完整状态机：
+
+```text
+HTTPS 安装/版本比较
+  -> 两个 Skills 原子安装或 NOOP
+  -> Chrome/TikTok/Thread/Automation 只读预检
+  -> 询问方向和时长，等待用户第二条消息
+  -> 当前任务自注册为唯一 coordinator
+  -> 建立 immutable run registry
+  -> 只创建一个 Luna/High executor
+  -> SELF_REGISTRY + THREAD_READY 双向身份握手
+  -> executor 完成只读 stability smoke
+  -> coordinator 自建并回读自己的 heartbeat（仅无人值守时）
+  -> callback -> coordinator 决策 -> 一个下一 bounded block
+  -> 到期/停止/风险 -> STOP_AND_RELEASE
+  -> executor 释放 Chrome -> coordinator 清理自己的 heartbeat -> idle
+  -> 只有用户明确要求才 archive
+```
+
 启动顺序：
 
-1. 当前任务生成唯一 `run_nonce`，把自己重命名为 `TikTok 运营主任务 · <run_nonce>`，再通过 `list_threads` 与 `read_thread` 证明自己的准确 ID。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
+1. 当前任务生成唯一 `run_id/run_nonce`，把自己重命名为 `TikTok 运营主任务 · <run_nonce>`，再通过 `list_threads` 与 `read_thread` 证明自己的准确 ID，并建立 immutable run registry。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
 2. 只创建一个 `TikTok Chrome执行任务`，并强制 `gpt-5.6-luna/high`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是同账号 mutation 和 ledger 的唯一 writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调其他任务。
-3. 记录主任务与执行任务的准确 ID，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
+3. 记录主任务与执行任务的准确 ID、host/project、run ID、授权版本、ledger 和停止时间，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
 4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给执行任务。
 5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
 6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation才算 stability pass；页面 blocker 是证据，但不算稳定通过。
-7. Smoke 通过后才可派完整 `search_heavy` 或互动 block。之后当前主任务继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；它不归档自己，两条运营 Threads 都保持未归档和持久化。
+7. 若要无人值守持续运行，只有现在才由已验证的主任务创建自己的 heartbeat：显式设置 `targetThreadId=coordinator_thread_id`，名称和 prompt 包含 run ID；创建后 view 同一 automation ID，并要求 `automation_owner_thread_id == targetThreadId == coordinator_thread_id`。执行任务永远不创建 automation。
+8. Smoke 及 heartbeat binding（若需要）都通过后，才可派完整 `search_heavy` 或互动 block。之后当前主任务继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；它不归档自己，两条运营 Threads 都保持未归档和持久化。
 
 如果主任务无法自注册、executor 创建/握手失败、首轮没有 proof、独立标签页创建失败或同账号 mutation writer 不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
 
@@ -155,14 +177,15 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 
 - 持久化只依靠两个用户可见 Threads 与 callback；禁止 `create_goal`、`update_goal`、subagent、agent tree 和自建 replacement worker。
 - Executor 每个 turn 只执行一个有边界 block，完成后释放 Chrome、callback、idle。多轮运行由 coordinator 在上一轮完成后逐轮派发。
-- 无人值守时只给 coordinator 配一个低频 heartbeat，作为漏回调与结束时间保险；executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
+- 无人值守时只给 coordinator 配一个低频 heartbeat，作为漏回调与结束时间保险。它必须由 coordinator 自己创建并显式绑定/回读自己的准确 Thread ID；executor、installer、Skill-development 和其他 coordinator 都不能代建或接管。executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
 - 不硬编码 Chrome Skill 的版本缓存路径；只使用当前 runtime 与受支持的 Playwright locator。
 - 只从 CAPTCHA、challenge、系统 dialog/banner/toast、账号 warning 等明确系统 UI 判断风险；caption、hashtag、comment 或搜索内容里的 `warning`/`verify` 字样不是平台警告。
 - 一个失败类型最多允许一个窄 recovery；同类连续失败两次立即开断路器、释放 Chrome、callback 并 idle。改关键词、删 hashtag、换输入法或宣称“fresh audit”不能重置断路器。
 - Native next/down 失败后不自动切 PageDown、ArrowDown、wheel、script scroll、reload 或 reset。Scroll-only fallback 必须由用户在收到 blocker 后重新明确授权。
 - Native next/down 必须从位置 1 起锁定方向特定的精确签名；禁止使用 `button:not([disabled])` 一类宽 locator，因为第一次推进后 up/down 通常都会 enabled。每次 DOM 移动后重新解析同一 down 签名。
 - 预期 UI gate 失败必须在当前判断分支直接写终态、释放 Chrome、callback；不能用 `throw` 返回 reasoning 后继续换 locator 诊断。
-- Coordinator/executor ID、账号、ledger path、授权、角色、模型和 thinking 是 immutable registry；dispatch 必须逐字复制，executor 在连接 Chrome 前逐项比较，任何漂移都以 `registry_mismatch` 终止。
+- Run ID、Coordinator/executor ID、host/project、账号、ledger path、授权、角色、模型、thinking、automation owner/ID/target 和 stop time 都是 immutable registry；dispatch、callback 和 heartbeat 必须逐字比较，任何漂移都以 `registry_mismatch` 或 `AUTOMATION_OWNERSHIP_MISMATCH` 终止。
+- Heartbeat 醒来后先验证 `waking_thread_id == targetThreadId == coordinator_thread_id` 和准确 automation ID；若被挂到别的 Thread，只返回 `MISBOUND_HEARTBEAT_NO_ACTION`，不得转发、接管或操作 TikTok。
 - Tab ID 不得跨 turn、prompt 或 ledger 复用。普通 block 默认直接调用 `chrome.tabs.new()`，只操作该 executor 本轮创建或已经控制的标签页；`openTabs()`/`claimTab()` 只用于用户明确要求的现有标签页交接。
 - Chrome 标签页控制权不是整个 Chrome profile 的全局锁。若某个现有 tab 属于另一个 browser session，跳过它并新建自己的 tab；不得擅自中断、归档、导航或关闭对方任务。只有新建 tab 失败、账号继承/登录验证失败、同账号 mutation writer 冲突或 uncertain submission 才阻塞。并发只读浏览同一账号时必须标记推荐流归因污染。
 - Coordinator 的 `send_message_to_thread` 工具目标本身也属于 immutable registry。若失败明确来自未送达的 target typo，可记录后纠正一次；正确目标上的传输失败不得反复重试。
@@ -178,7 +201,7 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 
 ### 停止条件
 
-登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据。用户说停止时，executor 只释放自己的标签页，写 final checkpoint，两个运营 Threads 保持 idle；只有用户明确要求时才归档。
+登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、Thread/automation identity mismatch、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据。用户说停止时，executor 只释放自己的标签页并写 final checkpoint，主任务只暂停/删除自己 registry 中的 heartbeat；两个运营 Threads 保持 idle，只有用户明确要求时才归档。
 
 ## Requirements
 

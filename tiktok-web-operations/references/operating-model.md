@@ -6,8 +6,10 @@ becomes the coordinator; it creates one execution Thread. Both TikTok roles use
 Mode, or an agent tree for either role.
 
 Use `$thread-supervisor` for generic registration, callback, work-state,
-heartbeat fallback, stop/release, and archival mechanics. This reference owns
-the TikTok-specific authority split and evidence contract.
+heartbeat fallback, stop/release, and archival mechanics. Read its
+`references/identity-and-automation.md` before creating either the executor or
+an automation. This reference owns the TikTok-specific authority split and
+evidence contract.
 
 ## Topology
 
@@ -16,7 +18,8 @@ Starter task
   phase 1: install/upgrade -> read-only preflight -> ask direction/duration -> wait
   phase 2: rename itself TikTok 运营主任务 -> prove own ID
            -> create one TikTok Chrome执行任务
-           -> handshake -> smoke -> bounded operating rounds
+           -> handshake -> smoke
+           -> optional coordinator-owned heartbeat -> bounded operating rounds
 ```
 
 The starter task remains the user-facing coordinator and is never archived as
@@ -35,7 +38,11 @@ The coordinator must know its exact Thread ID before creating the executor:
    account, direction handoff, and `run_nonce` are consistent.
 4. Record that returned ID as `coordinator_thread_id`. Never derive an ID from a
    directory name, old prompt, previous run, or another task's callback.
-5. If zero or multiple candidates remain, stop with
+5. Create the run registry with `run_id`, `run_nonce`, coordinator ID/title/host,
+   executor ID initially `NONE`, account, Luna/High profile, ledger, authority
+   envelope version, stop time, automation owner equal to the coordinator ID,
+   and heartbeat fields initially `NONE`.
+6. If zero or multiple candidates remain, stop with
    `BLOCKED_COORDINATOR_ID_UNVERIFIED`. Do not create a disposable coordinator or
    start polling as a silent fallback.
 
@@ -64,7 +71,12 @@ accepts defaults:
 9. Dispatch one read-only `stability_smoke_01` to the exact executor ID. Require
    the acceptance criteria in `stability-and-circuit-breakers.md` before any
    full calibration block or mutation.
-10. Keep both tasks unarchived. Navigate the app to the coordinator when useful.
+10. If unattended continuation needs a heartbeat, create it only now from this
+    verified coordinator. Pass explicit `targetThreadId=coordinator_thread_id`,
+    include `run_id` in its name/prompt, view the returned automation ID, require
+    exact binding readback, and store it in the run registry. The executor never
+    creates an automation.
+11. Keep both tasks unarchived. Navigate the app to the coordinator when useful.
 
 If self-registration, creation, handshake, or smoke fails, do not claim stable
 operation. Do not create a second executor or another coordinator. Archive an
@@ -75,6 +87,10 @@ empty executor only when the user requests cleanup; otherwise preserve evidence.
 Require `list_projects`, `create_thread`, `list_threads`, `read_thread`,
 `send_message_to_thread`, `set_thread_title`, and `set_thread_archived`.
 Presentation-only pin/navigation tools are optional.
+Require `automation_update` only when the user requests timed/unattended
+continuation. If unavailable, keep callback-driven manual continuation and say
+that proactive resumption is unavailable; never attach a substitute automation
+to another task.
 
 TikTok operations explicitly require `gpt-5.6-luna` plus `thinking=high` for the
 starter coordinator, executor creation, and operational dispatches. This is a
@@ -92,6 +108,7 @@ Fast Mode unless the tool surface exposes and confirms that field.
 | User conversation and strategy | Owns | Never owns |
 | Direction and next block | Owns | Executes current envelope |
 | Authorization and lifecycle | Owns | Matches exact authority |
+| Heartbeat/automation | May own one bound to its exact ID | Never creates or owns |
 | Chrome and TikTok | Never touches | Dedicated tab; sole mutation writer |
 | Raw ledger | Read-only consumer | Sole writer |
 | Capability evidence | Interprets | Collects immediate/reopen/account proof |
@@ -101,15 +118,17 @@ Fast Mode unless the tool surface exposes and confirms that field.
 
 1. Receive the executor callback and read at most the latest relevant 1-3 turns
    when more evidence is necessary.
-2. Reconcile composition, query quality, capability changes, pending user work,
+2. Verify callback transport source, payload run ID, both Thread IDs, ledger,
+   and current block ID against the immutable registry.
+3. Reconcile composition, query quality, capability changes, pending user work,
    authorization, deadline, and risk.
-3. Choose one next bounded block or stop. A normal block should amortize callback
+4. Choose one next bounded block or stop. A normal block should amortize callback
    overhead: normally 10-20 minutes, 20-40 feed items, or one complete search
    cluster plus a For You checkpoint.
-4. If no user decision is required and the standing duration authorizes
+5. If no user decision is required and the standing duration authorizes
    continuation, send exactly one next block to the registered executor ID with
    Luna/High, mark it `running_current_task`, and end the turn.
-5. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
+6. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
 
 Routine per-video observations stay in the ledger. Callback only on completed
 block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
@@ -118,7 +137,11 @@ submission, authorization mismatch, or stop/release.
 For unattended time-bounded operation, one coordinator-only heartbeat may act
 as a missed-callback watchdog and round scheduler. Callback remains primary.
 The heartbeat must not touch Chrome, overlap a running executor turn, bypass a
-circuit breaker, create tasks, or rewrite dynamic operating state.
+circuit breaker, create tasks, or rewrite dynamic operating state. On every
+wakeup, require
+`waking_thread_id == heartbeat_target_thread_id == coordinator_thread_id` and
+the registered automation ID. A mismatch returns
+`MISBOUND_HEARTBEAT_NO_ACTION` and dispatches nothing.
 
 ## Executor loop
 
@@ -131,11 +154,12 @@ For each message from the registered coordinator ID:
 3. Append raw evidence at the checkpoints required by the active TikTok block.
 4. Release only the executor's Chrome control at completion or terminal failure.
 5. Callback once to the coordinator with Luna/High and the schema below.
-6. Become idle. Never self-dispatch, create another Thread, or spawn an agent.
+6. Become idle. Never self-dispatch, create another Thread, spawn an agent, or
+   create/update/delete an automation.
 
 ## Execution envelope
 
-Every dispatch includes both Thread IDs, account, roles, Luna/High profile,
+Every dispatch includes run ID, both Thread IDs, account, roles, Luna/High profile,
 dedicated-tab and sole-writer rules, full `direction_profile`, search clusters,
 content ontology, sample parameters, continuous-feed invariant, capability
 matrix, lane-specific authorization, comment voice and 30-word ceiling, ledger,
@@ -162,6 +186,9 @@ bootstrap task as callback target.
 
 ```text
 status: completed | blocked | validation_failed | needs_decision | key_risk
+run_id:
+coordinator_thread_id:
+executor_thread_id:
 block_id:
 summary:
 sample_counts:
@@ -180,7 +207,8 @@ recommended_next_block:
 `STOP_AND_RELEASE` overrides an active block. The executor stops without another
 probe, releases its tab, records submission certainty, appends a final
 checkpoint, callbacks `STOPPED_AND_RELEASED`, and remains idle. The coordinator
-does not archive either task unless the user explicitly asks.
+then verifies and pauses/deletes only its own registered heartbeat. It does not
+archive either task unless the user explicitly asks.
 
 If the executor disappears, first resolve uncertain submissions and incumbent
 mutation authority. Create a replacement only with explicit user authorization,

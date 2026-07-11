@@ -48,11 +48,20 @@ Treat every executor message as one bounded round. The executor completes that b
 
 For an unattended multi-round run, attach an optional low-frequency heartbeat to the coordinator only. Use it as a watchdog and round scheduler, not as a Chrome operator:
 
+- create it only from the verified coordinator with explicit
+  `targetThreadId=coordinator_thread_id`, then view and verify the exact
+  automation ID/binding before activation;
+- on wakeup require the waking Thread, target Thread, coordinator registry, run
+  ID, and automation ID to match; otherwise return
+  `MISBOUND_HEARTBEAT_NO_ACTION`;
 - read the coordinator/executor latest state;
 - stay silent and dispatch nothing while the executor is running;
 - dispatch one next bounded block only when the prior callback is complete, the executor is idle, the circuit is closed, and `operation_stop_at` has not passed;
 - never create/replace Threads, bypass a blocker, or touch Chrome from the heartbeat;
 - at or after `operation_stop_at`, send one `STOP_AND_RELEASE`, confirm the final callback, and remove the heartbeat.
+
+The executor, installer, Skill-development task, sibling, or historical
+coordinator must never create, update, delete, inherit, or fire this heartbeat.
 
 Soft callbacks remain the primary sequencing signal. The heartbeat is a missed-callback/time-bound safety net and must never overlap executor turns.
 

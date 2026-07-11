@@ -21,8 +21,13 @@ tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_support: READY | UNAVAILABLE
 coordinator_self_registration: PROVABLE | UNAVAILABLE
+run_registry: WRITABLE | UNAVAILABLE
 model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
 fast_mode: ACTIVE | INACTIVE | UNVERIFIED
+automation_support: AVAILABLE | UNAVAILABLE | NOT_REQUESTED
+automation_owner_thread_id: NONE | exact coordinator id
+heartbeat_automation_id: NONE | exact id
+heartbeat_target_thread_id: NONE | exact id
 incumbent_executor: NONE | SAME_REGISTERED_EXECUTOR | RETIRED_AND_RELEASED | ACTIVE_OR_UNCERTAIN
 dedicated_tab_creation: AVAILABLE | UNAVAILABLE
 same_account_external_activity:
@@ -52,15 +57,21 @@ Run checks in order:
 6. Prove the current starter task can self-rename and can later resolve its exact
    ID through unique-title `list_threads` plus `read_thread`. Phase 1 may use a
    temporary nonce/title and then restore a user-friendly bootstrap title.
-7. Prove executor creation and operational dispatch support
+7. Prove a writable private run registry can store exact task identity,
+   automation ownership, authority, ledger, and stop fields.
+8. Prove executor creation and operational dispatch support
    `model=gpt-5.6-luna` with `thinking=high`. This TikTok profile is mandatory.
    Record Fast Mode only when independently visible; it is not a creation gate.
-8. Inspect active TikTok tasks. Block only an active/uncertain same-account
+9. When unattended/timed continuation is requested, prove `automation_update`
+   can create and view a heartbeat with explicit `targetThreadId`. Do not create
+   the real operating heartbeat during Phase 1 and do not use the bootstrap or
+   Skill-development task as its owner.
+10. Inspect active TikTok tasks. Block only an active/uncertain same-account
    mutation executor or uncertain submission. Other Chrome tabs are allowed;
    concurrent same-account read-only browsing only contaminates attribution.
-9. Read local time and create a writable private ledger path. Initialize every
+11. Read local time and create a writable private ledger path. Initialize every
    mutation lane independently without modifying TikTok.
-10. Finalize only the disposable bootstrap tab and release its control session.
+12. Finalize only the disposable bootstrap tab and release its control session.
 
 If blocked, return only the first repairable issue and impact, ending with
 `完成后回复“继续”`. A blocked `继续` rechecks only that item and is not an
@@ -103,7 +114,8 @@ application advice, pure study motivation, and generic non-campus content.
 Follow `operating-model.md` exactly:
 
 1. Rename this task `TikTok 运营主任务 · <run_nonce>`, resolve and verify its
-   exact Thread ID, and store it as coordinator ID.
+   exact Thread ID, and create the immutable run registry with automation owner
+   equal to that coordinator ID.
 2. Create one `TikTok Chrome执行任务` with `gpt-5.6-luna/high`; include the
    coordinator ID and require it to wait for `SELF_REGISTRY`.
 3. Send the exact returned executor ID through `SELF_REGISTRY`, then require a
@@ -113,7 +125,12 @@ Follow `operating-model.md` exactly:
    native next/down control.
 5. Require three search observations, five identities, four verified advances,
    zero reset, and zero mutation. A blocker is evidence but not a stability pass.
-6. Only after the smoke passes may the coordinator dispatch a full calibration
+6. If timed/unattended continuation is requested, the verified coordinator now
+   creates its own heartbeat with explicit `targetThreadId` equal to its exact
+   ID, views the returned automation, verifies the same binding, and stores the
+   automation ID. Any mismatch stops with no dispatch.
+7. Only after the smoke passes and any requested heartbeat binding verifies may
+   the coordinator dispatch a full calibration
    or mutation block. Keep both tasks persistent and unarchived.
 
 If creation, registry, callback, or smoke fails, do not create another task or
