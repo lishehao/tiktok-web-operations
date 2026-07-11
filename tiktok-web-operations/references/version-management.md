@@ -48,6 +48,12 @@ An incoming older version blocks unless the user explicitly requests downgrade.
 Explicit force never bypasses source validation, runtime fencing, backup,
 post-install validation, or rollback.
 
+`INSTALL` and `UPGRADE` are non-interactive installer actions. Do not stop after
+comparison, report only that an upgrade is available, ask whether to upgrade,
+or require a user `continue`. When source validation and the active-runtime
+fence pass, execute the transaction immediately, validate the exact installed
+trees, and continue dependency preflight in the same turn.
+
 ## Active-runtime fence
 
 Before replacing either Skill, inspect active TikTok tasks and registries. Do
@@ -56,6 +62,12 @@ and validate the incoming bundle, then return `DEFERRED_ACTIVE_RUNTIME`. Retry
 only after the executor reports `STOPPED_AND_RELEASED` and the coordinator is
 idle or retired. If runtime state cannot be inspected, return
 `BLOCKED_RUNTIME_UNVERIFIED`.
+
+Treat a task as active only with current evidence that it is running, owns a
+TikTok/Chrome mutation session, has an uncertain submission, or has not released
+its executor. Historical, completed, archived, `notLoaded`, or otherwise idle
+tasks with released Chrome and no uncertain submission do not trigger the
+fence. Do not turn stale task history into an upgrade prompt.
 
 Publishing from an isolated release directory while an older installed runtime
 is active is allowed. Do not imply the installed version changed.
@@ -86,8 +98,8 @@ managed tree.
 
 ## Result handling
 
-- Successful install/upgrade/force action continues to dependency preflight
-  only after both installed targets validate.
+- Successful install/upgrade/force action continues automatically to dependency
+  preflight in the same turn, only after both installed targets validate.
 - `NOOP` rewrites neither directory and continues with the validated trees.
 - Deferred or blocked actions make no target changes and start no runtime.
 - A release is complete only after staged validation, ZIP integrity, GitHub

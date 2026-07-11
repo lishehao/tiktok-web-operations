@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.14`
+Protocol version: `2026.07.11.15`
 
 ## 直接安装
 
@@ -39,13 +39,15 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 
 在修改本地目录前，完整读取下载包里的 `tiktok-web-operations/references/version-management.md`。先验证固定 repository/name/path 和两个 manifest 的共同 bundle 版本，再把 `YYYY.MM.DD.N` 拆成四段整数比较；同版本时分别对两个完整受管树做确定性内容指纹。内部先记录每个 Skill 的比较结果和唯一 `bundle_action`。
 
+发现未安装、legacy 或 GitHub 版本更高时，版本处理是 installer 的内部步骤，不是用户交接点。不得只回复“发现新版本”、不得询问是否升级，也不得要求用户回复“继续”；在 active-runtime fence 清晰的前提下，直接完成备份、原子安装/升级和安装后校验，并在同一 turn 继续第 3 节只读预检。
+
 - 未安装：安装两个完整 Skill 目录。
 - 已安装但没有 manifest：视为 legacy，先完整备份再升级。
-- GitHub 版本更高：先确认没有正在使用旧版本的 TikTok 运营任务，再备份旧目录，用同文件系统 sibling staging 替换两个完整受管目录。
+- GitHub 版本更高：先确认没有正在使用旧版本的 TikTok 运营任务，然后无需再次询问用户，自动备份旧目录，用同文件系统 sibling staging 替换两个完整受管目录；安装后校验通过即继续只读预检。
 - 两个版本和内容都相同：`NOOP`。
 - 同版本但内容不同：`BLOCKED_CONFLICT`，不静默覆盖；只有用户明确要求“强制重装/覆盖同版本”才允许 `FORCE_REINSTALL`。
 - GitHub 版本更低：`BLOCKED_DOWNGRADE`；只有用户明确要求降级才允许 `FORCE_DOWNGRADE`。
-- 旧版本仍被 active coordinator/executor 使用：只下载并校验，返回 `DEFERRED_ACTIVE_RUNTIME`；等待 executor 给出 `STOPPED_AND_RELEASED` 后再重试，绝不热覆盖。
+- 旧版本仍被真正 active 的 coordinator/executor 使用：只下载并校验，返回 `DEFERRED_ACTIVE_RUNTIME`；等待 executor 给出 `STOPPED_AND_RELEASED` 后再重试，绝不热覆盖。历史任务、`notLoaded`/已完成任务、已释放 Chrome 且无 uncertain submission 的 idle executor 不算 active runtime，不能因此阻止自动升级。
 - 无法确认是否有 active runtime 且将替换现有目录：`BLOCKED_RUNTIME_UNVERIFIED`。
 - 任一替换后校验失败：恢复两个旧目录并报告 `ROLLED_BACK`，不继续 TikTok 预检。
 
@@ -53,7 +55,7 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 
 ### 3. 只读预检
 
-安装完成后先不修改 TikTok，也不创建运营 Threads，只检查：
+安装或自动升级并完成安装后校验后，在同一 turn 继续；先不修改 TikTok，也不创建运营 Threads，只检查：
 
 1. Chrome Browser control 能实际连接，并能用 `chrome.tabs.new()` 创建一个隔离的临时标签页；掉线时最多重连两次。
 2. 在这个新标签页里只读打开 TikTok，确认它继承同一 Chrome profile 的登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码，也不要 claim 其他任务的标签页。

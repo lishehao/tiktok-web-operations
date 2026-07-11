@@ -45,9 +45,12 @@ Run checks in order:
    `thread-supervisor/`, and `tiktok-web-operations/`; validate both manifests,
    source identity, Skills, agents metadata, and directly referenced files.
 2. Follow `version-management.md`: compare numeric versions and managed-tree
-   fingerprints, fence active runtimes, stage both Skills on the target
-   filesystem, replace whole directories, validate both exact targets, and roll
-   both back if either replacement fails. Never mix old/new files.
+   fingerprints, fence genuinely active runtimes, and automatically install or
+   upgrade without asking when the incoming bundle is newer. Stage both Skills
+   on the target filesystem, replace whole directories, validate both exact
+   targets, and roll both back if either replacement fails. Never mix old/new
+   files. Upgrade discovery is not a stopping point; after successful installed-
+   tree validation continue with step 3 in this same turn.
 3. Prove Chrome control with one disposable `chrome.tabs.new()` tab. Retry a
    dropped control connection at most twice; never claim another task's tab.
 4. Open TikTok read-only in that tab, prove the logged-in `@handle`, and inspect
@@ -75,7 +78,8 @@ Run checks in order:
 
 If blocked, return only the first repairable issue and impact, ending with
 `完成后回复“继续”`. A blocked `继续` rechecks only that item and is not an
-operation start command.
+operation start command. Never use this blocked handoff merely because a valid
+newer bundle was found; that case must have been upgraded automatically above.
 
 ## Healthy guided handoff
 

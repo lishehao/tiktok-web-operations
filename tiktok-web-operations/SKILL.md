@@ -57,7 +57,7 @@ Before any persistent Thread or heartbeat action, also read
 
 | User says | Execute |
 |-|-|
-| Installer Prompt or first `帮我运营 TikTok` before bootstrap is initialized | Install/upgrade and run read-only preflight, return the guided direction/duration handoff, and wait. Do not create operating Threads or touch TikTok state yet. |
+| Installer Prompt or first `帮我运营 TikTok` before bootstrap is initialized | Automatically install or upgrade when the incoming bundle is newer, validate the installed bundle, and continue read-only preflight in the same turn. Return the guided direction/duration handoff only after preflight; do not pause merely to announce an available upgrade, create operating Threads, or touch TikTok state yet. |
 | Healthy handoff followed by `继续`, `开始`, a direction, or a duration | Resolve the `direction_profile`, keep this task as coordinator, create one persistent executor, obtain first operation proof, and begin the bounded run. |
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
 | `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, reposts, follows, or comments. |
@@ -70,10 +70,12 @@ Before any persistent Thread or heartbeat action, also read
 
 ## Two-Phase Bootstrap
 
-1. **Install, preflight, and ask:** use `version-management.md` to install,
-   upgrade, no-op, defer, block, or roll back the complete versioned
+1. **Install, preflight, and ask:** use `version-management.md` to automatically
+   install or upgrade a valid newer bundle, no-op, defer, block, or roll back the complete versioned
    `thread-supervisor` plus `tiktok-web-operations` bundle. Never hot-reload an
-   active TikTok runtime or merge old/new files. After validation, prove Chrome
+   active TikTok runtime or merge old/new files. Version availability alone is
+   never a user confirmation point: after installation validation, continue in
+   the same turn and prove Chrome
    control, exact TikTok login, absence of blocking warnings, required thread
    tools, starter-task self-registration, exact `gpt-5.6-luna/high` executor
    creation support, no conflicting same-account mutation executor, local time,
