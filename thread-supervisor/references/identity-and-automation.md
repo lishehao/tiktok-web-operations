@@ -25,6 +25,9 @@ operation_stop_at:
 automation_owner_thread_id:
 heartbeat_automation_id: NONE | exact id
 heartbeat_target_thread_id: NONE | exact id
+operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
+operation_timer_next_tick_at: NONE | timestamp
+operation_timer_stop_at: NONE | timestamp
 first_install_supervision_state: NOT_APPLICABLE | PENDING | ACTIVE | CONSUMED | DEGRADED
 first_install_supervision_started_at: NONE | timestamp
 first_install_supervision_ends_at: NONE | timestamp
@@ -118,6 +121,10 @@ create its own heartbeat.
 Only create a heartbeat when the user requested proactive timed continuation,
 callbacks are unreliable, or a domain Skill explicitly authorizes an unattended
 time-bounded run.
+
+A domain may define every multi-round duration as timer-authorized. In that
+case, create one durable coordinator-owned timer after pair readiness, reuse the
+same logical automation throughout the run, and never create per-round timers.
 
 1. Require `identity_state=VERIFIED` and `pair_state=PAIR_READY` or
    `ROUND_COMPLETE`.

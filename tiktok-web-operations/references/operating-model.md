@@ -19,13 +19,38 @@ Starter task
   phase 2: temporary nonce title -> prove own ID -> final title 主控台
            -> create one executor -> final title 执行器
            -> handshake -> smoke
-           -> first-install-only supervision window or optional heartbeat
+           -> one durable run timer with optional first-install overlay
            -> bounded operating rounds
 ```
 
 The starter task remains the user-facing coordinator and is never archived as
 part of successful bootstrap. The executor owns its dedicated Chrome tab, is the
 sole same-account mutation writer, and is the sole raw-ledger writer.
+
+## Role cards
+
+```text
+主控台
+objective: advance or stop the authorized run at the correct time and own every
+user decision.
+inputs: direction profile, authorization, capability matrix, callback, timer,
+ledger summary, current time, operation_stop_at.
+output: one next bounded dispatch, one consolidated user decision, or stop.
+never: Chrome/TikTok work, raw per-item analysis, Skill development, concurrent
+dispatches.
+
+执行器
+objective: execute exactly the current bounded block, record evidence, release
+Chrome, callback, and idle.
+inputs: immutable registry plus one bounded dispatch.
+output: ledger checkpoints plus one structured callback.
+never: long-term strategy, user questions, self-recovery beyond the explicit
+budget, scheduling, another block, another Thread, Skill development.
+```
+
+Persona, target audience, search clusters, interaction policy, and validation
+rules are constraints carried in the dispatch. Do not restate them as parallel
+goals in either role prompt.
 
 ## Starter self-registration
 
@@ -90,10 +115,11 @@ empty executor only when the user requests cleanup; otherwise preserve evidence.
 Require `list_projects`, `create_thread`, `list_threads`, `read_thread`,
 `send_message_to_thread`, `set_thread_title`, and `set_thread_archived`.
 Presentation-only pin/navigation tools are optional.
-Require `automation_update` only when the user requests timed/unattended
-continuation. If unavailable, keep callback-driven manual continuation and say
-that proactive resumption is unavailable; never attach a substitute automation
-to another task.
+Require `automation_update` when the resolved run is timed and expected to span
+more than one bounded block, or when the user requests unattended continuation.
+If unavailable, mark the timer degraded, keep callback-driven manual
+continuation, and say that deadline/watchdog timing is unavailable; never attach
+a substitute automation to another task.
 
 TikTok operations explicitly require `gpt-5.6-luna` plus `thinking=high` for the
 starter coordinator, executor creation, and operational dispatches. This is a
@@ -145,14 +171,43 @@ Routine per-video observations stay in the ledger. Callback only on completed
 block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
 submission, authorization mismatch, or stop/release.
 
-For unattended time-bounded operation, one coordinator-only heartbeat may act
-as a missed-callback watchdog and round scheduler. Callback remains primary.
+For every timed operation expected to exceed one bounded block, one coordinator-
+only heartbeat acts as the durable run timer, missed-callback watchdog, and
+round scheduler. Callback remains the primary event signal; heartbeat is the
+time signal.
 The heartbeat must not touch Chrome, overlap a running executor turn, bypass a
 circuit breaker, create tasks, or rewrite dynamic operating state. On every
 wakeup, require
 `waking_thread_id == heartbeat_target_thread_id == coordinator_thread_id` and
 the registered automation ID. A mismatch returns
 `MISBOUND_HEARTBEAT_NO_ACTION` and dispatches nothing.
+
+## Durable operation timer
+
+Create one logical timer only after coordinator identity, executor handshake,
+and stability smoke are verified. Store its exact automation ID, owner/target,
+`operation_stop_at`, and next tick in the immutable registry.
+
+- Use a low-frequency recurring timer or successive one-shot updates according
+  to the available scheduler, but preserve the same logical timer identity and
+  never create a timer per block.
+- Set the next tick to the earlier of the next useful watch time and
+  `operation_stop_at`. Normal cadence is about 15-30 minutes; callbacks may
+  advance work sooner without waiting for a tick.
+- On wake, verify identity and time first. At or after stop time, dispatch no new
+  work; send `STOP_AND_RELEASE` when needed, verify release, finalize the run,
+  and delete the timer.
+- Before stop time, reconcile any missed callback. If the executor is running,
+  do nothing and schedule the next tick. If it is idle, healthy, authorized,
+  and no user decision is pending, dispatch at most one next block.
+- A risk or decision pauses dispatch but does not move the deadline. Keep or
+  reschedule the same timer only to enforce stop and surface unhandled state.
+- If automation is unavailable, mark `operation_timer_state=DEGRADED`, disclose
+  that long-term timing is callback-only, and never fake persistence by keeping
+  a turn open.
+
+The first-install `+15/+35/+60` schedule uses this same durable timer during its
+first hour. It is a supervision cadence overlay, not a second automation.
 
 ## First-install supervision window
 
@@ -164,11 +219,11 @@ credential, cookie, browser state, or content history.
   `NOOP`, force reinstall, and later missions never create or reset it.
 - Phase 1 does not start the clock because no executor exists. On the first real
   operation, after verified handshake and successful stability smoke, set the
-  marker to `ACTIVE`, record start/end, and create one coordinator-owned
-  one-shot watch heartbeat with exact binding proof.
+  marker to `ACTIVE`, record start/end, and apply the first-hour checkpoint
+  overlay to the run's existing durable timer with exact binding proof.
 - Target cumulative checkpoints are approximately `+15`, `+35`, and `+60`
-  minutes from activation. Reuse/update the same exact owned automation for the
-  next checkpoint; never create three concurrent automations. Cap the last
+  minutes from activation. Reuse/update the same exact run timer for the next
+  checkpoint; never create a separate supervision automation. Cap the last
   checkpoint at `operation_stop_at` when the run is shorter than one hour.
 - On wake, verify run/owner/target/automation identity, read the executor's
   latest 1-3 relevant turns plus callback and ledger state, and do nothing to

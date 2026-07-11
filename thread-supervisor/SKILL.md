@@ -71,6 +71,21 @@ starter task becomes coordinator
   -> coordinator reconciles and dispatches at most one next round
 ```
 
+Keep each role single-purpose:
+
+```text
+Coordinator objective: advance or stop the authorized run at the correct time,
+and own every user decision.
+
+Executor objective: execute exactly the current bounded block, record evidence,
+release the external resource, callback, and become idle.
+```
+
+Treat strategy, policy, account, direction, capability matrix, deadline, and
+reporting schema as inputs or constraints, not additional worker missions. If a
+prompt gives either role multiple independent goals, rewrite it into this role
+card plus a bounded input contract before dispatch.
+
 - Keep the starter task as coordinator when it can prove its own exact Thread ID.
   Use the temporary nonce registration title in
   `references/identity-and-automation.md`, resolve the exact matching task with
@@ -222,9 +237,17 @@ For iterative design/review loops, define the loop contract up front:
 - rule that each next iteration starts only after the previous callback or
   review result is received
 
-## Heartbeat fallback
+## Heartbeat and durable timer
 
-Use heartbeat automation only when soft hooks are unavailable, unreliable, or the user wants proactive reminders.
+Use heartbeat automation when soft hooks are unavailable or unreliable, the
+user wants proactive reminders, or a domain Skill defines a multi-round timed
+operation that needs a durable clock.
+
+For a multi-round time-bounded operation, prefer one coordinator-owned durable
+timer heartbeat even when callbacks work. Callbacks mean “an event arrived”;
+the timer means “time arrived.” Keep one logical timer per run, reuse/update its
+exact automation ID, and store `operation_stop_at` plus the next tick in the
+registry. Never create one heartbeat per block.
 
 Create, update, fire, pause, or delete a heartbeat only from its verified owner
 coordinator. Require
@@ -258,6 +281,19 @@ On heartbeat:
   - 15-30 minutes for normal implementation
   - 30-60 minutes for long-running or low-risk tracking
 - delete the automation when no active thread or unacknowledged result remains
+
+For a durable operation timer, each tick must additionally:
+
+- verify owner, target, run ID, automation ID, current time, and stop time;
+- if the deadline is reached, dispatch no new work and perform the domain's
+  stop/release sequence;
+- if a callback was missed, reconcile it before considering more work;
+- if the executor is running, do not interrupt or overlap it;
+- if the executor is idle, no decision is pending, standing authorization still
+  applies, and time remains, dispatch at most one next bounded block;
+- schedule the next low-frequency tick at the earlier of the next watch time or
+  `operation_stop_at`, using the same logical timer;
+- delete the timer when the run ends or the user stops.
 
 ### One-time first-run supervision window
 

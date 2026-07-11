@@ -26,8 +26,13 @@ generic registry, callback, heartbeat, and lifecycle mechanics.
 
 | Thread | Owns | Must not do |
 |-|-|-|
-| Current starter task, final title `主控台` | User conversation, direction, standing authorization, executor supervision, decisions, risk, and final reporting | Navigate or operate TikTok |
-| `execution_thread` — final title `执行器` | The logged-in Chrome session, ordered browsing, searches, authorized actions, verification, and raw evidence ledger | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
+| Current starter task, final title `主控台` | One objective: advance or stop the authorized run at the correct time and own every user decision | Navigate or operate TikTok |
+| `execution_thread` — final title `执行器` | One objective: execute exactly the current bounded block, record evidence, release Chrome, callback, and idle | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
+
+Direction, persona, authorization, capability matrix, risk rules, ledger, and
+deadline are role inputs and constraints. They are never additional independent
+objectives. Do not load either Thread with product research, Skill maintenance,
+or another operating mission during an active run.
 
 The starter task first installs the bundled Skills, runs read-only preflight,
 returns the guided direction/duration prompt, and waits. After the user's second
@@ -147,6 +152,14 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   coordinator ID, then viewed and stored only after exact binding proof. The
   executor and every bootstrap, Skill-development, sibling, or historical task
   never own or manage it.
+- For every timed operation expected to exceed one bounded block, make one
+  verified coordinator-owned heartbeat the durable run timer. Callback drives
+  event-time decisions; heartbeat drives low-frequency status checks, missed-
+  callback recovery, next due time, and `operation_stop_at`. Store and reuse one
+  logical automation ID for the run, never one per block. On a tick, do not
+  touch Chrome or overlap a running executor; dispatch at most one block only
+  when the executor is idle, no decision is pending, authorization remains, and
+  time remains. Delete the timer at stop or completion.
 - On a true first install, persist
   `first_install_supervision=PENDING` outside the managed Skill tree. After the
   user's first real run completes identity handshake and stability smoke, the

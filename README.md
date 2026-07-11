@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.17`
+Protocol version: `2026.07.11.18`
 
 ## 直接安装
 
@@ -146,8 +146,8 @@ HTTPS 安装/版本比较
   -> 只创建一个 Luna/High executor
   -> SELF_REGISTRY + THREAD_READY 双向身份握手
   -> executor 完成只读 stability smoke
-  -> 首次 INSTALL 的第一次运营：coordinator 开启一次性首小时监督窗口
-  -> 其他无人值守任务：coordinator 按需自建并回读自己的 heartbeat
+  -> coordinator 创建并回读本 run 唯一 durable timer heartbeat
+  -> 首次 INSTALL 的第一次运营：同一 timer 使用首小时监督日程
   -> callback -> coordinator 决策 -> 一个下一 bounded block
   -> 到期/停止/风险 -> STOP_AND_RELEASE
   -> executor 释放 Chrome -> coordinator 清理自己的 heartbeat -> idle
@@ -162,7 +162,7 @@ HTTPS 安装/版本比较
 4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给执行任务。
 5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
 6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation才算 stability pass；页面 blocker 是证据，但不算稳定通过。
-7. 若要无人值守持续运行，只有现在才由已验证的主任务创建自己的 heartbeat：显式设置 `targetThreadId=coordinator_thread_id`，名称和 prompt 包含 run ID；创建后 view 同一 automation ID，并要求 `automation_owner_thread_id == targetThreadId == coordinator_thread_id`。执行任务永远不创建 automation。
+7. 对超过一个 bounded block 的计时型运营，只有现在才由已验证的主任务创建本 run 唯一 durable timer heartbeat：显式设置 `targetThreadId=coordinator_thread_id`，名称和 prompt 包含 run ID 与 `operation_stop_at`；创建后 view 同一 automation ID，并要求 `automation_owner_thread_id == targetThreadId == coordinator_thread_id`。执行任务永远不创建 automation。Callback 负责事件到达，timer 负责下一次检查和最终截止；整个 run 复用同一个 timer，不为每个 block 新建。
 8. 若本机安装状态是首次 `INSTALL` 且 `first_install_supervision=PENDING`，Smoke 通过后由主控台把它消费为一次性的首小时监督窗口。默认在启动后约 `+15`、`+35`、`+60` 分钟只读检查执行器最新状态、callback 和 ledger；健康时静默，风险只在主控台汇总。窗口不得超过 `operation_stop_at`，结束或用户提前停止时删除自己的监督 heartbeat，并写 `CONSUMED`。升级、后续运营任务、重启和新 run 都不得再次创建该窗口。
 9. Smoke 及 heartbeat binding（若需要）都通过后，才可派完整 `search_heavy` 或互动 block。之后当前主任务继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；它不归档自己，两条运营 Threads 都保持未归档和持久化。
 
@@ -183,7 +183,8 @@ HTTPS 安装/版本比较
 - Executor 每个 turn 只执行一个有边界 block，完成后释放 Chrome、callback、idle。多轮运行由 coordinator 在上一轮完成后逐轮派发。
 - 主控台是唯一用户决策入口。Executor 遇到 `blocked`、`validation_failed`、`needs_decision`、`key_risk`、uncertain submission 或平台风险时，必须先停止当前 block、释放自己的 Chrome、写 ledger，再只向注册主控台回调并 idle；不得在执行器 Thread 里询问用户、提出继续按钮、自行恢复或派发下一轮。
 - 主控台收到上述非成功状态后必须暂停新 dispatch，把风险、影响范围、当前已停止内容、是否仍可安全只读、推荐方案和不超过三个选项合并成一次用户提示。只有用户在主控台明确回复继续方式，或风险被可验证的外部状态变化消除后，才可恢复。用户无需查看或回复执行器 Thread。
-- 无人值守时只给 coordinator 配一个低频 heartbeat，作为漏回调与结束时间保险。它必须由 coordinator 自己创建并显式绑定/回读自己的准确 Thread ID；executor、installer、Skill-development 和其他 coordinator 都不能代建或接管。executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
+- 每个多轮计时型 run 默认只给 coordinator 配一个长期 timer heartbeat，作为低频状态检查、漏回调保险和 `operation_stop_at` 截止时钟。它必须由 coordinator 自己创建并显式绑定/回读自己的准确 Thread ID；executor、installer、Skill-development 和其他 coordinator 都不能代建或接管。executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
+- 两个 Thread 都只承担一个目标：主控台只负责在授权和截止时间内推进下一步或停下并向用户集中决策；执行器只负责准确执行当前唯一 block、写证据、释放 Chrome、callback、idle。方向、人设、能力矩阵和政策都是输入约束，不是额外使命。
 - 首次安装监督是唯一自动例外：仅当持久化安装状态显示首次 `INSTALL` 后尚未消费，第一次运营启动才自动开启一次，检查点约为 `+15/+35/+60` 分钟。它只监督、不连续轮询；健康静默，风险仍统一回主控台。状态保存在受管 Skill 目录之外，不记录凭据，窗口消费后永不因升级或新任务重置。
 - 不硬编码 Chrome Skill 的版本缓存路径；只使用当前 runtime 与受支持的 Playwright locator。
 - 只从 CAPTCHA、challenge、系统 dialog/banner/toast、账号 warning 等明确系统 UI 判断风险；caption、hashtag、comment 或搜索内容里的 `warning`/`verify` 字样不是平台警告。

@@ -28,6 +28,9 @@ automation_support: AVAILABLE | UNAVAILABLE | NOT_REQUESTED
 automation_owner_thread_id: NONE | exact coordinator id
 heartbeat_automation_id: NONE | exact id
 heartbeat_target_thread_id: NONE | exact id
+operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
+operation_timer_next_tick_at: NONE | timestamp
+operation_timer_stop_at: NONE | timestamp
 durable_install_state_path: ${CODEX_HOME:-$HOME/.codex}/state/tiktok-web-operations/install-state.json
 first_install_supervision: NOT_APPLICABLE | PENDING | ACTIVE | CONSUMED | DEGRADED
 first_install_supervision_checkpoints: NONE | timestamps
@@ -136,13 +139,16 @@ Follow `operating-model.md` exactly:
    native next/down control.
 5. Require three search observations, five identities, four verified advances,
    zero reset, and zero mutation. A blocker is evidence but not a stability pass.
-6. If timed/unattended continuation is requested, the verified coordinator now
-   creates its own heartbeat with explicit `targetThreadId` equal to its exact
-   ID, views the returned automation, verifies the same binding, and stores the
-   automation ID. Any mismatch stops with no dispatch.
+6. If the resolved duration exceeds one bounded block, the verified coordinator
+   now creates this run's single durable timer heartbeat with explicit
+   `targetThreadId` equal to its exact ID, views the returned automation,
+   verifies the same binding, and stores its ID, next tick, and
+   `operation_stop_at`. Callback handles events; this timer handles time. Never
+   create a heartbeat per block. Any ownership mismatch stops with no dispatch;
+   unavailable automation marks timer `DEGRADED` and must be disclosed.
 7. If the durable install state is `PENDING`, this first real run consumes the
-   one-time supervision contract after smoke: activate a coordinator-owned
-   watch through approximately `+15/+35/+60` minutes, capped by stop time, or
+   one-time supervision contract after smoke: apply approximately
+   `+15/+35/+60` checkpoints to that same durable timer, capped by stop time, or
    mark `DEGRADED` and callback-only if automation is unavailable. This window
    is silent when healthy and never touches TikTok.
 8. Only after the smoke passes and any requested heartbeat binding verifies may
