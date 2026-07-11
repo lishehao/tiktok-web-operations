@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.22`
+Protocol version: `2026.07.12.1`
 
 ## 直接安装
 
@@ -215,6 +215,7 @@ HTTPS 安装/版本比较
 - Tab ID 不得跨 turn、prompt 或 ledger 复用。普通 block 默认直接调用 `chrome.tabs.new()`，只操作该 executor 本轮创建或已经控制的标签页；`openTabs()`/`claimTab()` 只用于用户明确要求的现有标签页交接。
 - Chrome 标签页控制权不是整个 Chrome profile 的全局锁。若某个现有 tab 属于另一个 browser session，跳过它并新建自己的 tab；不得擅自中断、归档、导航或关闭对方任务。只有新建 tab 失败、账号继承/登录验证失败、同账号 mutation writer 冲突或 uncertain submission 才阻塞。并发只读浏览同一账号时必须标记推荐流归因污染。
 - 一次页面加载失败不等于 TikTok 风控。执行台先分清 stale tab/browser disconnect、DNS/网络 `ERR_*`、代理/TLS、HTTP 429/403/5xx、`ERR_BLOCKED_BY_CLIENT` 和空白/脚本加载失败；记录错误码与 URL 后，在原登录 Chrome 内短暂等待并重试当前页，必要时从同一 browser binding 新建专属 tab，并用 TikTok 首页/中性 HTTPS 诊断全网、单域或单页范围。恢复后必须重新确认账号、目标页、系统 warning 和提交确定性才继续；不得切 Computer Use/其他浏览器、绕过 TLS/登录或重试不确定写操作。持久失败或账号/CAPTCHA/429/限流统一回 TikTok 主控台。
+- 用户解释必须由 exact error code 加同域/中性页探测共同生成，并明确写成“可能原因”，不得断言根因。`ERR_NETWORK_CHANGED` 对应网络接口/VPN/代理可能切换，`ERR_CONNECTION_RESET` 对应连接可能被网络路径/VPN/服务端/安全软件重置，`ERR_NAME_NOT_RESOLVED` 对应域名/DNS 可能失败，`5xx` 对应站点服务可能异常，`ERR_BLOCKED_BY_CLIENT` 对应扩展或过滤规则可能拦截。暂态恢复后继续任务，不单独打扰用户，只在下一次三行回执的“本轮完成”中简短说明；持续失败回主控台，必须带 exact code、可能原因、已尝试动作和最小用户操作。回执永远不增加第四行。
 - Coordinator 的 `send_message_to_thread` 工具目标本身也属于 immutable registry。若失败明确来自未送达的 target typo，可记录后纠正一次；正确目标上的传输失败不得反复重试。
 
 ### 互动能力

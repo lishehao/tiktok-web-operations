@@ -206,7 +206,7 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - Prefer TikTok's visible native next/down control for feed fidelity. Use incremental scrolling only when the control is unavailable and the coordinator explicitly dispatches a scroll-only fallback block. Never switch transition methods inside one checkpoint. Do not add random delays, cursor jitter, or fake human behavior.
 - Identify next/down with a direction-specific exact live signature; never use a broad enabled-button locator, because the up control normally becomes enabled after the first advance. Re-resolve the same exact down signature after every DOM movement.
 - Never reuse a Chrome tab ID from a prior turn, prompt, ledger, or memory. At normal block start, use `chrome.tabs.new()` to create the executor's dedicated tab and navigate it to TikTok; use an existing current-session tab only when this executor created or already controls it. Use `user.openTabs()` plus `user.claimTab()` only for an explicit user-requested handoff or continuation of a known unclaimed tab. If an existing tab reports another browser session, leave it untouched and create a new tab; that message is not a global Chrome blocker. Stop only when new-tab creation/control fails or the dedicated tab cannot prove the expected TikTok account.
-- Classify Chrome/page failures before declaring platform risk. Keep stale tab/browser disconnect, DNS/network `ERR_*`, proxy/TLS, HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render failures distinct. In the original logged-in Chrome only: log error+URL, retry the same URL once after a short wait, use a fresh dedicated tab from the same browser binding when needed, test same-domain home and a neutral HTTPS site in a temporary diagnostic tab, then re-confirm account/target/warnings before resuming. Never switch browser, bypass TLS/login, or retry an uncertain mutation. Persistent failure callbacks `TikTok 主控台`; a recovered transient does not end the long run or disable mutation lanes.
+- Classify Chrome/page failures before declaring platform risk. Keep stale tab/browser disconnect, DNS/network `ERR_*`, proxy/TLS, HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render failures distinct. In the original logged-in Chrome only: log error+URL, retry the same URL once after a short wait, use a fresh dedicated tab from the same browser binding when needed, test same-domain home and a neutral HTTPS site in a temporary diagnostic tab, then re-confirm account/target/warnings before resuming. Generate `likely_cause` only from the exact code plus those probes and present it as `可能原因`, never a confirmed root cause. Never switch browser, clear cookies, change proxy/TLS, bypass login, or retry an uncertain mutation. Persistent failure callbacks `TikTok 主控台`; a recovered transient does not end the long run, disable mutation lanes, or create a standalone user interruption.
 - A For You checkpoint is invalid if page resets are used to obtain later samples. Record exact before/after card identity for every transition. If native movement does not advance, repeats a card, loses identity, or would require a reset, record `transition_failure` or `duplicate` and stop the checkpoint; never reset to manufacture another item. Reset is allowed only for the initial entry before position 1 or a separately declared hard recovery after the block has stopped.
 - Append raw evidence after every consumed search-origin post, after each
   five-card assessment, and at For You validation checkpoints. Validate each
@@ -270,6 +270,11 @@ error_code:
 failure_scope: none | tab | browser | network_global | tiktok_domain | target_page | platform
 recovery_attempts:
 account_reverified: true | false | not_needed
+likely_cause:
+likely_cause_basis:
+recovery_actions_attempted:
+user_action_required: true | false
+user_action:
 composition:
 queries_used:
 actions_performed:
@@ -303,14 +308,11 @@ evidence, and callbacks with `callback_scope=run_terminal`,
 timer, reconcile the ledger, and mark `RUN_COMPLETED`. Missing proof becomes
 `RUN_FINALIZATION_BLOCKED`, never a successful completion.
 
-The coordinator reports meaningful checkpoints to the user with:
-
-```text
-本轮完成：
-发布/处理：
-下一轮：
-风险：
-```
+Routine progress, including a recovered transient Chrome/network event, must
+use the exact three-line receipt below. Do not create a separate fourth
+`风险`/`恢复` line. Persistent failures are surfaced only by `TikTok 主控台` and
+must state exact code, `可能原因`, attempted actions, and the smallest user action
+inside the same three-line shape when a timed receipt is active.
 
 For the whole run, keep the user-facing response to one compact message:
 
@@ -328,6 +330,17 @@ After timer creation and every valid nonterminal heartbeat, use exactly:
 下次心跳：<YYYY-MM-DD HH:mm timezone>
 下轮计划：<one bounded purpose>
 ```
+
+For a recovered transient, fold the code and brief possible cause into
+`本轮完成`; do not notify immediately. For a persistent failure, use:
+
+```text
+本轮完成：已暂停当前 block；<exact code>；可能原因：<hypothesis>；已尝试：<bounded actions>。
+下次心跳：<verified time | 未建立（等待用户处理）>
+下轮计划：请你<minimal user action>；完成后回复“继续”，期间不执行新的 TikTok 动作。
+```
+
+Never add a fourth line.
 
 Report the next time only after updating/viewing the exact owned automation and
 verifying its target and schedule. If the executor is still running, the plan is

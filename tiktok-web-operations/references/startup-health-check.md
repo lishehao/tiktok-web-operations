@@ -60,8 +60,12 @@ Run checks in order:
    On a true first `INSTALL`, create the private installation-state record with
    `first_install_supervision=PENDING`; never place it in either managed Skill
    tree. Upgrade/NOOP/reinstall must preserve an existing consumed state.
-3. Prove Chrome control with one disposable `chrome.tabs.new()` tab. Retry a
-   dropped control connection at most twice; never claim another task's tab.
+3. Prove Chrome control with one disposable `chrome.tabs.new()` tab. Apply the
+   exact-code/likely-cause and bounded same-session recovery contract in
+   `runtime-and-recovery.md`; retry a dropped control connection at most twice
+   and never claim another task's tab. A recovered transient remains internal
+   preflight evidence; persistent failure reports exact code, `可能原因`, attempted
+   actions, and one user repair without clearing cookies or switching browsers.
 4. Open TikTok read-only in that tab, prove the logged-in `@handle`, and inspect
    explicit platform warnings/challenges. Never enter credentials or codes.
 5. Prove `list_projects`, `create_thread`, `list_threads`, `read_thread`,

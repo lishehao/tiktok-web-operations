@@ -162,8 +162,10 @@ Fast Mode unless the tool surface exposes and confirms that field.
    training evidence.
 4. If status is `blocked`, `validation_failed`, `needs_decision`, or `key_risk`,
    pause all new dispatches. Consolidate one user-facing decision in `TikTok 主控台`:
-   risk, evidence, affected lane/block/run, what has already stopped, whether
-   read-only work remains safe, one recommendation, and at most three options.
+   risk, exact error code, evidence-bounded `可能原因`, same-domain/neutral probe
+   evidence, recovery actions already attempted, affected lane/block/run, what
+   has already stopped, whether read-only work remains safe, one minimal user
+   action, and at most three options.
    Do not tell the user to inspect or reply in `TikTok 执行台`.
 5. Resume only after the user decides in `TikTok 主控台` or a verifiable external-state
    change clears the blocker. Never treat a worker-local reply or its final
@@ -183,6 +185,12 @@ Fast Mode unless the tool surface exposes and confirms that field.
 Routine per-video observations stay in the ledger. Callback only on completed
 block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
 submission, authorization mismatch, or stop/release.
+
+A transient Chrome/network error that fully recovers inside the bounded budget
+does not create an event callback or standalone user message. Preserve it in the
+ledger and ordinary completed callback; the coordinator folds one short
+`<exact code> 已恢复；可能原因：...` clause into the next three-line receipt's
+`本轮完成` line. Never add a fourth recovery/risk line.
 
 A feed-validation transition failure may return `status=completed` with
 `feed_validation_status=partial|unavailable`, `decision_required=false`, and a
@@ -253,8 +261,9 @@ date. Do not show an automation ID.
 - Executor idle and healthy: report the one bounded block just dispatched or
   planned.
 - Risk/decision pending: report the verified next safety/deadline tick when one
-  remains; the plan is to await the user's decision and perform no new TikTok
-  action.
+  remains; `本轮完成` contains exact code, `可能原因`, and attempted recovery;
+  `下轮计划` contains the minimal user action and says no new TikTok action will
+  run meanwhile. Do not add a fourth line.
 - Schedule update/readback failure: use
   `下次心跳：未建立（调度校验失败）` and safely pause.
 - Final tick: use `下次心跳：无（进入终止结算）` and plan to obtain final executor
@@ -366,6 +375,11 @@ error_code:
 failure_scope: none | tab | browser | network_global | tiktok_domain | target_page | platform
 recovery_attempts:
 account_reverified: true | false | not_needed
+likely_cause:
+likely_cause_basis:
+recovery_actions_attempted:
+user_action_required: true | false
+user_action:
 composition:
 queries_used:
 actions_performed:
@@ -387,7 +401,8 @@ the executor Thread. `completed` may set `decision_required: false` even when it
 records non-actionable observations in `risks`, including a fully recovered
 transient Chrome/network event. A persistent infrastructure failure returns one
 coordinator-ready `blocked`/`key_risk` callback with exact class, code, scope,
-attempts, and ledger evidence; it is not mislabeled as account enforcement.
+attempts, `likely_cause`, probe basis, attempted actions, minimal user action,
+and ledger evidence; it is not mislabeled as account enforcement.
 
 Only a terminal callback may use `callback_scope=run_terminal` or
 `terminal_event=EXECUTOR_RELEASED`; a normal `completed` callback must not use

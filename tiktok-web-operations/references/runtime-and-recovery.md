@@ -42,6 +42,43 @@ Use, another browser, a clean context, or a login bypass.
 | `blocked_by_client` | `ERR_BLOCKED_BY_CLIENT` | local extension/content policy or request blocking; not account risk by itself | retry once in a fresh dedicated tab in the same Chrome; do not disable the user's extensions automatically |
 | `ambiguous_render` | blank page, perpetual loading shell, script error, missing content, or navigation timeout with no explicit code | renderer/page ambiguity | allow the normal 1–3 second staged-render wait, inspect final URL/title/DOM, then use the same bounded recovery sequence |
 
+### Likely-cause inference
+
+Generate `likely_cause` only from the exact error/status plus same-domain and
+neutral-page probe results. It is an evidence-bounded hypothesis, never a root-
+cause diagnosis. In user-facing Chinese, always begin with `可能原因：`; never
+say `根因是`, `确定是`, or claim that TikTok restricted the account without
+explicit platform UI.
+
+| Exact evidence | Required likely-cause wording |
+|-|-|
+| `ERR_NETWORK_CHANGED` | 网络接口、VPN 或代理连接可能刚发生切换 |
+| `ERR_CONNECTION_RESET` | 连接可能被网络链路、VPN、服务端或安全软件中途重置 |
+| `ERR_CONNECTION_TIMED_OUT` | 网络路径、代理/VPN 或站点响应可能超时 |
+| `ERR_CONNECTION_CLOSED` | 对端或中间网络路径可能提前关闭连接 |
+| `ERR_INTERNET_DISCONNECTED` | 当前设备可能暂时失去互联网连接 |
+| `ERR_NAME_NOT_RESOLVED` | 目标域名或当前 DNS 解析可能失败 |
+| `ERR_PROXY_CONNECTION_FAILED` / `ERR_TUNNEL_CONNECTION_FAILED` | 当前代理或隧道连接可能不可达 |
+| `ERR_CERT_*` | 系统时间、证书链或代理/TLS 检查路径可能异常；不得绕过证书警告 |
+| HTTP `5xx` | TikTok 或其上游服务可能暂时异常 |
+| HTTP `403` | 当前请求可能被登录、权限、WAF 或站点策略拒绝；需结合可见页面判断 |
+| HTTP `429` | TikTok 当前可能正在限流 |
+| `ERR_BLOCKED_BY_CLIENT` | Chrome 扩展、内容过滤器或本地规则可能拦截了请求 |
+| no exact code / blank or script failure | 页面脚本、渲染、单路由或暂态加载可能异常 |
+
+Refine that phrase with probes, without overstating certainty:
+
+- neutral HTTPS fails too: local/global network, DNS, proxy, TLS, or security
+  path is more likely than a TikTok-only problem;
+- neutral succeeds but TikTok home fails: TikTok domain/CDN/path is more likely;
+- TikTok home succeeds but the exact target fails: target route/page/script is
+  more likely;
+- probes are unavailable: keep the cause broad and set
+  `likely_cause_basis=<exact code>; probes=unavailable`.
+
+Store the exact code separately from the hypothesis. `likely_cause` must never
+replace `error_code`, and a probe outcome must not overwrite the original code.
+
 Do not infer `browser_disconnected` from an empty tab list. Tab binding and
 browser binding are separate: only an explicit browser-disconnected result
 invalidates the browser binding. Never call browser-discovery APIs to recover a
@@ -51,7 +88,8 @@ lost tab; reuse the existing Chrome browser binding and create a new tab.
 
 Before recovery, append one ledger event with timestamp, exact URL, exact error
 code/message, classification, expected account, tab/browser binding state,
-whether a mutation was in flight, and submission certainty. Then:
+whether a mutation was in flight, submission certainty, `likely_cause`,
+`likely_cause_basis`, and `user_action_required`. Then:
 
 1. If a mutation may have been submitted, do not retry or navigate as ordinary
    recovery. Enter the uncertain-submission procedure below and callback.
@@ -74,6 +112,12 @@ whether a mutation was in flight, and submission certainty. Then:
    `recovered=true`, `account_reverified=true`, and the final scope. A recovered
    transient error does not disable a mutation lane or terminate a long run.
 
+When recovery succeeds, do not send a standalone user interruption. Keep the
+event in the ledger and ordinary completed callback. At the next scheduled
+three-line receipt, append one short clause to `本轮完成`, for example:
+`期间 ERR_NETWORK_CHANGED 已在原 Chrome 会话内恢复；可能原因：网络或代理连接切换。`
+Do not add a fourth line.
+
 The sequence permits at most two page attempts after the first failure: one
 same-URL retry and, when necessary, one fresh-tab retry/diagnostic sequence.
 Never loop, reload repeatedly, alter proxy/TLS settings, or use another browser.
@@ -81,6 +125,15 @@ If the same failure remains after this sequence, stop the current block, release
 owned tabs, preserve the ledger, and callback the coordinator. CAPTCHA, login or
 account mismatch, explicit warning/restriction, HTTP 429, or uncertain
 submission bypasses ordinary retry and returns immediately as platform risk.
+
+A persistent-failure callback must include the exact code, `likely_cause` as a
+possibility, probe evidence, every attempted recovery action, and one minimal
+`user_action`. The coordinator owns the user message. Suggested actions remain
+non-destructive: confirm that connectivity is back; inspect whether VPN/proxy or
+security software just changed; wait for a `5xx`/`429` cooldown; inspect an
+extension/filter rule for `ERR_BLOCKED_BY_CLIENT`; or manually resolve visible
+login/challenge UI. The executor never clears cookies, changes proxy/DNS/TLS,
+disables extensions, switches browsers, or repeats an uncertain mutation.
 
 Never carry a tab ID across turns. At normal executor block start, create a tab with `chrome.tabs.new()` and use that returned object. Reuse a tab only when it is already part of this executor's current control session. `user.openTabs()` plus `user.claimTab()` is allowed only for an explicit user-requested handoff or continuation of a known unclaimed tab; never guess or touch another app task's tab.
 

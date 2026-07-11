@@ -118,6 +118,13 @@ breaker. Feed-native transition failures are lane-local when search training
 and account/browser safety remain healthy; after two consecutive failures
 disable/defer only `feed_validation_lane` for the current runtime.
 
+The callback must preserve the exact code and phrase the inferred explanation
+as `可能原因`, derived from that code plus same-domain/neutral probes. Include
+bounded actions already attempted and the smallest user action. A fully
+recovered transient stays in the ledger/ordinary completed callback and is
+mentioned only in the next receipt's `本轮完成` line; it does not page the user or
+add a fourth receipt line.
+
 1. stop the executor block;
 2. release Chrome;
 3. callback `blocked` or `key_risk` once;
