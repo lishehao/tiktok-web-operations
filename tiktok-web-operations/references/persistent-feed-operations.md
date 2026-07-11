@@ -6,34 +6,56 @@ Assume the persistent `execution_thread` role defined in `operating-model.md`. T
 
 Before the first full block of a new executor/runtime, pass the read-only `stability_smoke_01` in `stability-and-circuit-breakers.md`. Do not combine the smoke with mutation gates.
 
-## Calibration state machine
+## Search-training state machine
 
-1. **Audit** — Verify account identity, warnings, current feature visibility, driver ownership, and per-action capability state.
-2. **Baseline** — Enter native For You once, then sample one continuous feed in order. Record core/adjacent/irrelevant/harmful labels without outward actions or page resets.
-3. **Seed** — Search one approved topic cluster. Open results from the search surface and watch enough to classify the setup and payoff.
-4. **Bridge** — Explore a relevant hashtag, creator, sound, or related-search path when it adds audience context rather than pure virality.
-5. **Re-sample** — After all search/bridge work is finished, enter For You once and measure one continuous native sequence. Report composition, not causal certainty.
-6. **Prepare feedback** — Build an exact packet for actions requiring confirmation, or select an eligible post like, favorite, repost, or proactive comment when a matching standing envelope is active.
-7. **Authorize and execute** — Use exact action-time confirmation or the matching standing envelope, run one action once, and apply its independent persistence gate.
-8. **Reconcile** — Update the ledger, capability matrix, search seeds, exclusions, and next read-only calibration phase.
+Treat search-led consumption as the default training surface and For You as a
+held-out validation surface. Neither surface proves a known TikTok ranking
+weight.
 
-Loop through Baseline → Seed → Bridge → Re-sample. Do not stay indefinitely in For You when the feed is off-direction, and do not stay indefinitely in search because that prevents measuring the actual recommendation mix.
+1. **Audit** — Verify account identity, warnings, driver ownership, region/language, and per-action capability state.
+2. **Baseline validation** — When the feed-validation lane is available, take one small continuous For You sample to measure the starting mix. Do not train on it.
+3. **Search assessment** — Search one approved cluster and classify the first five result cards in order. This measures query quality only.
+4. **Qualified consumption** — From those results, open strong `core` posts individually from the search surface, verify the direct post identity/playback, and watch through the premise/payoff or completion when reasonably short. Returning without opening the post is not consumption.
+5. **Bridge consumption** — From a consumed core post, optionally open one relevant creator, hashtag, sound, or related-search path and consume another core post when it adds audience context.
+6. **Sparse explicit feedback** — Only when separately authorized and independently persistence-verified, choose the smallest genuine Favorite, TikTok Repost, or proactive-comment signal on distinct strong-core posts. Do not require an outward action for a training block to pass.
+7. **Held-out validation** — After multiple search-training blocks, enter For You once and sample a small continuous sequence. Measure composition; do not claim causal attribution.
+8. **Reconcile** — Update qualified-consumption counts, feed-validation state, capability matrix, search seeds, exclusions, and next block.
 
-## Default vertical calibration block
+Search cards are candidate discovery, not recommendation training evidence.
+Record `search_results_assessed` separately from `qualified_search_views`. A
+qualified search view requires all of: opened from a search/bridge surface,
+stable post URL/creator identity, playback or visible watch progression, and
+premise/payoff understanding. Directly opening an already-known URL does not
+replace the search-origin proof.
 
-Use one block as the repeatable unit for a new, sparse, or visibly off-direction account:
+## Default search-training block
+
+Use one block as the repeatable unit for a new, sparse, or visibly off-direction account. Spend most operating time here; do not append a For You checkpoint to every block.
 
 1. Lock the audience ontology before browsing: current core clusters, adjacent boundary, exclusions, language/region, and active capability matrix.
 2. Select three distinct approved search clusters. Do not use three near-duplicate queries from the same microtopic.
-3. For each cluster, inspect five results in order. Count product/storefront, stale, adjacent, and irrelevant results in the denominator instead of silently cherry-picking only good posts.
-4. For each result, record source query, URL, freshness, creator, relevance label, whether the setup/payoff was understood, and whether the comment culture supports participation.
-5. When `autonomous_comment_mode` is active, comment only on a strong `core` result. Expect roughly zero or one qualifying comment per five results, but never treat that as a quota; zero is valid.
-6. After 15 search-result observations, enter For You once and sample 20 sequential items on that same page through the visible native next/down control. Do not open only attractive cards, replace bad results, reload, reopen Home, call `goto` on the home route, or navigate away between positions. If no unambiguous down/next control exists, stop; a coordinator may later declare a separate scroll-only fallback checkpoint, but methods must not be mixed.
-7. Record the exact before/after creator, URL, or stable card identity plus the transition action for every advance. If the feed does not advance, repeats unexpectedly, loses identity, or would require a reset, record `transition_failure`/`duplicate` and stop the checkpoint. Never reset to manufacture a sample.
-8. Append ledger checkpoints after each five-result search cluster and after For You positions 1, 5, 10, 15, and 20. A shorter or failed checkpoint is appended at its final observed position.
-9. Compute the block composition and choose the next mode with the heuristic below.
+3. For each cluster, classify the first five result cards in order. Count product/storefront, stale, adjacent, and irrelevant results in the assessment denominator.
+4. Open and consume every suitable strong-core result among those five, normally three to five per cluster. Verify the exact post page, observe playback progression, and watch enough to understand the premise/payoff. Record observed/total time when exposed, without inventing a universal dwell rule.
+5. Return through normal page navigation to the same search context; do not substitute a direct URL list or merely inspect thumbnails/captions.
+6. Record two separate denominators: all 15 assessed result cards and the number of qualified consumed core posts. A complete block normally contains at least nine qualified search views; if fewer exist, finish honestly and rotate weak clusters rather than opening irrelevant posts to fill a quota.
+7. When `autonomous_comment_mode` is active, comment only on a strong core post after it has become a qualified view. Zero comments remains valid.
+8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line stops the block before more browsing.
+9. Run held-out For You validation only after two search-training blocks or roughly 20–30 qualified search views, unless the coordinator explicitly requests an earlier diagnostic.
 
-Five items are an exploration unit for one search cluster, not enough to judge the recommendation feed. Twenty sequential For You items are the minimum default checkpoint; retain larger rolling samples when available.
+The default block success metric is qualified search consumption, not search-card relevance and not For You composition.
+
+## Held-out For You validation block
+
+Use For You to measure whether the recommendation mix is moving, not as the main training surface:
+
+1. Enter For You once and sample 5–10 sequential items through the verified native next/down control. Do not watch irrelevant posts longer merely to complete a research sample; classify as soon as the premise is clear and advance normally.
+2. Keep the same continuous-page invariants: no reload, Home reset, direct-post replacement, mixed transition method, or cherry-picking.
+3. Record exact before/after identities and composition. A five-item sample is directional only; compare rolling checkpoints rather than one small sample.
+4. If native transition fails after at least five reliable identities, mark `feed_validation_status=partial` and finish the block normally. This does not invalidate completed search training.
+5. If fewer than five reliable identities are available, mark `feed_validation_status=unavailable`. When account/login/warning/Chrome ownership remain healthy, disable or defer only the feed-validation lane and continue future search-training blocks.
+6. Two consecutive feed-transition failures may disable the validation lane for the current runtime. They do not open the whole-run circuit unless the failure also affects dedicated-tab control, account certainty, platform risk, or search-origin video consumption.
+
+Never use For You validation failure as permission for scroll/keyboard/wheel/reload fallback. It remains a lane-local evidence result.
 
 ## Verticality metrics and mode switch
 
@@ -47,13 +69,13 @@ drift_share = (irrelevant + harmful_to_direction) / sampled
 
 Use these operating heuristics, not as claims about TikTok's official algorithm:
 
-| Observed For You composition | Next block |
+| Observed For You composition | Next training plan |
 |-|-|
-| `core_share < 20%` | `search_heavy`: three search clusters × five results, then 20-item For You checkpoint |
-| `core_share 20–50%` | `mixed`: two search clusters × five results, then 20-item For You checkpoint |
-| `core_share > 50%` in two consecutive checkpoints | `feed_led`: primarily browse For You; retain one five-result search cluster per block to prevent drift and discover fresh language |
+| `core_share < 20%` | Remain search-training-led; run two training blocks before the next 5–10 item validation. |
+| `core_share 20–50%` | Remain search-led but validate after each one or two training blocks. |
+| `core_share > 50%` in two consecutive checkpoints | Permit mixed mode; retain at least one qualified search-consumption cluster per block. |
 
-Do not switch to feed-led mode from one favorable checkpoint. If `core_share` stays below 10% for three complete blocks, change query wording or cluster mix and recheck account/region context; do not compensate by posting more comments.
+Do not switch to feed-led mode from one favorable checkpoint. If `core_share` stays below 10% across three validation checkpoints despite at least 60 qualified search views, change query/cluster mix and recheck account, region, and language context; do not compensate by posting more comments.
 
 ## Packaged default college/dorm block
 
@@ -71,7 +93,7 @@ Prefer recent posts from roughly the last 30 days when suitable current results 
 
 Prefer the visible native next/down control when it preserves playback, ordered feed context, and visible watch state. Before position 1, record a direction-specific exact signature through accessible name/title/test id/data-e2e or the verified live down-chevron SVG. Never use all enabled buttons as the locator: after position 1, both up and down may be enabled. Re-resolve the exact down signature after each DOM movement, click it exactly once per transition, and verify the before/after identity packet before continuing.
 
-Incremental scroll/wheel gestures are not an automatic fallback. Under the packaged default, failure of the visible native next/down control stops feed sampling and callbacks once. A scroll-only checkpoint requires a new explicit user decision after the stopped block. Never mix button, keyboard, wheel, script scroll, reload, or reset transitions in one checkpoint or recovery sequence. Direct URLs remain appropriate for exact verification and revisiting candidates, but they are not a replacement for feed sampling.
+Incremental scroll/wheel gestures are not an automatic fallback. Under the packaged default, failure of the visible native next/down control stops only the current feed-validation sample, records `partial|unavailable`, and callbacks once. A scroll-only checkpoint requires a new explicit user decision after the stopped validation block. Never mix button, keyboard, wheel, script scroll, reload, or reset transitions in one checkpoint or recovery sequence. Direct URLs remain appropriate for exact verification and revisiting candidates, but they are not a replacement for feed sampling.
 
 For You sampling is one continuous-session invariant. Initial entry before position 1 may use the normal TikTok navigation link. After position 1, remain on the same page and preserve feed order. Do not use reload, `goto`, Home reopening, direct-post navigation, or a second For You entry as an ordinary transition. A reset is permitted only after the current block is explicitly stopped and reported as a separate hard recovery; recovered items belong to a new checkpoint, never the old denominator.
 
@@ -79,7 +101,7 @@ For every transition store `position_before`, `identity_before`, `action`, `posi
 
 The purpose is interface fidelity, not stealth. Never randomize timing, move the pointer artificially, insert fake indecision, or claim to be human. Respect CAPTCHA, verification, warnings, and rate limits. Detect platform warnings only from explicit system UI; never treat ordinary caption, hashtag, comment, or search-result words as system warnings.
 
-Watch long enough to understand the content. Do not encode a universal dwell-time formula: video length, clarity, replay need, and the research objective vary. Record whether the premise/payoff was understood, not a fabricated human-behavior score.
+For search training, watch long enough to understand the content and record actual progression when exposed. Do not encode a universal dwell-time formula: video length, clarity, replay need, and the research objective vary. Record whether the premise/payoff was understood, not a fabricated human-behavior score.
 
 ## Search-seed policy
 
@@ -111,7 +133,7 @@ Do not stack like + favorite + repost + comment on every good post. Use distinct
 
 ## Ledger and capability matrix
 
-For each viewed item record timestamp, source surface, ordered position when available, URL, freshness, creator, topic cluster, relevance label, premise/payoff understood, action candidate, and risk. For each block, summarize search denominators plus For You core/directional/drift shares. Persist incrementally after every search cluster and every five For You positions, including the first and final/failed positions, so a runtime failure cannot erase the whole block.
+For each viewed item record timestamp, source surface, ordered position when available, URL, freshness, creator, topic cluster, relevance label, premise/payoff understood, action candidate, and risk. For search-origin posts also record `opened_from_search=true`, stable post identity, playback progression evidence, and `qualified_search_view=true|false`. Keep `search_results_assessed`, `qualified_search_views`, and For You composition separate. Persist incrementally and validate each JSONL line immediately so a runtime failure or malformed append cannot erase/corrupt the block.
 
 Track each action type as `untested`, `verified`, `failed`, `unverified`, or `disabled`, with account, browser/runtime, test URL, timestamp, immediate state, reload state, account-level state, and stop reason. `not_executed` is a batch result, not a capability result.
 

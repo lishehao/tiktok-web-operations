@@ -68,17 +68,17 @@ Soft callbacks remain the primary sequencing signal. The heartbeat is a missed-c
 
 ## First-run stability smoke
 
-Run this read-only block before a new executor performs a full calibration block or any mutation:
+Run this read-only block before a new executor performs a full search-training block or any mutation. Search-origin video consumption is the primary runtime gate; For You is an optional validation lane.
 
 1. Verify the registered IDs, exact account, no incumbent same-account mutation writer, no submission in flight, and no system-level challenge. Create the dedicated tab and record whether concurrent same-account browsing contaminates recommendation attribution.
-2. Open one direction-relevant search query and classify the first three visible results without opening interaction controls.
-3. Enter For You once.
-4. Enumerate the navigation controls once and identify the down control by a direction-specific signature: prefer an accessible name/title/test id/data-e2e that specifically means next/down; otherwise use the unique down-chevron SVG signature observed in the current live UI. The currently verified fallback signature is `button:has(svg path[d^="m24 28.75"])`, but use it only after confirming it is the visible down control. Never use a broad locator such as `button:not([disabled])`, because the up and down controls can both become enabled after position 1.
-5. Require the exact down signature to have count `1`, visible, and enabled. Record that signature with the position-1 identity packet, then re-resolve that same exact signature after every DOM movement for four single-click transitions to positions 2–5. Do not retain a stale element or ordinal.
-6. Require five reliable identities, four verified advances, zero reset/reload/Home re-entry, and zero mutation.
-7. Write the smoke result and release Chrome.
+2. Open one direction-relevant search query and classify the first three visible result cards.
+3. Select one strong-core result, open it from the search surface, verify the stable post URL/creator identity, confirm playback or visible watch progression, and watch enough to understand its premise/payoff. Record it as one `qualified_search_view`, then return through normal navigation.
+4. If search-origin open/playback/return succeeds with zero mutation, mark `search_training_runtime=verified`.
+5. Separately enter For You once and attempt up to five reliable identities through the exact native down control. Use the same direction-specific locator rules below; never switch transition method.
+6. If five identities/four advances succeed, mark `feed_validation_lane=verified`. If the native gate fails while account, dedicated-tab control, and search consumption remain healthy, mark only `feed_validation_lane=degraded|unavailable`; do not fail the search-training runtime and do not request a fallback.
+7. Write separate search-training and feed-validation results, validate each JSONL line, and release Chrome.
 
-Only `completed` with those acceptance criteria proves feed-control stability. A page-based blocker is useful startup evidence but is not a stability pass. Up-control enablement after the first advance is expected and must not make the exact down-control locator ambiguous.
+Only `completed` with three assessed search cards, at least one qualified search view, stable account/tab control, zero mutation, and parseable ledger proves the primary runtime. For You success is additional capability evidence, not a prerequisite for search-led operation. A platform warning, account mismatch, dedicated-tab failure, search-origin playback failure, or malformed ledger remains a smoke blocker.
 
 ## Risk classification
 
@@ -97,11 +97,26 @@ If a risk locator or diagnostic API fails, mark the system-warning state `unveri
 
 ## Recovery budget
 
-One operation block may have at most one narrowly scoped read-only recovery block for its distinct failure class. The recovery must keep the same accepted transition method and test one falsifiable hypothesis.
+One operation block may have at most one narrowly scoped read-only recovery
+sequence for each distinct failure class. For Chrome/page-load failures, use the
+classification table and exact two-attempt ceiling in
+`runtime-and-recovery.md`: retry the same URL once, then, only when needed, use a
+fresh dedicated tab from the same Chrome binding plus a diagnostic tab. Record
+every attempt. The recovery must test one falsifiable scope hypothesis and may
+not change browser/profile, authentication, proxy, TLS policy, or authorization.
 
 Do not hop among native button, PageDown, ArrowDown, wheel, script scroll, reload, and page reset. Under the packaged default, a failed native next/down smoke stops feed sampling. A scroll-only fallback requires a new explicit user decision; the coordinator cannot self-authorize it.
 
-Two consecutive failures with the same dedicated-tab, mutation-writer, transition, rendering, or diagnostic failure class open the circuit breaker:
+Persistent `tab_binding_stale`, `browser_disconnected`, `dns_network`,
+`proxy_tls`, `blocked_by_client`, or `ambiguous_render` after its bounded
+sequence stops the current block and callbacks the coordinator; it does not
+masquerade as TikTok/account enforcement. HTTP 429, explicit platform challenge,
+account mismatch, or uncertain submission returns immediately. Two consecutive
+failures with the same dedicated-tab, mutation-writer, search-origin
+open/playback, rendering, or diagnostic failure class open the whole-run circuit
+breaker. Feed-native transition failures are lane-local when search training
+and account/browser safety remain healthy; after two consecutive failures
+disable/defer only `feed_validation_lane` for the current runtime.
 
 1. stop the executor block;
 2. release Chrome;

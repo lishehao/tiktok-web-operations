@@ -30,7 +30,7 @@ Treat feed signals as hypotheses rather than known algorithm weights:
 |-|-|-|
 | Short view / early skip | Passive observation of weak fit | Read-only, but do not claim a known recommendation effect |
 | Completed view / replay / creator or hashtag exploration | Stronger evidence of genuine relevance | Read-only when no outward control is changed |
-| Search and open a result cluster | Seed a missing topic and gather candidates | Read-only |
+| Search, open, and meaningfully watch strong-core results | Primary directional training hypothesis; card inspection alone does not count | Read-only |
 | `Not interested` | Explicit negative feedback for clearly off-direction content | Exact post confirmation plus persistence check |
 | Post like | Lightweight positive feedback | Independent post-like persistence gate |
 | Favorite/save | Strong intent hypothesis; useful only if the account can prove persistence | Independent favorite persistence gate: selected immediately, still selected near +3s and +10s, then reload/reopen plus exact account-level Favorites evidence |

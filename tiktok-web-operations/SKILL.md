@@ -107,6 +107,11 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 
 Treat direction as a product and audience decision, not merely a keyword list. Resolve `persona_name`, `target_audience`, `region_language`, `content_pillars`, `excluded_topics`, `voice_and_comment_style`, `search_seed_clusters`, `future_post_alignment`, `duration`, and `operation_stop_at`. This profile keeps searches, consumption, engagement, comment voice, and future publishing coherent. Describe it as a consistent audience signal hypothesis; never promise a particular recommendation or distribution outcome.
 
+Region and language are required direction fields because they change queries,
+consumption, and comment voice. For a custom direction, ask one necessary
+question when they cannot be safely inferred; do not silently collapse a broad
+topic such as `dogs` into a Chinese- or English-only audience.
+
 When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. The coordinator owns later direction changes and must update the executor envelope before the next block.
 
 ## Execution Thread Loop
@@ -114,8 +119,8 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 1. Read the coordinator Thread ID and operating envelope: account, objective, audience, exclusions, authorizations, stop conditions, ledger path, and result schema.
 2. Confirm this exact Thread is the registered TikTok executor and sole same-account mutation writer. Create or recover only its own dedicated Chrome tab, then verify TikTok account, time context, visible warnings, and capabilities.
 3. Read account health, current page state, recent relevant history, and ledger tail.
-4. For recommendation work, run the bounded block in `references/persistent-feed-operations.md`; label `core`, `adjacent`, `irrelevant`, and `harmful_to_direction`.
-   Treat each For You checkpoint as one continuous native feed: enter once, then use the visible TikTok next/down control as the default transition. An incremental scroll is allowed only in a separately declared fallback block when no unambiguous visible control exists; never mix button and scroll transitions inside one checkpoint. Never reload, reopen Home, call `goto` on the home route, or navigate away between sampled positions.
+4. For recommendation work, run the search-training block in `references/persistent-feed-operations.md`; label `core`, `adjacent`, `irrelevant`, and `harmful_to_direction`. Search cards only assess query quality. Count training only after opening a strong-core result from search/bridge, verifying direct post identity/playback, and watching through its premise/payoff.
+   Treat For You as a separate held-out validation block, normally 5–10 continuous items after two training blocks or 20–30 qualified search views. Preserve its native-feed invariants, but a lane-local transition failure must not erase completed search training or stop a healthy search-led run.
 5. Run Check A before drafting and Check B on the exact action. Never mechanically reuse a comment, caption, hook, or asset.
 6. Before any mutation, require exact action-time confirmation or a matching active standing action envelope.
 7. Execute one state-changing action at a time. Gate every action type independently and verify persisted state.
@@ -191,12 +196,22 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   registered automation ID. A mismatch returns
   `MISBOUND_HEARTBEAT_NO_ACTION`; it must not inspect TikTok or dispatch work.
 - A `blocked` or `key_risk` callback opens the recovery circuit in `stability-and-circuit-breakers.md`. Do not self-declare a fresh audit, rebuild a worker, or hop across transition methods. Wait for a user instruction or verified external-state change after the bounded recovery budget is exhausted.
+- Scope circuit breakers by lane. A For You next/down failure with healthy
+  account, dedicated-tab control, and search-origin playback marks the held-out
+  validation `partial|unavailable`; after two consecutive occurrences, disable
+  only that validation lane for the runtime. Do not require a user decision or
+  stop qualified search consumption unless the failure crosses those safety
+  boundaries.
 - Treat an expected gate failure as a terminal data branch, not an exception that returns to reasoning. Once `count/visible/enabled/identity` fails, write the result, release Chrome, and callback without another diagnostic.
 - Prefer TikTok's visible native next/down control for feed fidelity. Use incremental scrolling only when the control is unavailable and the coordinator explicitly dispatches a scroll-only fallback block. Never switch transition methods inside one checkpoint. Do not add random delays, cursor jitter, or fake human behavior.
 - Identify next/down with a direction-specific exact live signature; never use a broad enabled-button locator, because the up control normally becomes enabled after the first advance. Re-resolve the same exact down signature after every DOM movement.
 - Never reuse a Chrome tab ID from a prior turn, prompt, ledger, or memory. At normal block start, use `chrome.tabs.new()` to create the executor's dedicated tab and navigate it to TikTok; use an existing current-session tab only when this executor created or already controls it. Use `user.openTabs()` plus `user.claimTab()` only for an explicit user-requested handoff or continuation of a known unclaimed tab. If an existing tab reports another browser session, leave it untouched and create a new tab; that message is not a global Chrome blocker. Stop only when new-tab creation/control fails or the dedicated tab cannot prove the expected TikTok account.
+- Classify Chrome/page failures before declaring platform risk. Keep stale tab/browser disconnect, DNS/network `ERR_*`, proxy/TLS, HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render failures distinct. In the original logged-in Chrome only: log error+URL, retry the same URL once after a short wait, use a fresh dedicated tab from the same browser binding when needed, test same-domain home and a neutral HTTPS site in a temporary diagnostic tab, then re-confirm account/target/warnings before resuming. Never switch browser, bypass TLS/login, or retry an uncertain mutation. Persistent failure callbacks `TikTok 主控台`; a recovered transient does not end the long run or disable mutation lanes.
 - A For You checkpoint is invalid if page resets are used to obtain later samples. Record exact before/after card identity for every transition. If native movement does not advance, repeats a card, loses identity, or would require a reset, record `transition_failure` or `duplicate` and stop the checkpoint; never reset to manufacture another item. Reset is allowed only for the initial entry before position 1 or a separately declared hard recovery after the block has stopped.
-- Append raw evidence incrementally: after each five-result search cluster and at For You positions 1, 5, 10, 15, and 20 (or the final position of a shorter block). Do not wait until the entire block ends to persist all observations.
+- Append raw evidence after every consumed search-origin post, after each
+  five-card assessment, and at For You validation checkpoints. Validate each
+  JSONL line immediately; a malformed append stops the block before more
+  browsing.
 - Keep post likes, favorites, reposts, generic shares, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
 - A standing vertical-feed envelope may authorize selective post likes, favorites, reposts, and proactive comments, but each lane must first pass its own one-action persistence gate. For Favorite/save, verify the selected state immediately, again after roughly 3 seconds, and again after a 10-second total server-settlement window before reloading; only then run reload/reopen and account-level Favorites evidence. This is a consistency wait, not simulated-human behavior. A failure disables only that lane; do not cancel unrelated authorized lanes unless a platform warning, challenge, or uncertain submission makes all mutation unsafe.
 - Repost means TikTok's actual `Repost`/`Undo repost` state. Opening the visible Share action sheet is allowed as a read-only navigation step when TikTok nests Repost there; opening the sheet is not itself a successful Repost. Inside it, click only an explicit `Repost` control. Never click or substitute generic Share, copy-link, send-to-recipient, or another share target, and never infer persistence from the sheet merely opening.
@@ -245,6 +260,16 @@ executor_thread_id:
 block_id:
 summary:
 sample_counts:
+search_results_assessed:
+qualified_search_views:
+feed_validation_status: not_run | verified | partial | unavailable | disabled
+feed_validation_sample_count:
+runtime_recovery_status: not_needed | recovered | failed | platform_risk
+recovery_class: none | tab_binding_stale | browser_disconnected | dns_network | proxy_tls | http_status | blocked_by_client | ambiguous_render
+error_code:
+failure_scope: none | tab | browser | network_global | tiktok_domain | target_page | platform
+recovery_attempts:
+account_reverified: true | false | not_needed
 composition:
 queries_used:
 actions_performed:

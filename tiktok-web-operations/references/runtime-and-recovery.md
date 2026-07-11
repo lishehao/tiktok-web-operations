@@ -23,9 +23,64 @@ When login is missing:
 3. Resume by reading the exact profile identity and TikTok Studio availability.
 4. Never enter credentials, OTPs, passkeys, or recovery codes.
 
-## Chrome recovery
+## Chrome and page-load recovery
 
-For a stale tab or dropped connection, reconnect to Chrome, create a fresh dedicated tab with `chrome.tabs.new()`, and re-read the page state. Do not switch browser surfaces merely because Chrome needs reconnection.
+A page-load failure is not, by itself, TikTok enforcement or account risk. Keep
+transport/control evidence separate from explicit platform UI. Recovery stays
+inside the user's original logged-in Chrome profile: do not switch to Computer
+Use, another browser, a clean context, or a login bypass.
+
+### Error classification
+
+| Class | Exact evidence or examples | Initial interpretation | Allowed recovery |
+|-|-|-|-|
+| `tab_binding_stale` | missing, stale, or closed tab; tab no longer belongs to the current browser session | tab-level control loss, not an account or network verdict | discard only the stale tab binding and create a fresh dedicated tab from the existing Chrome browser binding |
+| `browser_disconnected` | explicit browser-disconnected or Chrome-extension communication error | browser binding is invalid; ordinary empty tab results do not prove this | reconnect the same running Chrome/profile through the supported Chrome extension, then create a fresh dedicated tab |
+| `dns_network` | `ERR_NAME_NOT_RESOLVED`, `ERR_INTERNET_DISCONNECTED`, `ERR_NETWORK_CHANGED`, `ERR_CONNECTION_TIMED_OUT`, `ERR_CONNECTION_RESET`, `ERR_CONNECTION_CLOSED` | DNS, interface, or transport failure; not TikTok risk | bounded wait/retry, then same-Chrome diagnostic tab to distinguish global network, TikTok domain, and target-page scope |
+| `proxy_tls` | `ERR_PROXY_CONNECTION_FAILED`, `ERR_TUNNEL_CONNECTION_FAILED`, any `ERR_CERT_*` | proxy, tunnel, certificate, clock, or TLS path failure | bounded diagnostic only; never disable certificate checks, replace the user's proxy, or bypass the warning |
+| `http_status` | HTTP `429`, `403`, or `5xx` | `429` is a platform-rate-limit signal; `403` may be auth, WAF, or policy and needs visible-page evidence; `5xx` is normally server-side | preserve status/body evidence; do not retry mutations; bounded retry only for `5xx`; escalate `429` immediately and persistent/explicitly challenged `403` |
+| `blocked_by_client` | `ERR_BLOCKED_BY_CLIENT` | local extension/content policy or request blocking; not account risk by itself | retry once in a fresh dedicated tab in the same Chrome; do not disable the user's extensions automatically |
+| `ambiguous_render` | blank page, perpetual loading shell, script error, missing content, or navigation timeout with no explicit code | renderer/page ambiguity | allow the normal 1–3 second staged-render wait, inspect final URL/title/DOM, then use the same bounded recovery sequence |
+
+Do not infer `browser_disconnected` from an empty tab list. Tab binding and
+browser binding are separate: only an explicit browser-disconnected result
+invalidates the browser binding. Never call browser-discovery APIs to recover a
+lost tab; reuse the existing Chrome browser binding and create a new tab.
+
+### Bounded recovery sequence
+
+Before recovery, append one ledger event with timestamp, exact URL, exact error
+code/message, classification, expected account, tab/browser binding state,
+whether a mutation was in flight, and submission certainty. Then:
+
+1. If a mutation may have been submitted, do not retry or navigate as ordinary
+   recovery. Enter the uncertain-submission procedure below and callback.
+2. Wait briefly, then retry the exact current URL once. A staged-render wait is
+   normally 1–3 seconds; a transport retry may use one additional short backoff
+   no longer than about 10 seconds.
+3. If the tab is stale or the page still cannot be inspected, discard only that
+   tab object and create a fresh dedicated tab with `chrome.tabs.new()` from the
+   same Chrome browser binding. If Chrome explicitly disconnected, reconnect
+   that same Chrome/profile first.
+4. In a separate temporary diagnostic tab, check the same-domain home
+   `https://www.tiktok.com/`. When scope remains ambiguous, also check one
+   neutral HTTPS site. Close only the executor-created diagnostic tab. Interpret
+   neutral failure as global network/path scope, neutral success plus TikTok
+   failure as TikTok-domain scope, and TikTok home success plus target failure as
+   target-page scope.
+5. Reopen the exact target URL and re-confirm the expected TikTok account,
+   login state, explicit warning/challenge state, and submission certainty.
+6. Resume the bounded block only after those checks pass. Record
+   `recovered=true`, `account_reverified=true`, and the final scope. A recovered
+   transient error does not disable a mutation lane or terminate a long run.
+
+The sequence permits at most two page attempts after the first failure: one
+same-URL retry and, when necessary, one fresh-tab retry/diagnostic sequence.
+Never loop, reload repeatedly, alter proxy/TLS settings, or use another browser.
+If the same failure remains after this sequence, stop the current block, release
+owned tabs, preserve the ledger, and callback the coordinator. CAPTCHA, login or
+account mismatch, explicit warning/restriction, HTTP 429, or uncertain
+submission bypasses ordinary retry and returns immediately as platform risk.
 
 Never carry a tab ID across turns. At normal executor block start, create a tab with `chrome.tabs.new()` and use that returned object. Reuse a tab only when it is already part of this executor's current control session. `user.openTabs()` plus `user.claimTab()` is allowed only for an explicit user-requested handoff or continuation of a known unclaimed tab; never guess or touch another app task's tab.
 
@@ -33,12 +88,12 @@ Resolve the current Chrome Skill/runtime from the current turn's Skill catalog a
 
 When an explicit handoff `claimTab()` reports `already part of browser session <uuid>`, leave that tab untouched and create a new dedicated tab. An active unrelated owner is not a global Chrome scheduling conflict. Stop only if new-tab creation/control fails or the dedicated tab cannot prove expected login/account. Do not count an existing-tab ownership message as a Feed transition failure or disable TikTok mutation lanes.
 
-Classify recovery before changing authorization state:
+Classify runtime continuity before changing authorization state:
 
 - **Soft control reconnect:** the Chrome automation/control client timed out or restarted, then reattached to the same Chrome profile and TikTok storage/session; the expected account is still visible; no warning/challenge appears; and no mutation was in flight or left uncertain. Re-audit account, URL, warnings, and pending submission state, then resume the existing standing comment envelope. Do not require a new user confirmation or a new persistence test solely because the control client reinitialized.
 - **Hard browser/runtime change:** the Chrome profile, TikTok account, login/cookie state, browser context, device verification state, or session identity changed or cannot be proven; or a mutation may have been interrupted. Disable standing mutation envelopes, inspect for uncertain submission, and call back for a new decision or authentication handoff.
 
-A soft reconnect may be logged as a runtime event, but it is not a new `key_risk` unless account continuity, warning state, or submission certainty cannot be established.
+A soft reconnect may be logged as a runtime event, but it is not a new `key_risk` unless account continuity, warning state, or submission certainty cannot be established. A recovered `dns_network`, `proxy_tls`, `blocked_by_client`, `ambiguous_render`, or tab-binding event is likewise infrastructure evidence, not a TikTok warning.
 
 Classify warnings only from explicit system UI such as CAPTCHA/challenge, login, rate-limit/restriction dialogs, alerts/status regions, TikTok banners/toasts, or account warnings. Caption, hashtag, comment, creator, and search-result text containing words such as `warning` or `verify` is content, not a platform warning. If the diagnostic locator/API fails, stop with warning state `unverified`; do not broaden the scan or repeatedly probe.
 
@@ -52,7 +107,7 @@ TikTok pages often render in stages. A search or upload page may expose only a s
 
 Do not treat a click, red heart, toast, count animation, or successful network response as final proof of an engagement action. Verify each lane with the action-specific settlement and persistence checks in `engagement-and-analytics.md`.
 
-Apply the bounded recovery budget in `stability-and-circuit-breakers.md`. One narrow recovery is allowed per distinct failure class; two consecutive same-class failures open the circuit and require idle wait for user or external-state change.
+Apply the bounded recovery budget in `stability-and-circuit-breakers.md`. One bounded recovery sequence is allowed per distinct failure class in a block. Persistent same-class failure after the sequence callbacks the coordinator; the executor never silently exits a long run or self-restarts.
 
 ## Capability evidence isolation
 

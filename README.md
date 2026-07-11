@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.21`
+Protocol version: `2026.07.11.22`
 
 ## 直接安装
 
@@ -77,8 +77,7 @@ Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 
 
 ```text
 状态健康。当前账号：@handle。
-你想把这个账号运营成什么方向或人设？方向会决定后续搜索、浏览、收藏、Repost、评论，以及未来内容的主题与语气，帮助形成更一致的受众信号；但不能保证具体推荐或分发结果。
-也请告诉我希望运行多久。你可以回复“北美大学生 / dorm life，运行 3 小时”；如果暂时没想法，直接回复“继续”，我会按默认方向和默认 3 小时开始。
+你想把这个账号运营成什么方向或人设？也请给出目标地区/主要语言和运行多久；这些字段会决定后续搜索、实际观看、收藏、Repost、评论及未来内容语气，但不能保证具体推荐结果。你可以回复“北美大学生 / dorm life，英语，运行 3 小时”；如果暂时没想法，直接回复“继续”，我会使用默认方向、北美英语和 3 小时。
 ```
 
 健康交接后立即停止本 turn，等待用户第二条消息。不要创建 Threads，不要搜索 TikTok，不要点击 Favorite/Repost，不要评论，也不要声称运营已启动。
@@ -93,7 +92,7 @@ Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 
 - 只给方向：时长使用默认 `3 hours`。
 - 只给时长：方向使用默认 `北美大学生 / dorm life`。
 - 回复 `继续`、`开始` 或同义表达且预检已健康：使用全部默认值并立即启动。
-- 方向或时长会实质改变账号定位时才提一个必要问题；其余缺省字段直接补默认值，不再要求确认。
+- 自定义方向缺少地区/语言且无法安全推断时只提一个必要问题；不能把“喜欢狗”等广泛方向静默收敛成中文或英语语境。其余缺省字段直接补默认值。
 
 把用户描述整理成一个可执行 `direction_profile`：
 
@@ -165,11 +164,11 @@ HTTPS 安装/版本比较
 2. 只创建一个最终标题为 `TikTok 执行台` 的任务，明确保持未置顶，并强制 `gpt-5.6-luna/high`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是同账号 mutation 和 ledger 的唯一 writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调其他任务。
 3. 记录主任务与执行任务的准确 ID、host/project、run ID、授权版本、ledger 和停止时间，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
 4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给执行任务。
-5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
-6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation才算 stability pass；页面 blocker 是证据，但不算稳定通过。
+5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词评估 3 张结果卡，实际从搜索点开 1 条 strong-core 视频，验证直接帖子身份、播放进度和 premise/payoff；随后单独尝试最多 5 个连续 For You 身份。零 mutation。
+6. 在当前启动 turn 内读取 executor 的真实 proof。主运行通过要求：3 张搜索卡已评估、至少 1 个 `qualified_search_view`、账号/tab 稳定、ledger 可解析、零 mutation。For You 成功只验证可选的推荐流验证 lane；native next/down 失败本身不阻止搜索训练启动。
 7. 对超过一个 bounded block 的计时型运营，只有现在才由已验证的主任务创建本 run 唯一 durable timer heartbeat：显式设置 `targetThreadId=coordinator_thread_id`，名称和 prompt 包含 run ID 与 `operation_stop_at`；创建后 view 同一 automation ID，并要求 `automation_owner_thread_id == targetThreadId == coordinator_thread_id`。执行任务永远不创建 automation。Callback 负责事件到达，timer 负责下一次检查和最终截止；整个 run 复用同一个 timer，不为每个 block 新建。
 8. 若本机安装状态是首次 `INSTALL` 且 `first_install_supervision=PENDING`，Smoke 通过后由 TikTok 主控台把它消费为一次性的首小时监督窗口。默认在启动后约 `+15`、`+35`、`+60` 分钟只读检查 TikTok 执行台最新状态、callback 和 ledger；健康时仍只返回固定三行，不额外展开风险说明。窗口不得超过 `operation_stop_at`，结束或用户提前停止时写 `CONSUMED`；它与 durable timer 共用同一 automation，因此 timer 必须保留到执行台最终释放验证后再删除。升级、后续运营任务、重启和新 run 都不得再次创建该窗口。
-9. Smoke 及 heartbeat binding（若需要）都通过后，才可派完整 `search_heavy` 或互动 block。之后当前主任务继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；它不归档自己，两条运营 Threads 都保持未归档和持久化，且只置顶 TikTok 主控台。
+9. 主 Smoke 及 heartbeat binding（若需要）通过后，先派完整搜索训练 block，而不是长时间刷 For You：三个不同搜索簇各评估前五张卡，并实际点开、观看其中 strong-core 视频，通常形成 9–15 个 qualified search views。连续完成两个训练 block 或约 20–30 个 qualified views 后，才单独运行一次 5–10 条 For You 留出验证。之后按 callback 逐轮推进到 `operation_stop_at`。
 10. 到期、用户停止或目标完成时，Heartbeat 只触发终止流程，不代表完成。主控台停止派发并向准确执行台发送一次 `STOP_AND_RELEASE`；执行台不得新增浏览或互动，只解决提交确定性、释放 tab、写最终累计 checkpoint，并回传 `EXECUTOR_RELEASED`。主控台验证后才删除自己的 timer、标记 `RUN_COMPLETED` 并向用户返回一条简短总结果。缺少释放证明时必须标记 finalization blocked，不得假装完成。
 11. Timer 创建后及每次有效 Heartbeat 都必须向用户返回三行。先更新/复用并 view 同一个 automation，确认准确 owner/target/next time 后再报告；不能凭推算承诺时间：
 
@@ -185,12 +184,14 @@ HTTPS 安装/版本比较
 
 ## 运营规则摘要
 
-### 垂直校准
+### 搜索训练与推荐流验证
 
-- 默认采用 search-heavy：三个批准搜索簇，每簇按顺序观察五条，再回到一次连续 For You checkpoint。
-- For You 位置 1 后优先使用页面可见的 native next/down 控件逐条前进；不能用 reload、Home reset 或重新打开页面制造新样本。
-- 每条内容标记 `core`、`adjacent`、`irrelevant` 或 `harmful_to_direction`；商品、旧内容和漂移内容都计入分母。
-- 定期比较搜索结果与 For You 的 core/directional/drift shares，再调整搜索簇。
+- 搜索训练是默认主流程；For You 是低频留出验证，不是每个 block 的后半段。
+- 搜索结果卡只证明 query 质量。只有从搜索/hashtag/creator 表面实际点开 strong-core 视频、验证帖子身份和播放进度，并看懂 premise/payoff，才计入 `qualified_search_view`。
+- 默认训练 block：三个不同搜索簇，各评估前五张卡并实际观看合格 core 结果，通常累计 9–15 个 qualified views。不能用缩略图、caption 或已知 direct URL 冒充消费。
+- 每两个训练 block 或约 20–30 个 qualified views，再运行一次 5–10 条连续 For You 验证。搜索评估数、qualified views、For You core/directional/drift shares 分开记录。
+- For You native next/down 失败只使验证 lane 成为 `partial|unavailable`；账号、tab、搜索播放和平台安全仍健康时，搜索训练继续。连续两次可停用本 runtime 的验证 lane，但不得自动换 scroll/keyboard/wheel/reload。
+- 不承诺搜索观看、收藏、Repost 或评论一定改变算法；只比较连续留出样本的观察变化。
 
 ### 稳定性断路器
 
@@ -205,14 +206,15 @@ HTTPS 安装/版本比较
 - 首次安装监督是唯一自动例外：仅当持久化安装状态显示首次 `INSTALL` 后尚未消费，第一次运营启动才自动开启一次，检查点约为 `+15/+35/+60` 分钟。它只监督、不连续轮询；健康时也使用固定三行回执，风险仍统一回 TikTok 主控台。状态保存在受管 Skill 目录之外，不记录凭据，窗口消费后永不因升级或新任务重置。
 - 不硬编码 Chrome Skill 的版本缓存路径；只使用当前 runtime 与受支持的 Playwright locator。
 - 只从 CAPTCHA、challenge、系统 dialog/banner/toast、账号 warning 等明确系统 UI 判断风险；caption、hashtag、comment 或搜索内容里的 `warning`/`verify` 字样不是平台警告。
-- 一个失败类型最多允许一个窄 recovery；同类连续失败两次立即开断路器、释放 Chrome、callback 并 idle。改关键词、删 hashtag、换输入法或宣称“fresh audit”不能重置断路器。
-- Native next/down 失败后不自动切 PageDown、ArrowDown、wheel、script scroll、reload 或 reset。Scroll-only fallback 必须由用户在收到 blocker 后重新明确授权。
+- 一个失败类型最多允许一个窄 recovery。账号、tab ownership、搜索 origin/open/playback、平台风险或写操作证据连续失败两次才打开 whole-run 断路器；For You transition 失败按验证 lane 隔离。改关键词、删 hashtag、换输入法或宣称“fresh audit”不能重置真正的断路器。
+- Native next/down 失败后不自动切 PageDown、ArrowDown、wheel、script scroll、reload 或 reset；记录 partial/unavailable 并继续下一次独立搜索训练。Scroll-only 验证仍需用户另行明确授权。
 - Native next/down 必须从位置 1 起锁定方向特定的精确签名；禁止使用 `button:not([disabled])` 一类宽 locator，因为第一次推进后 up/down 通常都会 enabled。每次 DOM 移动后重新解析同一 down 签名。
 - 预期 UI gate 失败必须在当前判断分支直接写终态、释放 Chrome、callback；不能用 `throw` 返回 reasoning 后继续换 locator 诊断。
 - Run ID、Coordinator/executor ID、host/project、账号、ledger path、授权、角色、模型、thinking、automation owner/ID/target 和 stop time 都是 immutable registry；dispatch、callback 和 heartbeat 必须逐字比较，任何漂移都以 `registry_mismatch` 或 `AUTOMATION_OWNERSHIP_MISMATCH` 终止。
 - Heartbeat 醒来后先验证 `waking_thread_id == targetThreadId == coordinator_thread_id` 和准确 automation ID；若被挂到别的 Thread，只返回 `MISBOUND_HEARTBEAT_NO_ACTION`，不得转发、接管或操作 TikTok。
 - Tab ID 不得跨 turn、prompt 或 ledger 复用。普通 block 默认直接调用 `chrome.tabs.new()`，只操作该 executor 本轮创建或已经控制的标签页；`openTabs()`/`claimTab()` 只用于用户明确要求的现有标签页交接。
 - Chrome 标签页控制权不是整个 Chrome profile 的全局锁。若某个现有 tab 属于另一个 browser session，跳过它并新建自己的 tab；不得擅自中断、归档、导航或关闭对方任务。只有新建 tab 失败、账号继承/登录验证失败、同账号 mutation writer 冲突或 uncertain submission 才阻塞。并发只读浏览同一账号时必须标记推荐流归因污染。
+- 一次页面加载失败不等于 TikTok 风控。执行台先分清 stale tab/browser disconnect、DNS/网络 `ERR_*`、代理/TLS、HTTP 429/403/5xx、`ERR_BLOCKED_BY_CLIENT` 和空白/脚本加载失败；记录错误码与 URL 后，在原登录 Chrome 内短暂等待并重试当前页，必要时从同一 browser binding 新建专属 tab，并用 TikTok 首页/中性 HTTPS 诊断全网、单域或单页范围。恢复后必须重新确认账号、目标页、系统 warning 和提交确定性才继续；不得切 Computer Use/其他浏览器、绕过 TLS/登录或重试不确定写操作。持久失败或账号/CAPTCHA/429/限流统一回 TikTok 主控台。
 - Coordinator 的 `send_message_to_thread` 工具目标本身也属于 immutable registry。若失败明确来自未送达的 target typo，可记录后纠正一次；正确目标上的传输失败不得反复重试。
 
 ### 互动能力

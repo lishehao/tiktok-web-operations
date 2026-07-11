@@ -5,11 +5,14 @@
 Treat `刷视频` as read-only browsing unless the user separately authorizes an outward action.
 
 1. Confirm the logged-in account and the intended feed, search, hashtag, creator, sound, or topic.
-2. Choose the surface deliberately: use native feed scrolling to measure current recommendations; use search/hashtag/creator navigation to seed a missing direction. Do not substitute a list of direct video URLs for all scrolling because that loses feed-order and playback evidence.
+2. Choose the surface deliberately: use search/hashtag/creator navigation plus
+   actual opened-video consumption to train a missing direction; use native For
+   You only as a held-out recommendation check. A search card/thumbnail is not a
+   consumed view, and a direct URL list loses search-origin evidence.
 3. Inspect one post at a time: creator, caption/on-screen premise, language, sound, visible context, comment culture, engagement signals, and account relevance.
 4. Watch enough to understand the setup and payoff. Use native next/previous or incremental scrolling after the relevant evidence is captured. Skip without forcing a comment when the context is unclear, stale, unsafe, or irrelevant.
 5. Label the post `core`, `adjacent`, `irrelevant`, or `harmful_to_direction`; keep the post URL and a one-line reason. Stop when the sample is sufficient for the objective or the user-supplied time limit ends.
-6. Rotate back to a small search-seeded cluster when the feed drifts, then re-sample For You to see whether the composition changes. Treat any change as observed correlation, not proof of TikTok's ranking mechanism.
+6. When the feed drifts, run two search-training blocks (normally 20–30 qualified opened/watched core posts) before another 5–10 item For You validation. Treat any change as observed correlation, not proof of TikTok's ranking mechanism.
 7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Each action type keeps its own confirmation and persistence gate; TikTok Repost is distinct from generic Share.
 
 Do not manufacture human-like pauses or scrolling patterns to evade detection. Respect CAPTCHA, rate limits, warnings, and feature restrictions as hard stops.

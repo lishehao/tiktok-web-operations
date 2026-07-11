@@ -113,6 +113,9 @@ Build `persona_name`, `target_audience`, `region_language`, `content_pillars`,
 
 - Explicit fields override defaults.
 - Missing direction defaults to North American college/dorm life.
+- Default direction uses North America / English. For a custom direction with
+  missing region/language, ask one necessary question when the fields cannot be
+  safely inferred; never silently choose Chinese or English for a broad topic.
 - Missing duration defaults to 3 hours at standard intensity.
 - `继续` or `开始` after healthy handoff accepts all defaults.
 - Ask one question only for a material choice that cannot be safely inferred.
@@ -136,11 +139,14 @@ Follow `operating-model.md` exactly:
    coordinator ID and require it to wait for `SELF_REGISTRY`.
 3. Send the exact returned executor ID through `SELF_REGISTRY`, then require a
    `THREAD_READY` callback to the coordinator.
-4. Dispatch one Luna/High read-only `stability_smoke_01`: one direction query
-   with three results, then five continuous For You positions through the unique
-   native next/down control.
-5. Require three search observations, five identities, four verified advances,
-   zero reset, and zero mutation. A blocker is evidence but not a stability pass.
+4. Dispatch one Luna/High read-only `stability_smoke_01`: assess three cards from
+   one direction query, open one strong-core result from search, verify direct
+   post identity/playback and premise/payoff, then separately attempt up to five
+   continuous For You identities through the unique native next/down control.
+5. Require three assessed cards, at least one `qualified_search_view`, stable
+   account/tab control, parseable incremental ledger, and zero mutation. For You
+   success verifies the optional validation lane; native-feed failure alone
+   degrades that lane and does not block search-led operation.
 6. If the resolved duration exceeds one bounded block, the verified coordinator
    now creates this run's single durable timer heartbeat with explicit
    `targetThreadId` equal to its exact ID, views the returned automation,
@@ -154,8 +160,8 @@ Follow `operating-model.md` exactly:
    mark `DEGRADED` and callback-only if automation is unavailable. This window
    emits only the fixed three-line heartbeat receipt when healthy and never
    touches TikTok.
-8. Only after the smoke passes and any requested heartbeat binding verifies may
-   the coordinator dispatch a full calibration
+8. Only after the primary smoke passes and any requested heartbeat binding verifies may
+   the coordinator dispatch a full search-training
    or mutation block. Keep both tasks persistent and unarchived; pin only the
    coordinator.
 
@@ -181,5 +187,10 @@ Only after first proof, report:
 已启动。当前账号：@handle。
 方向：resolved persona / audience。
 时长：duration；预计结束：local date and time。
-当前任务已成为 Luna/High 运营主任务；一个 Luna/High Chrome 执行任务已注册，第一轮已产生真实浏览 proof。
+搜索训练：已验证从搜索实际点开并观看 strong-core 视频。
+For You 验证：verified | degraded | unavailable（仅作为留出验证）。
+互动：当前已启用的独立 lanes；未通过持久化 gate 的仍关闭。
 ```
+
+Do not say only `已启动` when the primary search-origin consumption proof is
+missing. Do not imply For You alignment merely because search cards are core.

@@ -156,8 +156,10 @@ Fast Mode unless the tool surface exposes and confirms that field.
    when more evidence is necessary.
 2. Verify callback transport source, payload run ID, both Thread IDs, ledger,
    and current block ID against the immutable registry.
-3. Reconcile composition, query quality, capability changes, pending user work,
-   authorization, deadline, and risk.
+3. Reconcile search cards assessed, qualified search views, held-out For You
+   validation, query quality, capability changes, pending user work,
+   authorization, deadline, and risk. Never treat card relevance as consumed
+   training evidence.
 4. If status is `blocked`, `validation_failed`, `needs_decision`, or `key_risk`,
    pause all new dispatches. Consolidate one user-facing decision in `TikTok 主控台`:
    risk, evidence, affected lane/block/run, what has already stopped, whether
@@ -166,17 +168,28 @@ Fast Mode unless the tool surface exposes and confirms that field.
 5. Resume only after the user decides in `TikTok 主控台` or a verifiable external-state
    change clears the blocker. Never treat a worker-local reply or its final
    message as user authorization.
-6. Otherwise choose one next bounded block or stop. A normal block should amortize callback
-   overhead: normally 10-20 minutes, 20-40 feed items, or one complete search
-   cluster plus a For You checkpoint.
+6. Otherwise choose one next bounded block or stop. The default is one complete
+   search-training block: three assessed five-card clusters and normally 9–15
+   qualified opened/watched core posts. Dispatch a separate 5–10 item held-out
+   For You validation only after two training blocks or roughly 20–30 qualified
+   views.
 7. If no user decision is required and the standing duration authorizes
-   continuation, send exactly one next block to the registered executor ID with
-   Luna/High, mark it `running_current_task`, and end the turn.
+   continuation, render the complete dispatch as inert text, verify required
+   registry fields/block ID/callback target once, then send exactly one message
+   to the registered executor ID with Luna/High. Mark it
+   `running_current_task` and end the turn.
 8. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
 
 Routine per-video observations stay in the ledger. Callback only on completed
 block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
 submission, authorization mismatch, or stop/release.
+
+A feed-validation transition failure may return `status=completed` with
+`feed_validation_status=partial|unavailable`, `decision_required=false`, and a
+search-training next block when account/login/warning/tab/search-playback safety
+remains healthy. It is not a `validation_failed` whole-run callback. After two
+consecutive lane failures, disable/defer only the feed-validation lane for the
+current runtime.
 
 Block completion is not whole-run completion. A Heartbeat tick is not a callback
 and never proves release.
@@ -211,8 +224,10 @@ and stability smoke are verified. Store its exact automation ID, owner/target,
 - Before stop time, reconcile any missed callback. If the executor is running,
   do nothing and schedule the next tick. If it is idle, healthy, authorized,
   and no user decision is pending, dispatch at most one next block.
-- A risk or decision pauses dispatch but does not move the deadline. Keep or
-  reschedule the same timer only to enforce stop and surface unhandled state.
+- A risk or decision pauses dispatch but does not move the deadline. Unless the
+  user explicitly requested reminder cadence, reschedule the same timer directly
+  to `operation_stop_at` after the first consolidated risk notice; do not wake
+  every 15–30 minutes merely to repeat an unchanged decision.
 - If automation is unavailable, mark `operation_timer_state=DEGRADED`, disclose
   that long-term timing is callback-only, and never fake persistence by keeping
   a turn open.
@@ -341,6 +356,16 @@ executor_thread_id:
 block_id:
 summary:
 sample_counts:
+search_results_assessed:
+qualified_search_views:
+feed_validation_status: not_run | verified | partial | unavailable | disabled
+feed_validation_sample_count:
+runtime_recovery_status: not_needed | recovered | failed | platform_risk
+recovery_class: none | tab_binding_stale | browser_disconnected | dns_network | proxy_tls | http_status | blocked_by_client | ambiguous_render
+error_code:
+failure_scope: none | tab | browser | network_global | tiktok_domain | target_page | platform
+recovery_attempts:
+account_reverified: true | false | not_needed
 composition:
 queries_used:
 actions_performed:
@@ -359,7 +384,10 @@ Every `blocked`, `validation_failed`, `needs_decision`, and `key_risk` callback
 sets `decision_required: true` and prevents another dispatch. `decision_options`
 contains zero to three coordinator-ready choices, never a question addressed to
 the executor Thread. `completed` may set `decision_required: false` even when it
-records non-actionable observations in `risks`.
+records non-actionable observations in `risks`, including a fully recovered
+transient Chrome/network event. A persistent infrastructure failure returns one
+coordinator-ready `blocked`/`key_risk` callback with exact class, code, scope,
+attempts, and ledger evidence; it is not mislabeled as account enforcement.
 
 Only a terminal callback may use `callback_scope=run_terminal` or
 `terminal_event=EXECUTOR_RELEASED`; a normal `completed` callback must not use
