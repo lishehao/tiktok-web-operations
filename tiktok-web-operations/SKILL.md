@@ -34,12 +34,12 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 
 | Request | Read |
 |-|-|
-| Install from GitHub, run dependency checks, or bootstrap | `references/startup-health-check.md`, `references/runtime-and-recovery.md`, `references/operating-model.md` |
+| Install from GitHub, run dependency checks, or bootstrap | `references/startup-health-check.md`, `references/stability-and-circuit-breakers.md`, `references/runtime-and-recovery.md`, `references/operating-model.md` |
 | Package, publish, upgrade, or distribute | `references/distribution-and-upgrades.md` |
 | Broad operating request | all relevant references below |
 | Research trends or choose content | `references/loci-content-system.md`, `references/platform-boundaries.md` |
 | Browse/scroll or leave short comments | `references/feed-browsing-and-comments.md`, `references/engagement-and-analytics.md`, `references/platform-boundaries.md` |
-| Persistently calibrate recommendations | `references/operating-model.md`, `references/persistent-feed-operations.md`, `references/engagement-and-analytics.md`, `references/runtime-and-recovery.md` |
+| Persistently calibrate recommendations | `references/operating-model.md`, `references/stability-and-circuit-breakers.md`, `references/persistent-feed-operations.md`, `references/engagement-and-analytics.md`, `references/runtime-and-recovery.md` |
 | Upload, publish, or schedule | `references/publishing-and-scheduling.md`, `references/platform-boundaries.md` |
 | Review comments or analytics | `references/engagement-and-analytics.md`, `references/loci-content-system.md` |
 
@@ -60,8 +60,8 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 
 ## Two-Phase Bootstrap
 
-1. **Install, preflight, and ask:** install or upgrade the complete versioned Skill, validate it, prove Chrome control, exact TikTok login, absence of blocking warnings, required thread tools, exact `gpt-5.6-luna/high` thread creation support, local time, and a writable ledger. Keep TikTok read-only, release Chrome, return the exact guided direction/duration prompt from `startup-health-check.md`, and wait one user turn.
-2. **Resolve and operate:** after the healthy user replies, resolve the requested direction/persona and duration. Missing direction defaults to North American college/dorm life; missing duration defaults to 3 hours. Create `TikTok 运营主任务` and `TikTok Chrome执行任务` as two separate persistent user-owned Threads with Luna/High; exchange both Thread IDs; prove executor-to-coordinator callback; transfer Chrome ownership to the executor; dispatch the first vertical-calibration block; require first real page proof before claiming startup; then archive only the bootstrap task.
+1. **Install, preflight, and ask:** install or upgrade the complete versioned Skill, validate it, prove Chrome control, exact TikTok login, absence of blocking warnings, required thread tools, exact `gpt-5.6-luna/high` thread creation support, no conflicting active TikTok executor, local time, and a writable ledger. Keep TikTok read-only, release Chrome, return the exact guided direction/duration prompt from `startup-health-check.md`, and wait one user turn.
+2. **Resolve and operate:** after the healthy user replies, resolve the requested direction/persona and duration. Missing direction defaults to North American college/dorm life; missing duration defaults to 3 hours. Create `TikTok 运营主任务` and `TikTok Chrome执行任务` as two separate persistent user-owned Threads with Luna/High; exchange both Thread IDs; prove executor-to-coordinator callback; transfer Chrome ownership to the executor; dispatch the read-only first-run stability smoke in `stability-and-circuit-breakers.md`; require its real page proof before a full calibration block or mutation; then archive only the bootstrap task.
 
 A failed hard dependency stops phase 2 and returns one concrete repair action. Do not silently fall back to a subagent, a different model, a different reasoning effort, or one combined Thread.
 
@@ -90,9 +90,13 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - If TikTok is logged out, leave the page as a handoff and ask the user to log in manually.
 - Chrome is a single-driver resource. Only the execution Thread may navigate, scroll, search, or mutate TikTok. The coordinator and bootstrap task must release Chrome after preflight.
 - Keep exactly two persistent operating Threads. Do not use subagents or create analyst/driver descendants.
+- Do not use Goal Mode for persistence. Neither operating Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create replacement workers.
+- Before every executor creation or replacement, inspect active TikTok Threads and prove the prior Chrome owner returned `STOPPED_AND_RELEASED` with no uncertain submission. Archiving alone is not release proof.
 - Use only registered cross-thread IDs. The executor reports solely to `TikTok 运营主任务`; never callback to a Skill-development or bootstrap task.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
+- Run exactly one bounded block per executor turn. For an unattended duration, an optional coordinator-only heartbeat may schedule the next block after a completed callback or enforce `operation_stop_at`; it never touches Chrome, overlaps a running turn, or bypasses a blocker.
+- A `blocked` or `key_risk` callback opens the recovery circuit in `stability-and-circuit-breakers.md`. Do not self-declare a fresh audit, rebuild a worker, or hop across transition methods. Wait for a user instruction or verified external-state change after the bounded recovery budget is exhausted.
 - Prefer TikTok's visible native next/down control for feed fidelity. Use incremental scrolling only when the control is unavailable and the coordinator explicitly dispatches a scroll-only fallback block. Never switch transition methods inside one checkpoint. Do not add random delays, cursor jitter, or fake human behavior.
 - A For You checkpoint is invalid if page resets are used to obtain later samples. Record exact before/after card identity for every transition. If native movement does not advance, repeats a card, loses identity, or would require a reset, record `transition_failure` or `duplicate` and stop the checkpoint; never reset to manufacture another item. Reset is allowed only for the initial entry before position 1 or a separately declared hard recovery after the block has stopped.
 - Append raw evidence incrementally: after each five-result search cluster and at For You positions 1, 5, 10, 15, and 20 (or the final position of a shorter block). Do not wait until the entire block ends to persist all observations.
@@ -126,7 +130,7 @@ After acting, verify persisted state. Never duplicate an uncertain send.
 
 ## Stop Conditions
 
-Stop mutation for login mismatch, CAPTCHA, verification challenge, rate limit, warning/restriction, copyright failure, missing rights/disclosure, lost executor ownership, uncertain submission, or persistence failure. Read-only inspection may continue only when safe.
+Stop mutation for login mismatch, CAPTCHA, verification challenge, rate limit, warning/restriction, copyright failure, missing rights/disclosure, lost executor ownership, uncertain submission, or persistence failure. Read-only inspection may continue only when safe. Detect system warnings from explicit system UI, never from ordinary caption/hashtag/comment text. Apply the recovery circuit breaker after repeated failures.
 
 ## Thread Reporting Contract
 
