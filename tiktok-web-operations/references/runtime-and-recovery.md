@@ -27,7 +27,7 @@ When login is missing:
 
 For a stale tab or dropped connection, reconnect to Chrome, obtain a fresh tab if needed, and re-read the page state. Do not switch browser surfaces merely because Chrome needs reconnection.
 
-Resolve the current Chrome Skill/runtime dynamically. Never import a hard-coded versioned plugin-cache path. Prefer supported Playwright locators; do not pass DOM-CUA objects/circular structures as coordinates, use unavailable page globals such as `NodeFilter`, or run broad text walkers to diagnose state.
+Resolve the current Chrome Skill/runtime from the current turn's Skill catalog and record that source path. The runtime call may import that exact current path; never reuse a versioned cache path copied from a prior prompt, ledger, run, or memory. Prefer supported Playwright locators; do not pass DOM-CUA objects/circular structures as coordinates, use unavailable page globals such as `NodeFilter`, or run broad text walkers to diagnose state.
 
 Classify recovery before changing authorization state:
 
