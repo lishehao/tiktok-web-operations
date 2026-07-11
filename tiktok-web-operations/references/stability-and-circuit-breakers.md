@@ -55,7 +55,8 @@ For an unattended multi-round run, attach an optional low-frequency heartbeat to
   ID, and automation ID to match; otherwise return
   `MISBOUND_HEARTBEAT_NO_ACTION`;
 - read the coordinator/executor latest state;
-- stay silent and dispatch nothing while the executor is running;
+- while the executor is running, dispatch nothing and emit only the fixed
+  three-line heartbeat receipt with a plan to await its callback;
 - dispatch one next bounded block only when the prior callback is complete, the executor is idle, the circuit is closed, and `operation_stop_at` has not passed;
 - never create/replace Threads, bypass a blocker, or touch Chrome from the heartbeat;
 - at or after `operation_stop_at`, send one `STOP_AND_RELEASE`, confirm the final callback, and remove the heartbeat.

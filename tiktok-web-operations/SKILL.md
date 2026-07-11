@@ -170,15 +170,20 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   time remains. At the deadline, start the terminal transaction; do not treat a
   heartbeat tick as completion. Delete the timer only after the executor returns
   verified final release evidence and the coordinator finalizes the run.
+- Set `heartbeat_receipt_policy=always_three_lines`. After timer creation and
+  every valid tick, first update/reuse and read back the exact owned timer, then
+  tell the user in exactly three lines what finished, the verified next local
+  heartbeat time, and one next bounded plan. Never expose an inferred schedule.
 - On a true first install, persist
   `first_install_supervision=PENDING` outside the managed Skill tree. After the
   user's first real run completes identity handshake and stability smoke, the
   verified `TikTok 主控台` consumes that marker and owns one first-hour read-only watch
   window with cumulative checkpoints near `+15`, `+35`, and `+60` minutes,
   capped by `operation_stop_at`. Each checkpoint reads only the registered
-  executor's status/callback/ledger, stays silent when healthy, and centralizes
-  risk in `TikTok 主控台`. Delete the heartbeat and persist `CONSUMED` at one hour,
-  early stop, or run end. Never recreate it after an upgrade, restart, or later
+  executor's status/callback/ledger, emits only the fixed three-line receipt when
+  healthy, and centralizes risk in `TikTok 主控台`. Persist `CONSUMED` at one hour, early stop, or run end,
+  but retain the shared durable timer until terminal executor release is
+  verified. Never recreate the overlay after an upgrade, restart, or later
   operation. If automation is unavailable, mark `DEGRADED`, disclose once, use
   callbacks only, and still consume it.
 - On heartbeat wakeup require
@@ -290,5 +295,20 @@ For the whole run, keep the user-facing response to one compact message:
 
 Do not expose heartbeat IDs, callback IDs, registry fields, release-state names,
 or the internal completion transaction unless finalization is blocked.
+
+After timer creation and every valid nonterminal heartbeat, use exactly:
+
+```text
+本轮完成：<one sentence>
+下次心跳：<YYYY-MM-DD HH:mm timezone>
+下轮计划：<one bounded purpose>
+```
+
+Report the next time only after updating/viewing the exact owned automation and
+verifying its target and schedule. If the executor is still running, the plan is
+to wait for its callback, not dispatch overlapping work. On a risk, the plan is
+to wait for the user's decision and perform no new TikTok action. At the final
+tick use `下次心跳：无（进入终止结算）`; after completion use
+`下次心跳：无（任务已完成）`.
 
 Ordinary evidence stays in the ledger. See `references/operating-model.md` for cross-thread dispatch and lifecycle rules.

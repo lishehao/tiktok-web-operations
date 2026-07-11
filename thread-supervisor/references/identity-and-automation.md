@@ -31,7 +31,9 @@ heartbeat_automation_id: NONE | exact id
 heartbeat_target_thread_id: NONE | exact id
 operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
 operation_timer_next_tick_at: NONE | timestamp
+operation_timer_next_purpose: NONE | short bounded purpose
 operation_timer_stop_at: NONE | timestamp
+heartbeat_receipt_policy: silent_unless_event | always_three_lines
 run_terminal_state: RUNNING | STOP_REQUESTED | EXECUTOR_RELEASED | RUN_COMPLETED | RUN_FINALIZATION_BLOCKED
 run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
 executor_release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
@@ -204,6 +206,40 @@ or dispatching:
 If the wakeup lands in the wrong Thread, do not forward it, operate the external
 system, dispatch the executor, or adopt that automation. Report
 `MISBOUND_HEARTBEAT_NO_ACTION` and stop.
+
+## Heartbeat receipt transaction
+
+The calling domain selects `heartbeat_receipt_policy`. Keep
+`silent_unless_event` as the generic default; use `always_three_lines` only when
+the domain or user explicitly requires a visible receipt for every valid tick.
+
+For `always_three_lines`, after each valid heartbeat:
+
+1. Reconcile work completed since the previous tick and choose at most one next
+   bounded action. If the executor is still running, the next action is to wait
+   for its callback; never overlap it.
+2. Compute the next tick as the earlier of the useful cadence and
+   `operation_stop_at`. Update/reuse the exact owned timer, view that exact
+   automation, and require the readback schedule/target/ID to match.
+3. Only after successful readback, store `operation_timer_next_tick_at` and
+   `operation_timer_next_purpose`, then emit exactly three concise lines in the
+   coordinator Thread:
+
+```text
+本轮完成：<one sentence>
+下次心跳：<YYYY-MM-DD HH:mm timezone>
+下轮计划：<one bounded purpose>
+```
+
+Use the user's local timezone and include the date. Never display an inferred or
+unverified schedule. If update/readback fails, use
+`下次心跳：未建立（调度校验失败）` and set the plan to safe pause/repair.
+
+At the final tick use `下次心跳：无（进入终止结算）`; at `RUN_COMPLETED` use
+`下次心跳：无（任务已完成）`; while waiting for a user decision, report the
+verified next safety/deadline tick when one remains, otherwise use
+`无（等待你的决定）`. Heartbeat IDs, registry fields, and internal state names
+remain hidden.
 
 ## Callback identity gate
 

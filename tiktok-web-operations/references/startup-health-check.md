@@ -152,7 +152,8 @@ Follow `operating-model.md` exactly:
    one-time supervision contract after smoke: apply approximately
    `+15/+35/+60` checkpoints to that same durable timer, capped by stop time, or
    mark `DEGRADED` and callback-only if automation is unavailable. This window
-   is silent when healthy and never touches TikTok.
+   emits only the fixed three-line heartbeat receipt when healthy and never
+   touches TikTok.
 8. Only after the smoke passes and any requested heartbeat binding verifies may
    the coordinator dispatch a full calibration
    or mutation block. Keep both tasks persistent and unarchived; pin only the

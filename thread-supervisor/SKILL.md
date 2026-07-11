@@ -300,6 +300,20 @@ On heartbeat:
   - 30-60 minutes for long-running or low-risk tracking
 - delete the automation when no active thread or unacknowledged result remains
 
+A calling domain may set `heartbeat_receipt_policy=always_three_lines`. In that
+case, do not stay silent on healthy ticks. First update/reuse and read back the
+exact owned timer, then report exactly:
+
+```text
+本轮完成：<one sentence>
+下次心跳：<verified local date, time, and timezone>
+下轮计划：<one bounded purpose>
+```
+
+If no next tick exists, say why in the second line. Never announce an inferred
+schedule before automation readback. Keep generic reminder heartbeats on the
+default `silent_unless_event` policy unless the user/domain explicitly opts in.
+
 For a durable operation timer, each tick must additionally:
 
 - verify owner, target, run ID, automation ID, current time, and stop time;

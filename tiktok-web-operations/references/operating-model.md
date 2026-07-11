@@ -196,7 +196,8 @@ the registered automation ID. A mismatch returns
 
 Create one logical timer only after coordinator identity, executor handshake,
 and stability smoke are verified. Store its exact automation ID, owner/target,
-`operation_stop_at`, and next tick in the immutable registry.
+`operation_stop_at`, next tick, next purpose, and
+`heartbeat_receipt_policy=always_three_lines` in the immutable registry.
 
 - Use a low-frequency recurring timer or successive one-shot updates according
   to the available scheduler, but preserve the same logical timer identity and
@@ -215,6 +216,36 @@ and stability smoke are verified. Store its exact automation ID, owner/target,
 - If automation is unavailable, mark `operation_timer_state=DEGRADED`, disclose
   that long-term timing is callback-only, and never fake persistence by keeping
   a turn open.
+
+### Three-line heartbeat receipt
+
+After initial timer creation and every valid heartbeat, provide a visible receipt
+even when progress is healthy:
+
+```text
+本轮完成：<one sentence>
+下次心跳：<YYYY-MM-DD HH:mm timezone>
+下轮计划：<one bounded purpose>
+```
+
+Before reporting, compute the next useful tick, update/reuse the same exact
+timer, view it, and verify automation ID, target coordinator ID, and schedule.
+Only then persist/report the time. Use the user's local timezone and include the
+date. Do not show an automation ID.
+
+- Executor running: `本轮完成` states the verified progress/state; `下轮计划`
+  says to wait for its callback and never dispatch overlapping work.
+- Executor idle and healthy: report the one bounded block just dispatched or
+  planned.
+- Risk/decision pending: report the verified next safety/deadline tick when one
+  remains; the plan is to await the user's decision and perform no new TikTok
+  action.
+- Schedule update/readback failure: use
+  `下次心跳：未建立（调度校验失败）` and safely pause.
+- Final tick: use `下次心跳：无（进入终止结算）` and plan to obtain final executor
+  release proof.
+- Finalized run: use `下次心跳：无（任务已完成）`; the whole-run compact result may
+  follow, without internal IDs.
 
 The first-install `+15/+35/+60` schedule uses this same durable timer during its
 first hour. It is a supervision cadence overlay, not a second automation.
@@ -238,9 +269,9 @@ credential, cookie, browser state, or content history.
 - On wake, verify run/owner/target/automation identity, read the executor's
   latest 1-3 relevant turns plus callback and ledger state, and do nothing to
   Chrome/TikTok. Do not interrupt an in-progress executor.
-- Stay silent on ordinary healthy progress. A missed callback or non-completed
-  state follows the main-console risk consolidation contract and pauses new
-  dispatch until the user decides there.
+- On ordinary healthy progress emit only the fixed three-line heartbeat receipt.
+  A missed callback or non-completed state follows the main-console risk
+  consolidation contract and pauses new dispatch until the user decides there.
 - At the overlay's final checkpoint, early user stop, or run end, persist
   `CONSUMED`. Because the overlay shares the durable run timer, do not delete the
   timer before terminal executor release; retire it during whole-run
