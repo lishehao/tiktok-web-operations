@@ -12,11 +12,19 @@ Before creating or dispatching an executor, query recent TikTok-related Codex Th
 
 Do not create a second Chrome executor while ownership is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first, verify, then archive only when the user requested archival.
 
+Also prove browser-session ownership, because a non-TikTok Thread may legitimately be using the same Chrome/TikTok tab:
+
+1. Initialize Chrome from the current Chrome plugin root's `scripts/browser-client.mjs` and call `user.openTabs()` once.
+2. Select one unique TikTok tab by current URL/title/group and pass that exact returned object to `user.claimTab()`. Never use `tabs.get(openTab.id)`; `tabs.get()` only resolves tabs already controlled by the current browser session.
+3. If the claim reports `already part of browser session <uuid>`, call `read_thread(<uuid>)` directly. When it is active, classify `active_external_browser_owner`, report its title/ID, and wait. Do not interrupt, archive, or work around that Thread.
+4. If the UUID cannot be resolved or the owner state is not provably inactive/released, classify `stale_or_unverified_browser_owner` and stop. A current external owner is an external-state blocker, not a Feed/control failure; the same registered pair may retry one fresh smoke only after that owner releases Chrome.
+
 ## Immutable registry contract
 
 Treat these fields as byte-for-byte immutable after `SELF_REGISTRY`: coordinator Thread ID, executor Thread ID, account handle, ledger path, mutation authorization, role, model, and thinking level.
 
 - The coordinator must construct every dispatch by copying the registered values; it must not retype, shorten, normalize, relocate, or regenerate them.
+- The `send_message_to_thread` tool-call target is an immutable field too. Set it from the registry and compare the actual target before sending. If a failed call proves the target was mistyped and nothing was delivered, one corrected send to the registered ID is allowed and must be logged; a failure at the correct target is terminal for that block.
 - Before connecting to Chrome, the executor must compare every dispatch field with its local registry snapshot.
 - Any mismatch is a terminal `registry_mismatch`: do not connect/navigate Chrome, do not create a second ledger, and callback once with both values.
 - A bootstrap correction may replace the dispatch only before Chrome navigation and only when it repeats the original authoritative registry exactly. It does not change the registry itself.
@@ -61,12 +69,12 @@ If a risk locator or diagnostic API fails, mark the system-warning state `unveri
 
 ## Browser-control rules
 
-- Resolve the currently installed Chrome Skill/runtime from the current turn's Skill catalog. Record the catalog path used. Importing that exact current path in the runtime call is allowed; carrying a versioned path forward from a prompt, ledger, prior run, or memory is forbidden.
+- Resolve the currently installed Chrome Skill/runtime from the current turn's Skill catalog. Record the plugin root, and import `<plugin-root>/scripts/browser-client.mjs` exactly; do not append `skills/control-chrome/` to the runtime module path. Carrying a versioned path forward from a prompt, ledger, prior run, or memory is forbidden.
 - Prefer supported Playwright locators and live element attributes.
 - Do not pass DOM-CUA element objects or circular structures as coordinates.
 - Do not use unavailable page globals such as `NodeFilter`, broad page-evaluate text walkers, or unbounded container scans.
 - Re-resolve locators after navigation or DOM replacement.
-- Never persist or reuse a Chrome tab ID across turns, prompts, ledgers, or recovery blocks. At the start of every executor block, call the live `openTabs()` surface and obtain the tab object from that same returned set. Select by the current URL/title and account context, not by an old literal ID. If no unique safe TikTok tab can be selected, return a terminal gate result as data; do not `throw`, guess, or navigate another tab.
+- Never persist or reuse a Chrome tab ID across turns, prompts, ledgers, or recovery blocks. At the start of every executor block, call the live `openTabs()` surface, select by current URL/title/account context, and pass the exact selected object to `user.claimTab()`. Never feed an `openTabs()` ID to `tabs.get()`. If no unique safe TikTok tab exists or another live browser session owns it, return a terminal ownership gate as data; do not `throw`, guess, or navigate another tab.
 
 ## Recovery budget
 
