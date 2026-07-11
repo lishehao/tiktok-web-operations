@@ -167,7 +167,9 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   logical automation ID for the run, never one per block. On a tick, do not
   touch Chrome or overlap a running executor; dispatch at most one block only
   when the executor is idle, no decision is pending, authorization remains, and
-  time remains. Delete the timer at stop or completion.
+  time remains. At the deadline, start the terminal transaction; do not treat a
+  heartbeat tick as completion. Delete the timer only after the executor returns
+  verified final release evidence and the coordinator finalizes the run.
 - On a true first install, persist
   `first_install_supervision=PENDING` outside the managed Skill tree. After the
   user's first real run completes identity handshake and stability smoke, the
@@ -228,6 +230,10 @@ The execution Thread returns one structured callback after every bounded block:
 
 ```text
 status: completed | blocked | validation_failed | needs_decision | key_risk
+callback_scope: block | run_terminal
+terminal_event: NONE | EXECUTOR_RELEASED
+release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
+run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
 run_id:
 coordinator_thread_id:
 executor_thread_id:
@@ -253,6 +259,20 @@ own final response is only a terse handoff stating that evidence was sent to
 `TikTok 主控台` and the executor is idle; it must not contain a user-facing question or
 invite the user to reply there.
 
+Use `callback_scope=block`, `terminal_event=NONE`, and `release_state=NONE` for
+ordinary rounds. Reserve `run_terminal/EXECUTOR_RELEASED` for the single final
+release callback.
+
+Whole-run completion is a separate transaction. At deadline, user stop, or
+objective completion, the coordinator sends one terminal `STOP_AND_RELEASE` even
+if the executor appears idle. The executor performs no new TikTok action; it
+resolves submission certainty, releases its owned tab, writes final cumulative
+evidence, and callbacks with `callback_scope=run_terminal`,
+`terminal_event=EXECUTOR_RELEASED`, and
+`release_state=STOPPED_AND_RELEASED`. Only then may the coordinator retire its
+timer, reconcile the ledger, and mark `RUN_COMPLETED`. Missing proof becomes
+`RUN_FINALIZATION_BLOCKED`, never a successful completion.
+
 The coordinator reports meaningful checkpoints to the user with:
 
 ```text
@@ -261,5 +281,14 @@ The coordinator reports meaningful checkpoints to the user with:
 下一轮：
 风险：
 ```
+
+For the whole run, keep the user-facing response to one compact message:
+
+```text
+运营完成。运行：<duration>；浏览：<count>；收藏：<count>；Repost：<count>；评论：<count>。风险：无｜<one short risk>。
+```
+
+Do not expose heartbeat IDs, callback IDs, registry fields, release-state names,
+or the internal completion transaction unless finalization is blocked.
 
 Ordinary evidence stays in the ledger. See `references/operating-model.md` for cross-thread dispatch and lifecycle rules.

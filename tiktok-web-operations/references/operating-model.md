@@ -178,6 +178,9 @@ Routine per-video observations stay in the ledger. Callback only on completed
 block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
 submission, authorization mismatch, or stop/release.
 
+Block completion is not whole-run completion. A Heartbeat tick is not a callback
+and never proves release.
+
 For every timed operation expected to exceed one bounded block, one coordinator-
 only heartbeat acts as the durable run timer, missed-callback watchdog, and
 round scheduler. Callback remains the primary event signal; heartbeat is the
@@ -202,8 +205,8 @@ and stability smoke are verified. Store its exact automation ID, owner/target,
   `operation_stop_at`. Normal cadence is about 15-30 minutes; callbacks may
   advance work sooner without waiting for a tick.
 - On wake, verify identity and time first. At or after stop time, dispatch no new
-  work; send `STOP_AND_RELEASE` when needed, verify release, finalize the run,
-  and delete the timer.
+  work; begin the whole-run completion transaction below. Do not delete the timer
+  or claim completion merely because its final tick fired.
 - Before stop time, reconcile any missed callback. If the executor is running,
   do nothing and schedule the next tick. If it is idle, healthy, authorized,
   and no user decision is pending, dispatch at most one next block.
@@ -238,9 +241,11 @@ credential, cookie, browser state, or content history.
 - Stay silent on ordinary healthy progress. A missed callback or non-completed
   state follows the main-console risk consolidation contract and pauses new
   dispatch until the user decides there.
-- At final checkpoint, early user stop, or run end, delete/pause the exact owned
-  watch heartbeat and persist `CONSUMED`. Never recreate the window for another
-  run, upgrade, reinstall over the same managed installation, or task restart.
+- At the overlay's final checkpoint, early user stop, or run end, persist
+  `CONSUMED`. Because the overlay shares the durable run timer, do not delete the
+  timer before terminal executor release; retire it during whole-run
+  finalization. Never recreate the window for another run, upgrade, reinstall
+  over the same managed installation, or task restart.
 - If automation creation/readback is unavailable, persist `DEGRADED`, disclose
   callback-only supervision once in `TikTok 主控台`, then treat the one-time window as
   consumed rather than retrying on every future mission.
@@ -261,6 +266,10 @@ For each message from the registered coordinator ID:
    response may only say that the result was sent to `TikTok 主控台` and it is idle.
 7. Become idle. Never self-dispatch, create another Thread, spawn an agent, or
    create/update/delete an automation.
+
+For an ordinary block use `callback_scope=block`, `terminal_event=NONE`, and
+`release_state=NONE`. For terminal `STOP_AND_RELEASE`, skip ordinary block work
+and follow the whole-run completion transaction exactly once.
 
 ## Execution envelope
 
@@ -291,6 +300,10 @@ bootstrap task as callback target.
 
 ```text
 status: completed | blocked | validation_failed | needs_decision | key_risk
+callback_scope: block | run_terminal
+terminal_event: NONE | EXECUTOR_RELEASED
+release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
+run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
 run_id:
 coordinator_thread_id:
 executor_thread_id:
@@ -317,16 +330,51 @@ contains zero to three coordinator-ready choices, never a question addressed to
 the executor Thread. `completed` may set `decision_required: false` even when it
 records non-actionable observations in `risks`.
 
+Only a terminal callback may use `callback_scope=run_terminal` or
+`terminal_event=EXECUTOR_RELEASED`; a normal `completed` callback must not use
+them.
+
 ## Stop and recovery
 
-`STOP_AND_RELEASE` overrides an active block. The executor stops without another
-probe, releases its tab, records submission certainty, appends a final
-checkpoint, callbacks `STOPPED_AND_RELEASED`, and remains idle. The coordinator
-then verifies and pauses/deletes only its own registered heartbeat. Keep the
-active/idle registered pair unarchived unless the user explicitly asks for full
-cleanup. When a released executor has been replaced in the registry and owns no
-heartbeat, Chrome tab, or uncertain mutation, unpin and archive that retired
-executor so it does not remain in the active task list.
+### Whole-run completion transaction
+
+At `operation_stop_at`, explicit user stop, or objective completion:
+
+1. The coordinator sets `run_terminal_state=STOP_REQUESTED`, records exactly one
+   `run_completion_reason`, and stops ordinary dispatch.
+2. It sends one terminal `STOP_AND_RELEASE` to the exact registered executor ID,
+   even when the executor appears idle.
+3. The executor performs no new browse or mutation. It stops the active block if
+   any, resolves submission certainty, releases its tab, appends a final
+   cumulative checkpoint, and callbacks once with
+   `callback_scope=run_terminal`, `terminal_event=EXECUTOR_RELEASED`, and
+   `release_state=STOPPED_AND_RELEASED`.
+4. The coordinator validates callback source/payload IDs, final ledger path,
+   release proof, cumulative browse/mutation counts, and zero unresolved action.
+   It then sets `EXECUTOR_RELEASED`, pauses/deletes only its registered timer,
+   sets `operation_timer_state=COMPLETE`, and marks `RUN_COMPLETED`.
+5. The coordinator gives the user one short final result. It does not callback a
+   bootstrap or Skill-development task and does not expose internal state names.
+
+If any final callback/release/certainty check fails, set
+`RUN_FINALIZATION_BLOCKED`, keep the evidence, and report one concise repair or
+decision. Never convert deadline arrival into successful completion.
+
+Keep the active/idle registered pair unarchived unless the user explicitly asks
+for full cleanup. When a released executor has been replaced in the registry and
+owns no heartbeat, Chrome tab, or uncertain mutation, unpin and archive that
+retired executor so it does not remain in the active task list.
+
+### Simple user result
+
+Use one line when finalization succeeds:
+
+```text
+运营完成。运行：<duration>；浏览：<count>；收藏：<count>；Repost：<count>；评论：<count>。风险：无｜<one short risk>。
+```
+
+If the user stopped early, start with `已安全停止。` instead. Do not show
+Heartbeat/callback/registry/release identifiers unless finalization is blocked.
 
 If the executor disappears, first resolve uncertain submissions and incumbent
 mutation authority. Create a replacement only with explicit user authorization,

@@ -32,6 +32,10 @@ heartbeat_target_thread_id: NONE | exact id
 operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
 operation_timer_next_tick_at: NONE | timestamp
 operation_timer_stop_at: NONE | timestamp
+run_terminal_state: RUNNING | STOP_REQUESTED | EXECUTOR_RELEASED | RUN_COMPLETED | RUN_FINALIZATION_BLOCKED
+run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
+executor_release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
+final_callback_id: NONE | exact callback id
 first_install_supervision_state: NOT_APPLICABLE | PENDING | ACTIVE | CONSUMED | DEGRADED
 first_install_supervision_started_at: NONE | timestamp
 first_install_supervision_ends_at: NONE | timestamp
@@ -95,12 +99,20 @@ BOOTSTRAP_NO_ID
   -> PAIR_READY
   -> ROUND_RUNNING
   -> ROUND_COMPLETE -> ROUND_RUNNING
-  -> STOPPING -> IDLE
+  -> STOPPING
+  -> EXECUTOR_RELEASED
+  -> RUN_COMPLETED -> IDLE
   -> RETIRED
 
 Any identity or automation mismatch -> IDENTITY_BLOCKED
 Any domain blocker -> BLOCKED_OR_WAITING
+Missing final release proof -> RUN_FINALIZATION_BLOCKED
 ```
+
+`ROUND_COMPLETE` means one bounded round ended; it is never whole-run
+completion. A heartbeat tick is only a time signal. Declare `RUN_COMPLETED` only
+after a terminal executor callback proves release, final evidence is reconciled,
+and the coordinator has retired its owned timer.
 
 Before every thread dispatch, callback reconciliation, heartbeat creation,
 heartbeat update, heartbeat execution, stop request, replacement, or archive:
@@ -206,3 +218,28 @@ Accept a worker callback only when all of these match:
 A callback received by a Skill-development, bootstrap, sibling, or historical
 Thread is misrouted evidence, not permission for that Thread to coordinate the
 run.
+
+## Whole-run completion transaction
+
+When the deadline is reached, the user stops, or the authorized objective is
+complete:
+
+1. The verified coordinator sets `run_terminal_state=STOP_REQUESTED`, records one
+   completion reason, and dispatches no further ordinary work.
+2. Send one terminal `STOP_AND_RELEASE` or domain-equivalent message to the exact
+   executor ID, even when the executor appears idle. It must add no new external
+   action; it only resolves submission certainty, releases owned resources,
+   appends a final ledger checkpoint, and returns one terminal callback.
+3. Accept that callback only through the normal identity gate. Require
+   `terminal_event=EXECUTOR_RELEASED`, `release_state=STOPPED_AND_RELEASED`, final
+   cumulative evidence, and no unresolved external action.
+4. Set `run_terminal_state=EXECUTOR_RELEASED`, then verify and delete/pause only
+   the coordinator-owned timer. Mark `operation_timer_state=COMPLETE`.
+5. Reconcile the final ledger/counters and set `run_terminal_state=RUN_COMPLETED`.
+   The coordinator then emits one user-facing completion summary in its own
+   Thread. It never callbacks a bootstrap or Skill-development Thread.
+
+If the executor is missing, the callback identity fails, release is unverified,
+or submission certainty is unresolved, set `RUN_FINALIZATION_BLOCKED`. Do not
+claim completion or delete evidence merely because the deadline or a heartbeat
+arrived.

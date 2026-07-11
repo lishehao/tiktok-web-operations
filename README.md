@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.19`
+Protocol version: `2026.07.11.20`
 
 ## 直接安装
 
@@ -153,7 +153,9 @@ HTTPS 安装/版本比较
   -> 首次 INSTALL 的第一次运营：同一 timer 使用首小时监督日程
   -> callback -> coordinator 决策 -> 一个下一 bounded block
   -> 到期/停止/风险 -> STOP_AND_RELEASE
-  -> executor 释放 Chrome -> coordinator 清理自己的 heartbeat -> idle
+  -> executor 最终结算并回传 EXECUTOR_RELEASED
+  -> coordinator 验证释放/最终 ledger -> 清理自己的 heartbeat
+  -> RUN_COMPLETED -> 向用户返回一条简短总结果 -> idle
   -> 活跃主控/执行台保持未归档；临时诊断与已释放的退休执行台归档
 ```
 
@@ -166,8 +168,9 @@ HTTPS 安装/版本比较
 5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
 6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation才算 stability pass；页面 blocker 是证据，但不算稳定通过。
 7. 对超过一个 bounded block 的计时型运营，只有现在才由已验证的主任务创建本 run 唯一 durable timer heartbeat：显式设置 `targetThreadId=coordinator_thread_id`，名称和 prompt 包含 run ID 与 `operation_stop_at`；创建后 view 同一 automation ID，并要求 `automation_owner_thread_id == targetThreadId == coordinator_thread_id`。执行任务永远不创建 automation。Callback 负责事件到达，timer 负责下一次检查和最终截止；整个 run 复用同一个 timer，不为每个 block 新建。
-8. 若本机安装状态是首次 `INSTALL` 且 `first_install_supervision=PENDING`，Smoke 通过后由 TikTok 主控台把它消费为一次性的首小时监督窗口。默认在启动后约 `+15`、`+35`、`+60` 分钟只读检查 TikTok 执行台最新状态、callback 和 ledger；健康时静默，风险只在 TikTok 主控台汇总。窗口不得超过 `operation_stop_at`，结束或用户提前停止时删除自己的监督 heartbeat，并写 `CONSUMED`。升级、后续运营任务、重启和新 run 都不得再次创建该窗口。
+8. 若本机安装状态是首次 `INSTALL` 且 `first_install_supervision=PENDING`，Smoke 通过后由 TikTok 主控台把它消费为一次性的首小时监督窗口。默认在启动后约 `+15`、`+35`、`+60` 分钟只读检查 TikTok 执行台最新状态、callback 和 ledger；健康时静默，风险只在 TikTok 主控台汇总。窗口不得超过 `operation_stop_at`，结束或用户提前停止时写 `CONSUMED`；它与 durable timer 共用同一 automation，因此 timer 必须保留到执行台最终释放验证后再删除。升级、后续运营任务、重启和新 run 都不得再次创建该窗口。
 9. Smoke 及 heartbeat binding（若需要）都通过后，才可派完整 `search_heavy` 或互动 block。之后当前主任务继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；它不归档自己，两条运营 Threads 都保持未归档和持久化，且只置顶 TikTok 主控台。
+10. 到期、用户停止或目标完成时，Heartbeat 只触发终止流程，不代表完成。主控台停止派发并向准确执行台发送一次 `STOP_AND_RELEASE`；执行台不得新增浏览或互动，只解决提交确定性、释放 tab、写最终累计 checkpoint，并回传 `EXECUTOR_RELEASED`。主控台验证后才删除自己的 timer、标记 `RUN_COMPLETED` 并向用户返回一条简短总结果。缺少释放证明时必须标记 finalization blocked，不得假装完成。
 
 如果主任务无法自注册、executor 创建/握手失败、首轮没有 proof、独立标签页创建失败或同账号 mutation writer 不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
 
@@ -187,6 +190,7 @@ HTTPS 安装/版本比较
 - TikTok 主控台是唯一用户决策入口。Executor 遇到 `blocked`、`validation_failed`、`needs_decision`、`key_risk`、uncertain submission 或平台风险时，必须先停止当前 block、释放自己的 Chrome、写 ledger，再只向注册的 TikTok 主控台回调并 idle；不得在 TikTok 执行台里询问用户、提出继续按钮、自行恢复或派发下一轮。
 - TikTok 主控台收到上述非成功状态后必须暂停新 dispatch，把风险、影响范围、当前已停止内容、是否仍可安全只读、推荐方案和不超过三个选项合并成一次用户提示。只有用户在 TikTok 主控台明确回复继续方式，或风险被可验证的外部状态变化消除后，才可恢复。用户无需查看或回复 TikTok 执行台。
 - 每个多轮计时型 run 默认只给 coordinator 配一个长期 timer heartbeat，作为低频状态检查、漏回调保险和 `operation_stop_at` 截止时钟。它必须由 coordinator 自己创建并显式绑定/回读自己的准确 Thread ID；executor、installer、Skill-development 和其他 coordinator 都不能代建或接管。executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
+- 每个普通 block 的 `completed` 只表示该轮完成；Heartbeat 到点也只表示时间到了。整场完成必须经过 `STOP_REQUESTED -> EXECUTOR_RELEASED -> RUN_COMPLETED`，并由 TikTok 主控台给用户一条最终汇总。
 - 两个 Thread 都只承担一个目标：TikTok 主控台只负责在授权和截止时间内推进下一步或停下并向用户集中决策；TikTok 执行台只负责准确执行当前唯一 block、写证据、释放 Chrome、callback、idle。方向、人设、能力矩阵和政策都是输入约束，不是额外使命。
 - 首次安装监督是唯一自动例外：仅当持久化安装状态显示首次 `INSTALL` 后尚未消费，第一次运营启动才自动开启一次，检查点约为 `+15/+35/+60` 分钟。它只监督、不连续轮询；健康静默，风险仍统一回 TikTok 主控台。状态保存在受管 Skill 目录之外，不记录凭据，窗口消费后永不因升级或新任务重置。
 - 不硬编码 Chrome Skill 的版本缓存路径；只使用当前 runtime 与受支持的 Playwright locator。
@@ -212,7 +216,15 @@ HTTPS 安装/版本比较
 
 ### 停止条件
 
-登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、Thread/automation identity mismatch、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据，风险统一回调 TikTok 主控台等待决策。用户说停止时，executor 只释放自己的标签页并写 final checkpoint，主任务只暂停/删除自己 registry 中的 heartbeat；两个运营 Threads 保持 idle。临时探针/诊断完成释放后归档；已被替换的退休执行台仅在确认无 heartbeat、Chrome tab 或不确定 mutation 后归档。
+登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、Thread/automation identity mismatch、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据，风险统一回调 TikTok 主控台等待决策。用户说停止时执行同一整场终止事务：执行台最终结算并回传释放证明，主控台验证后才清理 timer 和宣布安全停止。两个运营 Threads 保持 idle。临时探针/诊断完成释放后归档；已被替换的退休执行台仅在确认无 heartbeat、Chrome tab 或不确定 mutation 后归档。
+
+用户侧最终输出保持简单：
+
+```text
+运营完成。运行：<duration>；浏览：<count>；收藏：<count>；Repost：<count>；评论：<count>。风险：无｜<一句话风险>。
+```
+
+不要向用户展示 Heartbeat ID、callback ID、registry、内部状态名或释放协议；只有 finalization 被阻塞时才给一项简短修复或决策。
 
 ## Requirements
 

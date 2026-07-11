@@ -117,6 +117,10 @@ card plus a bounded input contract before dispatch.
 - Amortize callback overhead with meaningful bounded rounds. Routine per-item
   progress stays in the ledger; callback only at round completion or on a
   terminal event.
+- Distinguish round completion, resource release, and whole-run completion.
+  When the overall run ends, require one terminal executor callback proving
+  release and final evidence before the coordinator marks `RUN_COMPLETED`.
+  Heartbeat completion alone is never run completion.
 
 The calling domain Skill owns what a round means, which actions are authorized,
 and how evidence is validated. Thread Supervisor owns only registration,
@@ -129,6 +133,9 @@ Callback shape:
 ```text
 Project:
 Status: completed | blocked | validation_failed | needs_decision | key_risk
+Callback scope: block | run_terminal
+Terminal event: none | executor_released
+Release state: none | stopped_and_released | release_unverified
 Changed:
 Validation:
 Risks:
@@ -148,6 +155,13 @@ After a callback:
 - resume only after the user decides in the coordinator or a verifiable
   external-state change clears the blocker
 - remove completed threads from the active watchlist
+
+For a persistent coordinator/executor run, ordinary `completed` means only that
+one bounded round finished. At deadline, user stop, or objective completion,
+follow the whole-run transaction in `references/identity-and-automation.md`:
+stop dispatch, obtain `EXECUTOR_RELEASED`, retire the exact owned timer, reconcile
+the final ledger, then mark `RUN_COMPLETED`. If release proof is missing, use
+`RUN_FINALIZATION_BLOCKED` and do not tell the user the run completed.
 
 ## Dispatch pacing
 
@@ -299,6 +313,10 @@ For a durable operation timer, each tick must additionally:
   `operation_stop_at`, using the same logical timer;
 - delete the timer when the run ends or the user stops.
 
+Reaching the final timer tick starts the stop/release transaction; it does not
+complete it. The timer is retired only after terminal executor release proof is
+accepted, except when retaining it would itself violate a verified safety rule.
+
 ### One-time first-run supervision window
 
 When a calling domain Skill explicitly requires first-install monitoring, let
@@ -316,9 +334,10 @@ is not a recurring default:
   running worker;
 - stay silent when healthy; centralize any block, validation failure, decision,
   or key risk in the coordinator;
-- delete the owned heartbeat at the final checkpoint, early user stop, or run
-  end, and persist `CONSUMED` so upgrades, restarts, and later missions cannot
-  recreate the first-run window.
+- persist the supervision overlay as `CONSUMED` at its final checkpoint, early
+  user stop, or run end. When it shares the durable run timer, keep that timer
+  through terminal executor release and retire it only in whole-run
+  finalization; never recreate the first-run overlay on later missions.
 
 If automation support is unavailable, mark the one-time window `DEGRADED`, keep
 callback-only supervision, disclose the limitation once in the coordinator,
