@@ -110,6 +110,8 @@ Every dispatch includes:
 - Exact action authority when applicable.
 - Stop conditions and callback schema.
 
+Copy coordinator/executor IDs, account, ledger path, mutation authorization, role, model, and thinking level byte-for-byte from the accepted registry. The executor compares them before Chrome connection; any drift terminates the block as `registry_mismatch`.
+
 Never include a Skill-development or bootstrap callback ID.
 
 ## Authorization protocol
