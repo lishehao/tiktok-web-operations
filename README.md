@@ -2,7 +2,7 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。公开仓库只保留一个安装入口和一个完整 Skill；详细运营规则以 Skill 内 references 为准。
 
-Protocol version: `2026.07.11.8`
+Protocol version: `2026.07.11.9`
 
 ## 直接安装
 
@@ -52,13 +52,13 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 
 安装完成后先不修改 TikTok，也不创建运营 Threads，只检查：
 
-1. Chrome Browser control 能实际连接；掉线时最多重连两次。
-2. 通过 Chrome 只读打开或复用 TikTok，确认用户已登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码。
+1. Chrome Browser control 能实际连接，并能用 `chrome.tabs.new()` 创建一个隔离的临时标签页；掉线时最多重连两次。
+2. 在这个新标签页里只读打开 TikTok，确认它继承同一 Chrome profile 的登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码，也不要 claim 其他任务的标签页。
 3. 当前页面没有阻塞性的 CAPTCHA、验证挑战、rate limit、warning、restriction 或账号错配。
 4. Codex App 能创建、读取、命名、归档和跨任务发送消息；`create_thread` 与 `send_message_to_thread` 支持 `gpt-5.6-luna` + `high`。
-5. 用 `list_threads`/`read_thread` 检查所有 active TikTok 任务；不得在旧 executor、Goal Mode 或其 subagent 仍 active/uncertain 时创建新 executor。若用户要求替换，先取得 `STOPPED_AND_RELEASED`，不能把 archive 当成 Chrome release。
+5. 用 `list_threads`/`read_thread` 检查所有 active TikTok 任务；不得在旧的同账号 mutation executor、Goal Mode 或其 subagent 仍 active/uncertain 时创建新 executor。无关任务占用另一个 Chrome tab 不构成全局 blocker；若它同时只读浏览同一 TikTok 账号，只标记推荐流归因污染。若用户要求替换 mutation executor，先取得 `STOPPED_AND_RELEASED`，不能把 archive 当成 release proof。
 6. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
-7. 完成后释放 bootstrap 对 Chrome 的控制。
+7. 完成后只关闭/释放 bootstrap 自己创建的临时标签页。
 
 Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 Browser、终端浏览器和普通 Web Search 不能替代。两条运营任务必须都是持久化、用户可见的 Codex Threads；不能用 subagent、agent tree、单个合并任务或其他模型替代。
 
@@ -130,14 +130,14 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 启动顺序：
 
 1. 创建 `TikTok 运营主任务`。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
-2. 创建 `TikTok Chrome执行任务`。它是唯一 Chrome/TikTok 执行者和 ledger writer；不得扩大授权、创建其他 Threads 或回调 bootstrap 任务。
+2. 创建 `TikTok Chrome执行任务`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是同账号 mutation 的唯一 writer 和 ledger writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调 bootstrap 任务。
 3. 记录两条准确 Thread ID，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
 4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给两条任务。
 5. Coordinator 先向同一 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
 6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation 才算 stability pass；页面 blocker 是证据，但不算稳定通过。
 7. Smoke 通过后才可派完整 `search_heavy` 或互动 block。之后 coordinator 继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；bootstrap 任务才可归档自己。两条运营 Threads 保持未归档和持久化。
 
-如果只创建一条、握手失败、首轮没有 proof 或 Chrome 所有权不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
+如果只创建一条、握手失败、首轮没有 proof、独立标签页创建失败或同账号 mutation writer 不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
 
 ## 运营规则摘要
 
@@ -160,8 +160,8 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 - Native next/down 必须从位置 1 起锁定方向特定的精确签名；禁止使用 `button:not([disabled])` 一类宽 locator，因为第一次推进后 up/down 通常都会 enabled。每次 DOM 移动后重新解析同一 down 签名。
 - 预期 UI gate 失败必须在当前判断分支直接写终态、释放 Chrome、callback；不能用 `throw` 返回 reasoning 后继续换 locator 诊断。
 - Coordinator/executor ID、账号、ledger path、授权、角色、模型和 thinking 是 immutable registry；dispatch 必须逐字复制，executor 在连接 Chrome 前逐项比较，任何漂移都以 `registry_mismatch` 终止。
-- Tab ID 不得跨 turn、prompt 或 ledger 复用。每轮只能从本轮 live `openTabs()` 结果选择当前 TikTok tab；没有唯一安全选择时直接终止，不能对旧 ID `throw`、猜测或改碰其他标签页。
-- 全局 Chrome ownership 独立于 TikTok Thread 名称：若 `claimTab()` 返回另一个 browser session UUID，必须直接读取同 ID Task 的状态。活跃的无关 Task 也会阻塞 TikTok 执行；不得擅自中断或归档。`openTabs()` 返回的对象只能交给 `user.claimTab()`，不能把它的 ID 交给 `tabs.get()`。
+- Tab ID 不得跨 turn、prompt 或 ledger 复用。普通 block 默认直接调用 `chrome.tabs.new()`，只操作该 executor 本轮创建或已经控制的标签页；`openTabs()`/`claimTab()` 只用于用户明确要求的现有标签页交接。
+- Chrome 标签页控制权不是整个 Chrome profile 的全局锁。若某个现有 tab 属于另一个 browser session，跳过它并新建自己的 tab；不得擅自中断、归档、导航或关闭对方任务。只有新建 tab 失败、账号继承/登录验证失败、同账号 mutation writer 冲突或 uncertain submission 才阻塞。并发只读浏览同一账号时必须标记推荐流归因污染。
 - Coordinator 的 `send_message_to_thread` 工具目标本身也属于 immutable registry。若失败明确来自未送达的 target typo，可记录后纠正一次；正确目标上的传输失败不得反复重试。
 
 ### 互动能力
@@ -175,7 +175,7 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 
 ### 停止条件
 
-登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去 Chrome 所有权、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据。用户说停止时，executor 释放 Chrome，写 final checkpoint，两个运营 Threads 保持 idle；只有用户明确要求时才归档。
+登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据。用户说停止时，executor 只释放自己的标签页，写 final checkpoint，两个运营 Threads 保持 idle；只有用户明确要求时才归档。
 
 ## Requirements
 
