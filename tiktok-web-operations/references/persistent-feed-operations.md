@@ -69,7 +69,7 @@ Prefer recent posts from roughly the last 30 days when suitable current results 
 
 ## Native browsing versus imitation
 
-Prefer the visible native next/down control when it preserves playback, ordered feed context, and visible watch state. Before position 1, record how the control was identified through accessible name, role, stable UI placement, or another unambiguous locator. Click it exactly once per transition and verify the before/after identity packet before continuing.
+Prefer the visible native next/down control when it preserves playback, ordered feed context, and visible watch state. Before position 1, record a direction-specific exact signature through accessible name/title/test id/data-e2e or the verified live down-chevron SVG. Never use all enabled buttons as the locator: after position 1, both up and down may be enabled. Re-resolve the exact down signature after each DOM movement, click it exactly once per transition, and verify the before/after identity packet before continuing.
 
 Incremental scroll/wheel gestures are not an automatic fallback. Under the packaged default, failure of the visible native next/down control stops feed sampling and callbacks once. A scroll-only checkpoint requires a new explicit user decision after the stopped block. Never mix button, keyboard, wheel, script scroll, reload, or reset transitions in one checkpoint or recovery sequence. Direct URLs remain appropriate for exact verification and revisiting candidates, but they are not a replacement for feed sampling.
 
