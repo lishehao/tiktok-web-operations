@@ -27,9 +27,11 @@ When login is missing:
 
 For a stale tab or dropped connection, reconnect to Chrome, obtain a fresh tab if needed, and re-read the page state. Do not switch browser surfaces merely because Chrome needs reconnection.
 
-Never carry a tab ID across turns. Obtain the current tab list in the active executor turn and claim only a tab object derived from that same list. Select by current TikTok URL/title/account context. If selection is absent or ambiguous, stop as a data gate; do not throw on a literal old ID or guess another app tab.
+Never carry a tab ID across turns. Obtain the current tab list in the active executor turn, select by current TikTok URL/title/account context, and pass the exact `user.openTabs()` object to `user.claimTab()`. Do not pass its ID to `tabs.get()`; that method only resolves tabs already controlled by the current browser session. If selection is absent or ambiguous, stop as a data gate; do not throw on a literal old ID or guess another app tab.
 
-Resolve the current Chrome Skill/runtime from the current turn's Skill catalog and record that source path. The runtime call may import that exact current path; never reuse a versioned cache path copied from a prior prompt, ledger, run, or memory. Prefer supported Playwright locators; do not pass DOM-CUA objects/circular structures as coordinates, use unavailable page globals such as `NodeFilter`, or run broad text walkers to diagnose state.
+Resolve the current Chrome Skill/runtime from the current turn's Skill catalog and record the plugin root. Import `<plugin-root>/scripts/browser-client.mjs`; the Skill file lives below `<plugin-root>/skills/control-chrome/`, but the runtime module does not. Never reuse a versioned cache path copied from a prior prompt, ledger, run, or memory. Prefer supported Playwright locators; do not pass DOM-CUA objects/circular structures as coordinates, use unavailable page globals such as `NodeFilter`, or run broad text walkers to diagnose state.
+
+When `claimTab()` reports `already part of browser session <uuid>`, do not try `tabs.get()` or another browser binding. Release the current session, return the UUID to the coordinator, and let it call `read_thread(<uuid>)`. An active unrelated owner is a global Chrome scheduling conflict; wait for it to finish or ask the user which task should own Chrome. Do not count this as a Feed transition failure or disable TikTok mutation lanes.
 
 Classify recovery before changing authorization state:
 
