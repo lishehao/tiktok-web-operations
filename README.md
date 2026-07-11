@@ -2,7 +2,7 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。公开仓库只保留一个安装入口和一个完整 Skill；详细运营规则以 Skill 内 references 为准。
 
-Protocol version: `2026.07.11.6`
+Protocol version: `2026.07.11.7`
 
 ## 直接安装
 
@@ -159,6 +159,8 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 - Native next/down 失败后不自动切 PageDown、ArrowDown、wheel、script scroll、reload 或 reset。Scroll-only fallback 必须由用户在收到 blocker 后重新明确授权。
 - Native next/down 必须从位置 1 起锁定方向特定的精确签名；禁止使用 `button:not([disabled])` 一类宽 locator，因为第一次推进后 up/down 通常都会 enabled。每次 DOM 移动后重新解析同一 down 签名。
 - 预期 UI gate 失败必须在当前判断分支直接写终态、释放 Chrome、callback；不能用 `throw` 返回 reasoning 后继续换 locator 诊断。
+- Coordinator/executor ID、账号、ledger path、授权、角色、模型和 thinking 是 immutable registry；dispatch 必须逐字复制，executor 在连接 Chrome 前逐项比较，任何漂移都以 `registry_mismatch` 终止。
+- Tab ID 不得跨 turn、prompt 或 ledger 复用。每轮只能从本轮 live `openTabs()` 结果选择当前 TikTok tab；没有唯一安全选择时直接终止，不能对旧 ID `throw`、猜测或改碰其他标签页。
 
 ### 互动能力
 
