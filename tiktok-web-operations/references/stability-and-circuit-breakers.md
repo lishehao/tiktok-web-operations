@@ -37,12 +37,12 @@ Run this read-only block before a new executor performs a full calibration block
 1. Verify the registered IDs, exact account, no incumbent owner, no submission in flight, and no system-level challenge.
 2. Open one direction-relevant search query and classify the first three visible results without opening interaction controls.
 3. Enter For You once.
-4. Identify one unique visible native next/down control through a stable live locator. Require count `1`, visible, and enabled.
-5. Record the position-1 identity packet, then use that same logical control for four single-click transitions to positions 2–5. Re-resolve the live locator after DOM movement instead of retaining a stale ordinal.
+4. Enumerate the navigation controls once and identify the down control by a direction-specific signature: prefer an accessible name/title/test id/data-e2e that specifically means next/down; otherwise use the unique down-chevron SVG signature observed in the current live UI. The currently verified fallback signature is `button:has(svg path[d^="m24 28.75"])`, but use it only after confirming it is the visible down control. Never use a broad locator such as `button:not([disabled])`, because the up and down controls can both become enabled after position 1.
+5. Require the exact down signature to have count `1`, visible, and enabled. Record that signature with the position-1 identity packet, then re-resolve that same exact signature after every DOM movement for four single-click transitions to positions 2–5. Do not retain a stale element or ordinal.
 6. Require five reliable identities, four verified advances, zero reset/reload/Home re-entry, and zero mutation.
 7. Write the smoke result and release Chrome.
 
-Only `completed` with those acceptance criteria proves feed-control stability. A page-based blocker is useful startup evidence but is not a stability pass.
+Only `completed` with those acceptance criteria proves feed-control stability. A page-based blocker is useful startup evidence but is not a stability pass. Up-control enablement after the first advance is expected and must not make the exact down-control locator ambiguous.
 
 ## Risk classification
 
@@ -52,7 +52,7 @@ If a risk locator or diagnostic API fails, mark the system-warning state `unveri
 
 ## Browser-control rules
 
-- Resolve the currently installed Chrome Skill/runtime dynamically. Never hard-code a versioned plugin cache path.
+- Resolve the currently installed Chrome Skill/runtime from the current turn's Skill catalog. Record the catalog path used. Importing that exact current path in the runtime call is allowed; carrying a versioned path forward from a prompt, ledger, prior run, or memory is forbidden.
 - Prefer supported Playwright locators and live element attributes.
 - Do not pass DOM-CUA element objects or circular structures as coordinates.
 - Do not use unavailable page globals such as `NodeFilter`, broad page-evaluate text walkers, or unbounded container scans.
@@ -73,6 +73,8 @@ Two consecutive failures with the same ownership, transition, rendering, or diag
 5. wait for a user instruction or a verifiable external-state change.
 
 Changing query wording, removing a hashtag, renaming a probe, rebuilding a subagent, or declaring a “fresh blocked audit” is not an external-state change and does not reset the circuit breaker.
+
+Handle expected UI gate failures as data, not exceptions. Compute `count/visible/enabled/identity_changed`; when a required boolean fails, write the terminal block result, release Chrome, and callback. Do not `throw` an expected ambiguity back into the reasoning loop, and do not run another locator diagnostic after the terminal condition is known.
 
 ## Stop acknowledgement
 
