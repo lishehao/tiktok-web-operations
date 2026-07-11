@@ -17,7 +17,8 @@ account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_support: CREATE_READ_SEND_TITLE_ARCHIVE | UNAVAILABLE
 model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
 incumbent_executor: NONE | SAME_REGISTERED_EXECUTOR | RETIRED_AND_RELEASED | ACTIVE_OR_UNCERTAIN
-browser_session_owner: NONE | REGISTERED_EXECUTOR | ACTIVE_EXTERNAL:@thread_id | STALE_OR_UNVERIFIED:@session_id
+dedicated_tab_creation: AVAILABLE | UNAVAILABLE
+same_account_external_activity: NONE | READ_ONLY_ATTRIBUTION_RISK:@thread_id | MUTATION_OR_UNCERTAIN:@thread_id
 local_time_check: local time | timezone | UTC offset
 ledger_path:
 dependency_status: READY | BLOCKED
@@ -30,16 +31,16 @@ Run checks in order:
 
 1. Download the canonical GitHub archive, locate exactly one Skill directory, read `manifest.json`, and validate before installation.
 2. Compare numeric versions. Back up and atomically replace the complete Skill directory for upgrades; block same-version conflicts and unauthorized downgrades; restore on validation failure.
-3. Prove Chrome control by reading existing Chrome tabs. Retry dropped control at most twice. Do not substitute another browser tool.
-4. Open/reuse TikTok read-only, read the exact logged-in identity, and inspect warnings/challenges. Never enter credentials or verification codes.
+3. Prove Chrome control by creating one disposable tab with `chrome.tabs.new()`. Retry dropped control at most twice. Do not substitute another browser tool and do not claim another task's tab.
+4. Navigate that new tab to TikTok read-only, prove it shares the expected logged-in profile, read the exact identity, and inspect warnings/challenges. Never enter credentials or verification codes.
 5. Prove `list_projects`, `create_thread`, `read_thread`, `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
 6. Prove `create_thread` and `send_message_to_thread` support `model=gpt-5.6-luna` with `thinking=high`. This is a hard requirement for both operating Threads.
-7. Query recent TikTok-related Threads and inspect every active/in-progress candidate. Then inspect the live Chrome TikTok tab from the same-turn `user.openTabs()` result. Pass the exact returned object to `user.claimTab()`; never pass its ID to `tabs.get()`. If the claim says `already part of browser session <uuid>`, treat `<uuid>` as a candidate Codex Thread ID and call `read_thread(<uuid>)` directly. An active external Thread is a hard blocker even when it is not TikTok-named; report its ID/title and wait. Do not interrupt or archive unrelated work. If the owner cannot be read, mark `STALE_OR_UNVERIFIED` and stop. If the user explicitly asked to replace an incumbent TikTok executor, require its `STOPPED_AND_RELEASED` checkpoint before continuing; archiving alone is insufficient.
+7. Query recent TikTok-related Threads and inspect every active/in-progress candidate. Block only an active/uncertain same-account mutation executor or an uncertain submission. Unrelated Chrome tasks and separate tabs are allowed and must not be interrupted or archived. When another task browses the same TikTok account read-only, record `READ_ONLY_ATTRIBUTION_RISK` because feed causality is contaminated, but continue mechanical stability checks. If the user explicitly asked to replace an incumbent mutation executor, require its `STOPPED_AND_RELEASED` checkpoint before continuing; archiving alone is insufficient.
 8. Read local time and create a writable shared ledger path.
 9. Initialize every mutation lane independently. Reuse prior evidence only when the same account and runtime continuity are proven. Do not mutate TikTok during preflight.
-10. Release bootstrap Chrome control.
+10. Finalize only the disposable bootstrap tab and release its Chrome-control session.
 
-Hard dependencies are the valid Skill, Chrome control, logged-in TikTok identity, required thread tools, exact Luna/High creation/dispatch support, exclusive Thread and browser-session ownership, local time, and writable ledger. Do not silently fall back.
+Hard dependencies are the valid Skill, dedicated-tab creation, logged-in TikTok identity in that tab, required thread tools, exact Luna/High creation/dispatch support, no conflicting same-account mutation executor, local time, and writable ledger. Do not silently fall back.
 
 If blocked, return only the first repairable issue and impact, ending with `完成后回复“继续”`. A blocked `继续` rechecks only the missing item; it is not an operation start word.
 
