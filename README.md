@@ -2,7 +2,7 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。公开仓库只保留一个安装入口和一个完整 Skill；详细运营规则以 Skill 内 references 为准。
 
-Protocol version: `2026.07.11.7`
+Protocol version: `2026.07.11.8`
 
 ## 直接安装
 
@@ -161,6 +161,8 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 - 预期 UI gate 失败必须在当前判断分支直接写终态、释放 Chrome、callback；不能用 `throw` 返回 reasoning 后继续换 locator 诊断。
 - Coordinator/executor ID、账号、ledger path、授权、角色、模型和 thinking 是 immutable registry；dispatch 必须逐字复制，executor 在连接 Chrome 前逐项比较，任何漂移都以 `registry_mismatch` 终止。
 - Tab ID 不得跨 turn、prompt 或 ledger 复用。每轮只能从本轮 live `openTabs()` 结果选择当前 TikTok tab；没有唯一安全选择时直接终止，不能对旧 ID `throw`、猜测或改碰其他标签页。
+- 全局 Chrome ownership 独立于 TikTok Thread 名称：若 `claimTab()` 返回另一个 browser session UUID，必须直接读取同 ID Task 的状态。活跃的无关 Task 也会阻塞 TikTok 执行；不得擅自中断或归档。`openTabs()` 返回的对象只能交给 `user.claimTab()`，不能把它的 ID 交给 `tabs.get()`。
+- Coordinator 的 `send_message_to_thread` 工具目标本身也属于 immutable registry。若失败明确来自未送达的 target typo，可记录后纠正一次；正确目标上的传输失败不得反复重试。
 
 ### 互动能力
 
