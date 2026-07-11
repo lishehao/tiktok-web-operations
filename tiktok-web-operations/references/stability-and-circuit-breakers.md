@@ -1,0 +1,79 @@
+# Stability And Circuit Breakers
+
+Use this reference during bootstrap, first-run validation, browser recovery, and any blocked or key-risk callback.
+
+## Exclusive-owner preflight
+
+Before creating or dispatching an executor, query recent TikTok-related Codex Threads and inspect any active or in-progress result. Require one of these states:
+
+- no other TikTok Chrome executor is active;
+- the exact incumbent was explicitly retired by the user, returned `STOPPED_AND_RELEASED`, released Chrome, and has no mutation or submission in flight; or
+- the incumbent is the same registered executor being resumed.
+
+Do not create a second Chrome executor while ownership is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first, verify, then archive only when the user requested archival.
+
+## Persistence mechanism
+
+Persistence comes from two user-visible Codex Threads plus callback-driven bounded blocks. Neither Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create descendant workers. The coordinator never operates Chrome. The executor never creates a replacement for itself.
+
+An idle Thread is healthy persistent state. Do not manufacture activity through polling, Goal Mode continuation, or self-dispatch.
+
+Treat every executor message as one bounded round. The executor completes that block, releases Chrome, callbacks, and becomes idle. The coordinator dispatches at most one next block after reconciling the callback.
+
+For an unattended multi-round run, attach an optional low-frequency heartbeat to the coordinator only. Use it as a watchdog and round scheduler, not as a Chrome operator:
+
+- read the coordinator/executor latest state;
+- stay silent and dispatch nothing while the executor is running;
+- dispatch one next bounded block only when the prior callback is complete, the executor is idle, the circuit is closed, and `operation_stop_at` has not passed;
+- never create/replace Threads, bypass a blocker, or touch Chrome from the heartbeat;
+- at or after `operation_stop_at`, send one `STOP_AND_RELEASE`, confirm the final callback, and remove the heartbeat.
+
+Soft callbacks remain the primary sequencing signal. The heartbeat is a missed-callback/time-bound safety net and must never overlap executor turns.
+
+## First-run stability smoke
+
+Run this read-only block before a new executor performs a full calibration block or any mutation:
+
+1. Verify the registered IDs, exact account, no incumbent owner, no submission in flight, and no system-level challenge.
+2. Open one direction-relevant search query and classify the first three visible results without opening interaction controls.
+3. Enter For You once.
+4. Identify one unique visible native next/down control through a stable live locator. Require count `1`, visible, and enabled.
+5. Record the position-1 identity packet, then use that same logical control for four single-click transitions to positions 2–5. Re-resolve the live locator after DOM movement instead of retaining a stale ordinal.
+6. Require five reliable identities, four verified advances, zero reset/reload/Home re-entry, and zero mutation.
+7. Write the smoke result and release Chrome.
+
+Only `completed` with those acceptance criteria proves feed-control stability. A page-based blocker is useful startup evidence but is not a stability pass.
+
+## Risk classification
+
+Classify platform risk from explicit system UI: CAPTCHA/challenge surfaces, login state, rate-limit or restriction dialogs, alerts/status regions, TikTok system banners/toasts, or account-level warnings. Never scan the entire page text with a broad regex and treat words inside captions, hashtags, comments, creator names, or search results as platform warnings.
+
+If a risk locator or diagnostic API fails, mark the system-warning state `unverified`, stop the current block, release Chrome, and callback once. Do not run broader DOM scans to prove absence.
+
+## Browser-control rules
+
+- Resolve the currently installed Chrome Skill/runtime dynamically. Never hard-code a versioned plugin cache path.
+- Prefer supported Playwright locators and live element attributes.
+- Do not pass DOM-CUA element objects or circular structures as coordinates.
+- Do not use unavailable page globals such as `NodeFilter`, broad page-evaluate text walkers, or unbounded container scans.
+- Re-resolve locators after navigation or DOM replacement.
+
+## Recovery budget
+
+One operation block may have at most one narrowly scoped read-only recovery block for its distinct failure class. The recovery must keep the same accepted transition method and test one falsifiable hypothesis.
+
+Do not hop among native button, PageDown, ArrowDown, wheel, script scroll, reload, and page reset. Under the packaged default, a failed native next/down smoke stops feed sampling. A scroll-only fallback requires a new explicit user decision; the coordinator cannot self-authorize it.
+
+Two consecutive failures with the same ownership, transition, rendering, or diagnostic failure class open the circuit breaker:
+
+1. stop the executor block;
+2. release Chrome;
+3. callback `blocked` or `key_risk` once;
+4. keep both persistent Threads idle;
+5. wait for a user instruction or a verifiable external-state change.
+
+Changing query wording, removing a hashtag, renaming a probe, rebuilding a subagent, or declaring a “fresh blocked audit” is not an external-state change and does not reset the circuit breaker.
+
+## Stop acknowledgement
+
+`STOP_AND_RELEASE` overrides every active block. The executor must stop without another probe, confirm descendants are absent, release Chrome, record mutation/submission certainty, append one final checkpoint, callback `STOPPED_AND_RELEASED`, and remain idle without self-resuming.
