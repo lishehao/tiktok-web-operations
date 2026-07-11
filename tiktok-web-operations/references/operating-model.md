@@ -6,20 +6,22 @@ Use two separate user-owned Codex Threads. Both are persistent sidebar tasks and
 
 ```text
 Temporary bootstrap task
-  ├─ TikTok 运营主任务 (`coordination_thread`, Luna/High)
-  └─ TikTok Chrome执行任务 (`execution_thread`, Luna/High)
+  ├─ read-only preflight → guided direction/duration handoff → wait
+  └─ after the healthy user's second message
+     ├─ TikTok 运营主任务 (`coordination_thread`, Luna/High)
+     └─ TikTok Chrome执行任务 (`execution_thread`, Luna/High)
 
-After registration and handshake: archive temporary bootstrap task.
+After the healthy user's second message, registration, handshake, first dispatch, and first real proof: archive temporary bootstrap task.
 ```
 
 The two operational Threads are peers connected by registered Thread IDs. The coordinator is user-facing and owns decisions. The executor is the only Chrome operator and owns raw evidence.
 
 ## Bootstrap creation contract
 
-After read-only dependency preflight:
+Only after read-only dependency preflight is healthy and the user has supplied direction/duration or accepted defaults:
 
 1. Use `list_projects` to select the current saved project when one is clearly available; otherwise create both as projectless local Threads. Use the same target type for both.
-2. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, account/audience defaults, and instruct it to wait for the executor registry without touching Chrome.
+2. Resolve the user's `direction_profile`, duration, and `operation_stop_at`. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, exact account, resolved audience/persona, duration, authorizations, and instruct it to wait for the executor registry without touching Chrome.
 3. Record the returned coordinator Thread ID and set title `TikTok 运营主任务`; pin it when the pin tool is available.
 4. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, sole Chrome ownership, ledger path, envelope, and callback schema, but must explicitly say: wait for `SELF_REGISTRY`; do not infer or guess your own Thread ID; do not send `THREAD_READY` and do not touch Chrome yet.
 5. Record the returned executor Thread ID and set title `TikTok Chrome执行任务`; pin it when available.
@@ -27,7 +29,8 @@ After read-only dependency preflight:
 7. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
 8. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor received that exact ID through `SELF_REGISTRY`, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`. Treat the callback transport `source_thread_id` plus bootstrap registry as authoritative; an ID mismatch blocks dispatch until corrected.
 9. The coordinator sends the first bounded block to the executor using its registered ID and Luna/High override. The executor begins only after the registry matches.
-10. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, and first dispatch are verified.
+10. Read back the executor's first real proof: at least one verified direction-relevant page search/browse micro-round or a concrete page-based no-action/blocker result. Thread creation, handshake, dispatch, or planning alone is not startup proof.
+11. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, first dispatch, and first proof are verified.
 
 The bootstrap task is not an operating Thread. If creation or handshake partially fails, do not operate TikTok. Archive only the empty Threads created by this failed bootstrap, preserve evidence, and return one repair action.
 
@@ -89,6 +92,7 @@ Every dispatch includes:
 
 - Coordinator and executor Thread IDs.
 - Exact TikTok account and sole Chrome ownership.
+- Resolved `direction_profile`: persona, target audience, region/language, content pillars, excluded topics, voice, search seeds, future-post alignment, duration, and `operation_stop_at`.
 - Target audience, core/adjacent/excluded ontology, language, and region.
 - Approved search/hashtag/creator/sound clusters.
 - Current calibration mode and sample parameters.
@@ -110,7 +114,7 @@ For actions outside a standing envelope:
 3. Coordinator sends the approved packet to the same executor Thread.
 4. Executor verifies live URL/account/text, executes once, verifies persistence, and callbacks the result.
 
-Under the packaged default standing envelope for `@shehaolili`, post like remains disabled; the executor may selectively favorite, repost, or publish a proactive top-level comment on matching strong-core posts without per-item approval only after that exact lane passes its independent gate. Use separate first-gate posts. For Favorite, require selected-state checks immediately, near +3 seconds, and after a 10-second total settlement window before reload/reopen and account-level proof. For Repost, the executor may open the Share sheet read-only to reveal the explicit Repost control, but must never execute or substitute generic Share, copy-link, send, or another share target. Do not stack all actions mechanically, and stop only the failed lane unless a warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change makes all mutation unsafe. Every comment must be reload-verified. A different account may enable post like only through explicit authorization plus its own fresh gate.
+Under the packaged default standing envelope, post like remains disabled. The executor may selectively favorite, repost, or publish a proactive top-level comment on matching strong-core posts without per-item approval only after that exact lane passes its independent gate for the live account/runtime. Use separate first-gate posts. For Favorite, require selected-state checks immediately, near +3 seconds, and after a 10-second total settlement window before reload/reopen and account-level proof. For Repost, the executor may open the Share sheet read-only to reveal the explicit Repost control, but must never execute or substitute generic Share, copy-link, send, or another share target. Do not stack all actions mechanically, and stop only the failed lane unless a warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change makes all mutation unsafe. Every comment must be reload-verified. Post like may be enabled only through explicit user authorization plus its own fresh gate.
 
 ## Callback schema
 
