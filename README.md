@@ -8,7 +8,7 @@ Protocol version: `2026.07.11.1`
 
 ```text
 请打开 https://github.com/lishehao/tiktok-web-operations，完整读取根目录 README.md，并按机器协议安装或升级 Skill、只读检查 Chrome/TikTok/thread 依赖，然后创建两个持久化用户 Threads——“TikTok 运营主任务”和“TikTok Chrome执行任务”——两者都强制使用 gpt-5.6-luna + high；完成双向回调握手后直接开始运营并归档当前 bootstrap 任务，绝不使用 subagent。
-默认方向为北美 college/dorm life；点赞保持停用，授权在不同的 strong core 视频上选择性收藏、TikTok Repost 或发布简短玩梗顶层评论，收藏与 Repost 必须分别先通过一次刷新及账号级持久化 gate；可只读打开 Share 弹层寻找明确 Repost，但不得执行 generic Share、复制链接、发送或其他分享目标；评论优先 2–12 个英文词且绝不超过 30 个词。
+默认方向为北美 college/dorm life；点赞保持停用，授权在不同的 strong core 视频上选择性收藏、TikTok Repost 或发布简短玩梗顶层评论；收藏点击后须在即时、约 3 秒和总计 10 秒三个时间点保持选中，之后再刷新并检查账号 Favorites；可只读打开 Share 弹层寻找明确 Repost，但不得执行 generic Share、复制链接、发送或其他分享目标；评论优先 2–12 个英文词且绝不超过 30 个词。
 ```
 
 下面内容是执行任务必须完整读取一次的机器协议。用户不需要复制其余章节。
@@ -173,11 +173,11 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 用户发送顶部两句 Prompt 时，保持 post like 停用，并激活三个彼此独立的 lane：favorite/save、post repost、proactive top-level comment。
 
 - 三个启用 lane 都只用于 strong `core` 视频。
-- 收藏和 Repost 分别选择不同视频做一次 one-action persistence gate：只执行一次，检查即时状态、刷新/重开状态，以及 TikTok 可提供的账号级证据。
+- 收藏和 Repost 分别选择不同视频做一次 one-action persistence gate。收藏只执行一次，并在即时、约 +3 秒及总计 +10 秒检查仍为 selected，之后才刷新/重开并检查账号级 Favorites exact URL；Repost 检查即时、刷新/重开状态和账号级 Reposts 证据。
 - Repost 只指 TikTok 的实际 `Repost`/`Undo repost` 状态。若 TikTok 把 Repost 放在 Share 弹层内，允许只读打开该弹层以找到明确的 Repost 控件；不能执行或用 generic Share、复制链接、发送给他人及其他分享目标替代。
 - Gate 通过后才允许该 lane 后续选择性使用；失败或证据不足只停用该 lane，不推断另外两个 lane 失败。
 - 不在同一个视频机械堆叠 favorite + repost + comment；根据真实内容选择最小的合适信号。
-- 当前 `@shehaolili` 能力矩阵：post-like 与 favorite/save 都在即时成功后刷新回退，保持 disabled；TikTok Repost 已通过一次修正版 gate，在 Share 弹层内点击明确的 `Repost` 子控件后，即时出现 `Reposted`、刷新后显示 `You reposted`，且账号 Reposts tab 暴露同一 exact URL，因此可在 strong-core 视频上选择性使用。主动评论保留历史 reload-verified 状态。
+- 当前 `@shehaolili` 能力矩阵：post-like 保持 failed/disabled；favorite/save 已通过延迟结算 gate，在即时、+3.429 秒、+10.516 秒均保持黄色 selected，刷新后仍为 active，且账号 Favorites tab 暴露 exact URL；TikTok Repost 已通过 Share 弹层内明确 `Repost` 子控件的即时、刷新和账号 Reposts tab 三层验证。Favorite 与 Repost 都可在 strong-core 视频上选择性使用，主动评论保留历史 reload-verified 状态。
 
 - 必须理解 setup/payoff，且评论区支持轻松玩梗。
 - 使用视频语言；英文优先 2–12 个词，绝不超过 30 个词。
