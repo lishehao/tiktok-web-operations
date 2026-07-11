@@ -2,7 +2,7 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。公开仓库只保留一个安装入口和一个完整 Skill；详细运营规则以 Skill 内 references 为准。
 
-Protocol version: `2026.07.11.4`
+Protocol version: `2026.07.11.5`
 
 ## 直接安装
 
@@ -56,8 +56,9 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 2. 通过 Chrome 只读打开或复用 TikTok，确认用户已登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码。
 3. 当前页面没有阻塞性的 CAPTCHA、验证挑战、rate limit、warning、restriction 或账号错配。
 4. Codex App 能创建、读取、命名、归档和跨任务发送消息；`create_thread` 与 `send_message_to_thread` 支持 `gpt-5.6-luna` + `high`。
-5. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
-6. 完成后释放 bootstrap 对 Chrome 的控制。
+5. 用 `list_threads`/`read_thread` 检查所有 active TikTok 任务；不得在旧 executor、Goal Mode 或其 subagent 仍 active/uncertain 时创建新 executor。若用户要求替换，先取得 `STOPPED_AND_RELEASED`，不能把 archive 当成 Chrome release。
+6. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
+7. 完成后释放 bootstrap 对 Chrome 的控制。
 
 Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 Browser、终端浏览器和普通 Web Search 不能替代。两条运营任务必须都是持久化、用户可见的 Codex Threads；不能用 subagent、agent tree、单个合并任务或其他模型替代。
 
@@ -132,9 +133,9 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 2. 创建 `TikTok Chrome执行任务`。它是唯一 Chrome/TikTok 执行者和 ledger writer；不得扩大授权、创建其他 Threads 或回调 bootstrap 任务。
 3. 记录两条准确 Thread ID，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
 4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给两条任务。
-5. Coordinator 向同一 executor 派发第一个 `search_heavy` 垂直校准 block。
-6. 在当前启动 turn 内读取 executor 的第一个真实 proof：至少完成并记录一个请求相关的搜索/浏览微轮次，或者给出基于实际页面检查的具体无动作/阻塞证据。仅创建 Threads、握手、派发、做计划或回复“已启动”不算开始。
-7. 取得 proof 后，coordinator 继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；bootstrap 任务才可归档自己。两条运营 Threads 保持未归档和持久化。
+5. Coordinator 先向同一 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
+6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation 才算 stability pass；页面 blocker 是证据，但不算稳定通过。
+7. Smoke 通过后才可派完整 `search_heavy` 或互动 block。之后 coordinator 继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；bootstrap 任务才可归档自己。两条运营 Threads 保持未归档和持久化。
 
 如果只创建一条、握手失败、首轮没有 proof 或 Chrome 所有权不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
 
@@ -146,6 +147,16 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 - For You 位置 1 后优先使用页面可见的 native next/down 控件逐条前进；不能用 reload、Home reset 或重新打开页面制造新样本。
 - 每条内容标记 `core`、`adjacent`、`irrelevant` 或 `harmful_to_direction`；商品、旧内容和漂移内容都计入分母。
 - 定期比较搜索结果与 For You 的 core/directional/drift shares，再调整搜索簇。
+
+### 稳定性断路器
+
+- 持久化只依靠两个用户可见 Threads 与 callback；禁止 `create_goal`、`update_goal`、subagent、agent tree 和自建 replacement worker。
+- Executor 每个 turn 只执行一个有边界 block，完成后释放 Chrome、callback、idle。多轮运行由 coordinator 在上一轮完成后逐轮派发。
+- 无人值守时只给 coordinator 配一个低频 heartbeat，作为漏回调与结束时间保险；executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
+- 不硬编码 Chrome Skill 的版本缓存路径；只使用当前 runtime 与受支持的 Playwright locator。
+- 只从 CAPTCHA、challenge、系统 dialog/banner/toast、账号 warning 等明确系统 UI 判断风险；caption、hashtag、comment 或搜索内容里的 `warning`/`verify` 字样不是平台警告。
+- 一个失败类型最多允许一个窄 recovery；同类连续失败两次立即开断路器、释放 Chrome、callback 并 idle。改关键词、删 hashtag、换输入法或宣称“fresh audit”不能重置断路器。
+- Native next/down 失败后不自动切 PageDown、ArrowDown、wheel、script scroll、reload 或 reset。Scroll-only fallback 必须由用户在收到 blocker 后重新明确授权。
 
 ### 互动能力
 
