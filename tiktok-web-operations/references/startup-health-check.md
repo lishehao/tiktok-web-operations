@@ -17,6 +17,7 @@ account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_support: CREATE_READ_SEND_TITLE_ARCHIVE | UNAVAILABLE
 model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
 incumbent_executor: NONE | SAME_REGISTERED_EXECUTOR | RETIRED_AND_RELEASED | ACTIVE_OR_UNCERTAIN
+browser_session_owner: NONE | REGISTERED_EXECUTOR | ACTIVE_EXTERNAL:@thread_id | STALE_OR_UNVERIFIED:@session_id
 local_time_check: local time | timezone | UTC offset
 ledger_path:
 dependency_status: READY | BLOCKED
@@ -33,12 +34,12 @@ Run checks in order:
 4. Open/reuse TikTok read-only, read the exact logged-in identity, and inspect warnings/challenges. Never enter credentials or verification codes.
 5. Prove `list_projects`, `create_thread`, `read_thread`, `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
 6. Prove `create_thread` and `send_message_to_thread` support `model=gpt-5.6-luna` with `thinking=high`. This is a hard requirement for both operating Threads.
-7. Query recent TikTok-related Threads. Inspect every active/in-progress candidate and prove no other Chrome executor or descendant agent owns the session. If the user explicitly asked to replace an incumbent, require its `STOPPED_AND_RELEASED` checkpoint before continuing; archiving alone is insufficient.
+7. Query recent TikTok-related Threads and inspect every active/in-progress candidate. Then inspect the live Chrome TikTok tab from the same-turn `user.openTabs()` result. Pass the exact returned object to `user.claimTab()`; never pass its ID to `tabs.get()`. If the claim says `already part of browser session <uuid>`, treat `<uuid>` as a candidate Codex Thread ID and call `read_thread(<uuid>)` directly. An active external Thread is a hard blocker even when it is not TikTok-named; report its ID/title and wait. Do not interrupt or archive unrelated work. If the owner cannot be read, mark `STALE_OR_UNVERIFIED` and stop. If the user explicitly asked to replace an incumbent TikTok executor, require its `STOPPED_AND_RELEASED` checkpoint before continuing; archiving alone is insufficient.
 8. Read local time and create a writable shared ledger path.
 9. Initialize every mutation lane independently. Reuse prior evidence only when the same account and runtime continuity are proven. Do not mutate TikTok during preflight.
 10. Release bootstrap Chrome control.
 
-Hard dependencies are the valid Skill, Chrome control, logged-in TikTok identity, required thread tools, exact Luna/High creation/dispatch support, exclusive executor ownership, local time, and writable ledger. Do not silently fall back.
+Hard dependencies are the valid Skill, Chrome control, logged-in TikTok identity, required thread tools, exact Luna/High creation/dispatch support, exclusive Thread and browser-session ownership, local time, and writable ledger. Do not silently fall back.
 
 If blocked, return only the first repairable issue and impact, ending with `完成后回复“继续”`. A blocked `继续` rechecks only the missing item; it is not an operation start word.
 
