@@ -1,129 +1,162 @@
-# Two Persistent Thread Operating Model
+# Starter Coordinator And Persistent Executor
 
-Use two separate user-owned Codex Threads. Both are persistent sidebar tasks and both run `gpt-5.6-luna` with `thinking=high`. Never use a collaboration subagent for either role.
+Use exactly two user-visible persistent Codex Threads. The starter/install task
+becomes the coordinator; it creates one execution Thread. Both TikTok roles use
+`gpt-5.6-luna` with `thinking=high`. Never use a collaboration subagent, Goal
+Mode, or an agent tree for either role.
+
+Use `$thread-supervisor` for generic registration, callback, work-state,
+heartbeat fallback, stop/release, and archival mechanics. This reference owns
+the TikTok-specific authority split and evidence contract.
 
 ## Topology
 
 ```text
-Temporary bootstrap task
-  ├─ read-only preflight → guided direction/duration handoff → wait
-  └─ after the healthy user's second message
-     ├─ TikTok 运营主任务 (`coordination_thread`, Luna/High)
-     └─ TikTok Chrome执行任务 (`execution_thread`, Luna/High)
-
-After the healthy user's second message, registration, handshake, first dispatch, and first real proof: archive temporary bootstrap task.
+Starter task
+  phase 1: install/upgrade -> read-only preflight -> ask direction/duration -> wait
+  phase 2: rename itself TikTok 运营主任务 -> prove own ID
+           -> create one TikTok Chrome执行任务
+           -> handshake -> smoke -> bounded operating rounds
 ```
 
-The two operational Threads are peers connected by registered Thread IDs. The coordinator is user-facing and owns decisions. The executor owns its dedicated Chrome tab, is the sole same-account mutation writer, and owns raw evidence.
+The starter task remains the user-facing coordinator and is never archived as
+part of successful bootstrap. The executor owns its dedicated Chrome tab, is the
+sole same-account mutation writer, and is the sole raw-ledger writer.
+
+## Starter self-registration
+
+The coordinator must know its exact Thread ID before creating the executor:
+
+1. Generate a short unique `run_nonce` and rename the current task, using the
+   self-targeting title operation, to `TikTok 运营主任务 · <run_nonce>`.
+2. Use `list_threads` with that exact title and require one matching current
+   local task in the expected project/directory context.
+3. Use `read_thread` on the returned ID and confirm the current bootstrap state,
+   account, direction handoff, and `run_nonce` are consistent.
+4. Record that returned ID as `coordinator_thread_id`. Never derive an ID from a
+   directory name, old prompt, previous run, or another task's callback.
+5. If zero or multiple candidates remain, stop with
+   `BLOCKED_COORDINATOR_ID_UNVERIFIED`. Do not create a disposable coordinator or
+   start polling as a silent fallback.
 
 ## Bootstrap creation contract
 
-Only after read-only dependency preflight is healthy and the user has supplied direction/duration or accepted defaults:
+Only after preflight is healthy and the user supplies direction/duration or
+accepts defaults:
 
-1. Use `list_threads` and `read_thread` to inspect active TikTok tasks, then apply the same-account mutation-writer preflight in `stability-and-circuit-breakers.md`. Do not create a pair while another same-account mutation executor, Goal Mode loop, or descendant agent is active/uncertain. An unrelated task using another Chrome tab is allowed and must not be stopped. When the user requested replacement, send `STOP_AND_RELEASE`, verify the final checkpoint, then archive only the exact tasks the user asked to archive.
-2. Use `list_projects` to select the current saved project when one is clearly available; otherwise create both as projectless local Threads. Use the same target type for both.
-3. Resolve the user's `direction_profile`, duration, and `operation_stop_at`. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, exact account, resolved audience/persona, duration, authorizations, and instruct it to wait for the executor registry without touching Chrome.
-4. Record the returned coordinator Thread ID and set title `TikTok 运营主任务`; pin it when the pin tool is available.
-5. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, dedicated-tab isolation, sole same-account mutation-writer authority, ledger path, envelope, and callback schema, but must explicitly say: wait for `SELF_REGISTRY`; do not infer or guess your own Thread ID; do not send `THREAD_READY` and do not touch Chrome yet.
-6. Record the returned executor Thread ID and set title `TikTok Chrome执行任务`; pin it when available.
-7. Send `SELF_REGISTRY` to the returned executor ID with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`. Include the exact executor ID, coordinator ID, account, ledger, dedicated-tab rule, and sole same-account mutation-writer role. Only then may the executor echo those exact supplied IDs in `THREAD_READY` to the coordinator.
-8. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
-9. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor received that exact ID through `SELF_REGISTRY`, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`. Treat the callback transport `source_thread_id` plus bootstrap registry as authoritative; an ID mismatch blocks dispatch until corrected.
-10. The coordinator sets `dispatch_target` from the registered executor ID, verifies the tool-call target equals that value, and sends the read-only `stability_smoke_01` block with Luna/High override. Never reconstruct the target from the coordinator ID. If a failed call proves the actual target was a typo and no real Thread received it, record `dispatch_target_typo` and allow one corrected send to the registered ID; if the actual target already equaled the registry, stop instead of retrying. The executor begins only after the registry matches.
-11. Read back the executor's smoke result. Stable startup requires the exact acceptance criteria in `stability-and-circuit-breakers.md`; a concrete blocker is evidence but not a stability pass.
-12. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, first dispatch, and first real proof are verified.
+1. Inspect active TikTok tasks and apply the same-account mutation-writer fence.
+   An unrelated Chrome task or other-tab owner is not a global blocker.
+2. Resolve `direction_profile`, duration, `operation_stop_at`, standing action
+   envelope, and a private ledger path.
+3. Complete starter self-registration and keep the starter as coordinator.
+4. Select the same saved project for the executor when clearly available;
+   otherwise create it as a projectless local Thread.
+5. Call `create_thread(model="gpt-5.6-luna", thinking="high")` exactly once for
+   `TikTok Chrome执行任务`. Its initial prompt includes the coordinator ID,
+   account, envelope, ledger, dedicated-tab rule, sole mutation-writer role, and
+   callback schema, and says to wait for `SELF_REGISTRY` without touching Chrome.
+6. Record the returned executor ID and rename that task `TikTok Chrome执行任务 ·
+   <run_nonce>`.
+7. Send `SELF_REGISTRY` to the exact returned executor ID with Luna/High. Include
+   both IDs, account, ledger, authority, role, and stop time byte-for-byte.
+8. Require the executor to callback `THREAD_READY` to the registered coordinator
+   ID. Verify callback source and payload IDs against the registry.
+9. Dispatch one read-only `stability_smoke_01` to the exact executor ID. Require
+   the acceptance criteria in `stability-and-circuit-breakers.md` before any
+   full calibration block or mutation.
+10. Keep both tasks unarchived. Navigate the app to the coordinator when useful.
 
-The bootstrap task is not an operating Thread. If creation or handshake partially fails, do not operate TikTok. Archive only the empty Threads created by this failed bootstrap, preserve evidence, and return one repair action.
+If self-registration, creation, handshake, or smoke fails, do not claim stable
+operation. Do not create a second executor or another coordinator. Archive an
+empty executor only when the user requests cleanup; otherwise preserve evidence.
 
 ## Hard tool and model requirements
 
-Require these Codex App thread capabilities:
+Require `list_projects`, `create_thread`, `list_threads`, `read_thread`,
+`send_message_to_thread`, `set_thread_title`, and `set_thread_archived`.
+Presentation-only pin/navigation tools are optional.
 
-- `list_projects`
-- `create_thread`
-- `read_thread`
-- `send_message_to_thread`
-- `set_thread_title`
-- `set_thread_archived`
+TikTok operations explicitly require `gpt-5.6-luna` plus `thinking=high` for the
+starter coordinator, executor creation, and operational dispatches. This is a
+TikTok domain requirement, not a default supplied by Thread Supervisor. If the
+runtime rejects it, stop rather than substitute another model or effort.
 
-`set_thread_pinned` and `navigate_to_codex_page` are optional presentation features.
-
-Require `gpt-5.6-luna` with `thinking=high` for both thread creation and every operational cross-thread dispatch. The user explicitly selected this combination; do not fall back silently.
+Fast Mode is a separate runtime/service-tier capability. Record it only when the
+current task or runtime proves it; never claim that `create_thread` propagated
+Fast Mode unless the tool surface exposes and confirms that field.
 
 ## Authority split
 
-| Concern | Coordination Thread | Execution Thread |
+| Concern | Starter coordinator | Execution Thread |
 |-|-|-|
 | User conversation and strategy | Owns | Never owns |
-| Audience/search strategy | Owns | Executes current envelope |
-| Authorization and decisions | Owns | Matches exact authority |
-| Thread registry and lifecycle | Owns | Cannot create/replace Threads |
-| Chrome and TikTok | Never touches | Own dedicated tab; sole same-account mutation writer |
+| Direction and next block | Owns | Executes current envelope |
+| Authorization and lifecycle | Owns | Matches exact authority |
+| Chrome and TikTok | Never touches | Dedicated tab; sole mutation writer |
 | Raw ledger | Read-only consumer | Sole writer |
-| Capability evidence | Interprets policy | Collects immediate/reload/account proof |
-| Reports | User-facing | Structured callback to coordinator |
+| Capability evidence | Interprets | Collects immediate/reopen/account proof |
+| Reporting | User-facing | Structured callback |
 
 ## Coordinator loop
 
-1. Receive an executor callback; read only the latest relevant 1–3 turns when more evidence is needed.
-2. Reconcile composition, query quality, capability changes, authorization, pending decisions, and risk.
-3. Decide the next bounded block or safe stop.
-4. If no user decision is needed, copy the registered executor ID into `dispatch_target`, verify the actual tool target equals it, then send one concrete next block with `send_message_to_thread`, `model=gpt-5.6-luna`, and `thinking=high`.
-5. Mark the executor `running_current_task` and end the coordinator turn. Do not poll, touch Chrome, or busy-wait.
-6. Let the executor callback trigger the next coordinator turn.
+1. Receive the executor callback and read at most the latest relevant 1-3 turns
+   when more evidence is necessary.
+2. Reconcile composition, query quality, capability changes, pending user work,
+   authorization, deadline, and risk.
+3. Choose one next bounded block or stop. A normal block should amortize callback
+   overhead: normally 10-20 minutes, 20-40 feed items, or one complete search
+   cluster plus a For You checkpoint.
+4. If no user decision is required and the standing duration authorizes
+   continuation, send exactly one next block to the registered executor ID with
+   Luna/High, mark it `running_current_task`, and end the turn.
+5. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
 
-On `blocked` or `key_risk`, apply `stability-and-circuit-breakers.md`. Do not call Goal Mode, spawn/rebuild a worker, declare a fresh blocked audit, or self-authorize another recovery sequence. Wait after the bounded recovery budget is exhausted.
+Routine per-video observations stay in the ledger. Callback only on completed
+block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
+submission, authorization mismatch, or stop/release.
 
-For a user-requested unattended duration, a coordinator heartbeat may check at low frequency for a completed callback and dispatch exactly one next block. It must not poll Chrome, run TikTok actions, overlap a running executor turn, or bypass the circuit breaker. Callback remains primary; heartbeat is only a scheduler/watchdog.
-
-Queue unrelated next work while the executor is running. Send an immediate amendment only when it corrects/overrides the current block or prevents unsafe/wasted work.
+For unattended time-bounded operation, one coordinator-only heartbeat may act
+as a missed-callback watchdog and round scheduler. Callback remains primary.
+The heartbeat must not touch Chrome, overlap a running executor turn, bypass a
+circuit breaker, create tasks, or rewrite dynamic operating state.
 
 ## Executor loop
 
 For each message from the registered coordinator ID:
 
-1. Verify sender/registry, exact account, dedicated-tab isolation, sole same-account mutation-writer authority, capability matrix, ledger tail, and stop conditions.
-2. Execute only the bounded block or exact authorized action.
-3. Write raw events and persistence evidence to the sole ledger incrementally at the checkpoints defined by the active block; do not buffer a full browsing block only in conversational state.
-4. Release Chrome control at block completion or blocker.
-5. Send one structured callback to the coordinator ID with Luna/High override.
-6. Become idle. Never start the next block independently and never create another Thread or subagent.
-
-Never call `create_goal`, `update_goal`, or `spawn_agent`. Persistent idleness plus coordinator callbacks is the intended lifecycle.
-
-Send a mid-block callback only for `blocked`, `validation_failed`, `needs_decision`, `key_risk`, authorization mismatch, hard runtime change, or uncertain submission.
+1. Verify both IDs, exact account, Luna/High profile, dedicated-tab isolation,
+   sole mutation-writer authority, capability matrix, ledger tail, stop time, and
+   current block.
+2. Execute only that bounded block or exact authorized action.
+3. Append raw evidence at the checkpoints required by the active TikTok block.
+4. Release only the executor's Chrome control at completion or terminal failure.
+5. Callback once to the coordinator with Luna/High and the schema below.
+6. Become idle. Never self-dispatch, create another Thread, or spawn an agent.
 
 ## Execution envelope
 
-Every dispatch includes:
+Every dispatch includes both Thread IDs, account, roles, Luna/High profile,
+dedicated-tab and sole-writer rules, full `direction_profile`, search clusters,
+content ontology, sample parameters, continuous-feed invariant, capability
+matrix, lane-specific authorization, comment voice and 30-word ceiling, ledger,
+stop time, circuit-breaker state, and callback schema.
 
-- Coordinator and executor Thread IDs.
-- Exact TikTok account, dedicated-tab isolation, and sole same-account mutation-writer authority.
-- Resolved `direction_profile`: persona, target audience, region/language, content pillars, excluded topics, voice, search seeds, future-post alignment, duration, and `operation_stop_at`.
-- Target audience, core/adjacent/excluded ontology, language, and region.
-- Approved search/hashtag/creator/sound clusters.
-- Current calibration mode and sample parameters.
-- Continuous For You invariant: one initial entry, then same-page native next/down or incremental scroll only; no reload, Home reset, `goto`, or navigation-away between positions; exact before/after identity; stop and callback on `transition_failure` rather than resetting.
-- Capability matrix and disabled lanes.
-- Like/favorite/repost/comment authorization, each lane's capability state, comment voice, hard 30-word maximum, exclusions, and revocation state. Keep Repost distinct from generic Share.
-- Ledger path and sole-writer rule.
-- Exact action authority when applicable.
-- Stop conditions and callback schema.
+Copy registry values byte-for-byte. Any drift before Chrome connection is a
+terminal `registry_mismatch`. Never include a Skill-development task or another
+bootstrap task as callback target.
 
-Copy coordinator/executor IDs, account, ledger path, mutation authorization, role, model, and thinking level byte-for-byte from the accepted registry. The executor compares them before Chrome connection; any drift terminates the block as `registry_mismatch`.
+## Default action envelope
 
-Never include a Skill-development or bootstrap callback ID.
-
-## Authorization protocol
-
-For actions outside a standing envelope:
-
-1. Executor returns a candidate packet to the coordinator.
-2. Coordinator obtains the user's exact decision.
-3. Coordinator sends the approved packet to the same executor Thread.
-4. Executor verifies live URL/account/text, executes once, verifies persistence, and callbacks the result.
-
-Under the packaged default standing envelope, post like remains disabled. The executor may selectively favorite, repost, or publish a proactive top-level comment on matching strong-core posts without per-item approval only after that exact lane passes its independent gate for the live account/runtime. Use separate first-gate posts. For Favorite, require selected-state checks immediately, near +3 seconds, and after a 10-second total settlement window before reload/reopen and account-level proof. For Repost, the executor may open the Share sheet read-only to reveal the explicit Repost control, but must never execute or substitute generic Share, copy-link, send, or another share target. Do not stack all actions mechanically, and stop only the failed lane unless a warning, throttle, challenge, uncertainty, account mismatch, or hard runtime change makes all mutation unsafe. Every comment must be reload-verified. Post like may be enabled only through explicit user authorization plus its own fresh gate.
+- Post like remains disabled.
+- Favorite, TikTok Repost, and proactive top-level comments may be used only on
+  strong-core posts after each lane passes its independent persistence gate.
+- Favorite requires immediate, near +3 seconds, total +10 seconds, reload/reopen,
+  and account-level evidence when exposed.
+- Repost permits opening Share sheet read-only, then only the explicit TikTok
+  Repost control; generic Share, copy-link, send, and other targets are excluded.
+- Comments are contextual, preferably 2-12 words, never over 30 words, and must
+  survive reload verification.
+- Never set engagement quotas or infer ranking effects.
 
 ## Callback schema
 
@@ -142,18 +175,15 @@ ledger_path:
 recommended_next_block:
 ```
 
-## Persistence and recovery
+## Stop and recovery
 
-- Keep both user-owned Threads idle between turns; idleness does not end persistence.
-- Execute one bounded block per executor turn. Multi-round operation is a sequence of completed callback → one coordinator decision → one next dispatch, optionally guarded by a coordinator-only heartbeat.
-- Treat `STOP_AND_RELEASE` as an immediate override. Stop the active block and any recovery without another probe, release Chrome, append a final checkpoint, callback `STOPPED_AND_RELEASED`, and remain idle.
-- Do not reset a blocked audit through wording changes, a new query, or a rebuilt worker. Only a user instruction or verified external-state change may close the circuit breaker.
-- Prefer soft-hook callbacks. For an unattended time-bounded run, use one coordinator-only heartbeat as a missed-callback/time-stop safety net; never attach an operating heartbeat to the executor.
-- On user stop, coordinator sends `STOP_AND_RELEASE` to the executor. Executor releases Chrome, writes a final checkpoint, callbacks `completed`, and both Threads remain idle and unarchived.
-- Archive either operating Thread only when the user explicitly asks.
-- If the executor disappears or becomes unusable, coordinator first checks uncertain submissions and same-account mutation-writer state. Create a replacement persistent Luna/High executor only with explicit user authorization, update the registry, and repeat the handshake.
-- If the coordinator disappears, executor stops mutation, releases Chrome, and waits. It must not redirect reports to another Thread by guesswork.
+`STOP_AND_RELEASE` overrides an active block. The executor stops without another
+probe, releases its tab, records submission certainty, appends a final
+checkpoint, callbacks `STOPPED_AND_RELEASED`, and remains idle. The coordinator
+does not archive either task unless the user explicitly asks.
 
-## No fallback
-
-Do not replace this topology with a subagent, agent tree, single combined Thread, different model, or different thinking level. If a hard requirement is unavailable, report the exact blocker before TikTok operation starts.
+If the executor disappears, first resolve uncertain submissions and incumbent
+mutation authority. Create a replacement only with explicit user authorization,
+then replace the executor registry and repeat the full handshake. If the
+coordinator disappears, the executor stops mutation, releases Chrome, and waits;
+it never guesses a new callback destination.

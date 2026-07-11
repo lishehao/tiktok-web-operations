@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations to run read-only preflight, ask for direction and duration, then start the two persistent Luna/High TikTok Threads after I answer."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor to preflight, keep this task as coordinator, and create one persistent Luna/High TikTok executor after I choose a direction."

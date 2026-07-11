@@ -1,27 +1,32 @@
 # Startup Health Check And Bootstrap
 
-Use this reference for install, upgrade, or first launch. Phase 1 is read-only, ends with a guided user handoff, and creates no operating Threads. Phase 2 begins only after the healthy user supplies direction/duration or accepts defaults.
+Use this reference for install, upgrade, or first launch. Phase 1 is read-only,
+ends with a guided user handoff, and creates no executor. Phase 2 begins only
+after the healthy user supplies direction/duration or accepts defaults. The
+starter task itself becomes the coordinator.
 
 ## Phase 1 — install and preflight
 
 Record internally:
 
 ```text
-install_action: INSTALLED | UPGRADED | NOOP | DEFERRED_ACTIVE_RUNTIME | BLOCKED_RUNTIME_UNVERIFIED | BLOCKED_CONFLICT | BLOCKED_DOWNGRADE | FORCE_REINSTALLED | FORCE_DOWNGRADED | ROLLED_BACK
-skill_version: old | incoming | active
-version_relation: ABSENT | LEGACY | REMOTE_NEWER | EQUAL | REMOTE_OLDER
-content_relation: UNKNOWN | IDENTICAL | DIFFERENT
+install_action:
+bundle_version:
+thread_supervisor_version:
+tiktok_skill_version:
 github_source: AVAILABLE | UNAVAILABLE
 skill_validation: PASSED | FAILED
 chrome_control: AVAILABLE | RECONNECTED | UNAVAILABLE
 tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
-thread_support: CREATE_READ_SEND_TITLE_ARCHIVE | UNAVAILABLE
+thread_support: READY | UNAVAILABLE
+coordinator_self_registration: PROVABLE | UNAVAILABLE
 model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
+fast_mode: ACTIVE | INACTIVE | UNVERIFIED
 incumbent_executor: NONE | SAME_REGISTERED_EXECUTOR | RETIRED_AND_RELEASED | ACTIVE_OR_UNCERTAIN
 dedicated_tab_creation: AVAILABLE | UNAVAILABLE
-same_account_external_activity: NONE | READ_ONLY_ATTRIBUTION_RISK:@thread_id | MUTATION_OR_UNCERTAIN:@thread_id
-local_time_check: local time | timezone | UTC offset
+same_account_external_activity:
+local_time_check:
 ledger_path:
 dependency_status: READY | BLOCKED
 required_missing: []
@@ -31,20 +36,35 @@ bootstrap_state: PREFLIGHT_HEALTHY_WAITING_FOR_DIRECTION | BLOCKED
 
 Run checks in order:
 
-1. Download the canonical GitHub archive, require exactly the expected repository root and one Skill directory, read `manifest.json` plus `references/version-management.md`, and validate source identity before installation.
-2. Follow `version-management.md` exactly: compare numeric version tuples and managed-tree fingerprints; choose one explicit install action; acquire the installer lock; fence active runtimes; use a same-filesystem whole-directory transaction; validate the live target; and restore on failure. Never hot-reload an active runtime or silently force an equal-version conflict/downgrade.
-3. Prove Chrome control by creating one disposable tab with `chrome.tabs.new()`. Retry dropped control at most twice. Do not substitute another browser tool and do not claim another task's tab.
-4. Navigate that new tab to TikTok read-only, prove it shares the expected logged-in profile, read the exact identity, and inspect warnings/challenges. Never enter credentials or verification codes.
-5. Prove `list_projects`, `create_thread`, `read_thread`, `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
-6. Prove `create_thread` and `send_message_to_thread` support `model=gpt-5.6-luna` with `thinking=high`. This is a hard requirement for both operating Threads.
-7. Query recent TikTok-related Threads and inspect every active/in-progress candidate. Block only an active/uncertain same-account mutation executor or an uncertain submission. Unrelated Chrome tasks and separate tabs are allowed and must not be interrupted or archived. When another task browses the same TikTok account read-only, record `READ_ONLY_ATTRIBUTION_RISK` because feed causality is contaminated, but continue mechanical stability checks. If the user explicitly asked to replace an incumbent mutation executor, require its `STOPPED_AND_RELEASED` checkpoint before continuing; archiving alone is insufficient.
-8. Read local time and create a writable shared ledger path.
-9. Initialize every mutation lane independently. Reuse prior evidence only when the same account and runtime continuity are proven. Do not mutate TikTok during preflight.
-10. Finalize only the disposable bootstrap tab and release its Chrome-control session.
+1. Download the canonical GitHub archive. Require exactly `README.md`,
+   `thread-supervisor/`, and `tiktok-web-operations/`; validate both manifests,
+   source identity, Skills, agents metadata, and directly referenced files.
+2. Follow `version-management.md`: compare numeric versions and managed-tree
+   fingerprints, fence active runtimes, stage both Skills on the target
+   filesystem, replace whole directories, validate both exact targets, and roll
+   both back if either replacement fails. Never mix old/new files.
+3. Prove Chrome control with one disposable `chrome.tabs.new()` tab. Retry a
+   dropped control connection at most twice; never claim another task's tab.
+4. Open TikTok read-only in that tab, prove the logged-in `@handle`, and inspect
+   explicit platform warnings/challenges. Never enter credentials or codes.
+5. Prove `list_projects`, `create_thread`, `list_threads`, `read_thread`,
+   `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
+6. Prove the current starter task can self-rename and can later resolve its exact
+   ID through unique-title `list_threads` plus `read_thread`. Phase 1 may use a
+   temporary nonce/title and then restore a user-friendly bootstrap title.
+7. Prove executor creation and operational dispatch support
+   `model=gpt-5.6-luna` with `thinking=high`. This TikTok profile is mandatory.
+   Record Fast Mode only when independently visible; it is not a creation gate.
+8. Inspect active TikTok tasks. Block only an active/uncertain same-account
+   mutation executor or uncertain submission. Other Chrome tabs are allowed;
+   concurrent same-account read-only browsing only contaminates attribution.
+9. Read local time and create a writable private ledger path. Initialize every
+   mutation lane independently without modifying TikTok.
+10. Finalize only the disposable bootstrap tab and release its control session.
 
-Hard dependencies are the valid Skill, dedicated-tab creation, logged-in TikTok identity in that tab, required thread tools, exact Luna/High creation/dispatch support, no conflicting same-account mutation executor, local time, and writable ledger. Do not silently fall back.
-
-If blocked, return only the first repairable issue and impact, ending with `完成后回复“继续”`. A blocked `继续` rechecks only the missing item; it is not an operation start word.
+If blocked, return only the first repairable issue and impact, ending with
+`完成后回复“继续”`. A blocked `继续` rechecks only that item and is not an
+operation start command.
 
 ## Healthy guided handoff
 
@@ -56,66 +76,67 @@ When Phase 1 is healthy, return only:
 也请告诉我希望运行多久。你可以回复“北美大学生 / dorm life，运行 3 小时”；如果暂时没想法，直接回复“继续”，我会按默认方向和默认 3 小时开始。
 ```
 
-Then stop and wait. Do not create Threads, dispatch work, search TikTok, mutate TikTok, or claim startup.
+Then stop and wait. Do not create the executor, dispatch work, search TikTok,
+mutate TikTok, or claim startup.
 
 ## Resolve the second user message
 
-Build this contract:
+Build `persona_name`, `target_audience`, `region_language`, `content_pillars`,
+`excluded_topics`, `voice_and_comment_style`, `search_seed_clusters`,
+`future_post_alignment`, `duration`, and `operation_stop_at`.
 
-```text
-persona_name:
-target_audience:
-region_language:
-content_pillars:
-excluded_topics:
-voice_and_comment_style:
-search_seed_clusters:
-future_post_alignment:
-duration:
-operation_stop_at:
-```
-
-Rules:
-
-- Explicit user fields override defaults.
+- Explicit fields override defaults.
 - Missing direction defaults to North American college/dorm life.
 - Missing duration defaults to 3 hours at standard intensity.
-- `继续` or `开始` after a healthy handoff accepts all defaults.
-- Ask one question only when a material persona/risk choice cannot be safely inferred. Otherwise fill missing fields and start in the same turn.
-- Explain direction as a coherence and audience-signal hypothesis, not a guarantee of reach.
+- `继续` or `开始` after healthy handoff accepts all defaults.
+- Ask one question only for a material choice that cannot be safely inferred.
+- Describe direction as a coherent audience-signal hypothesis, not guaranteed
+  reach.
 
-Default pillars are roommate move-in/storytime/chaos, dorm/freshman move-in/setup, college day-in-my-life/campus routine/GRWM, campus friends/game day/tailgate, and finals/dorm survival failures. Exclude admissions, SAT/GPA, application advice, pure study motivation, and generic content without campus-life context.
+Default pillars are roommate move-in/storytime/chaos, dorm/freshman
+move-in/setup, college day-in-my-life/campus routine/GRWM, campus friends/game
+day/tailgate, and finals/dorm survival failures. Exclude admissions, SAT/GPA,
+application advice, pure study motivation, and generic non-campus content.
 
-## Phase 2 — create the two persistent Threads and start
+## Phase 2 — keep this task and create one executor
 
 Follow `operating-model.md` exactly:
 
-1. Create `TikTok 运营主任务` with `gpt-5.6-luna/high`; include the resolved profile, duration, exact account, authorization, and stop time.
-2. Create `TikTok Chrome执行任务` with `gpt-5.6-luna/high`, give it the coordinator ID, require it to wait for `SELF_REGISTRY`, and record the returned executor ID. It must not infer its own ID or touch Chrome yet.
-3. Send `SELF_REGISTRY` containing the exact returned executor ID to that executor; then give the coordinator the same executor ID and full operating envelope.
-4. Verify two-way registry plus executor `THREAD_READY` callback through `send_message_to_thread`; reject any payload ID that conflicts with callback `source_thread_id` or the bootstrap registry.
-5. Coordinator dispatches `stability_smoke_01` from `stability-and-circuit-breakers.md` with Luna/High override. It is read-only: one search query × three results, then one continuous five-position For You native-down sample.
-6. Require first-operation proof in the same startup turn. A completed smoke needs three observed search results, five reliable For You identities, four verified native-control advances, zero reset, and zero mutation. A concrete page-based blocker is real evidence but does not count as a stability pass.
-7. Only after the smoke passes may the coordinator dispatch a full `search_heavy` block or any mutation. Navigate the app to the coordinator when possible and archive only the bootstrap task. Keep both operating Threads unarchived and persistent.
+1. Rename this task `TikTok 运营主任务 · <run_nonce>`, resolve and verify its
+   exact Thread ID, and store it as coordinator ID.
+2. Create one `TikTok Chrome执行任务` with `gpt-5.6-luna/high`; include the
+   coordinator ID and require it to wait for `SELF_REGISTRY`.
+3. Send the exact returned executor ID through `SELF_REGISTRY`, then require a
+   `THREAD_READY` callback to the coordinator.
+4. Dispatch one Luna/High read-only `stability_smoke_01`: one direction query
+   with three results, then five continuous For You positions through the unique
+   native next/down control.
+5. Require three search observations, five identities, four verified advances,
+   zero reset, and zero mutation. A blocker is evidence but not a stability pass.
+6. Only after the smoke passes may the coordinator dispatch a full calibration
+   or mutation block. Keep both tasks persistent and unarchived.
 
-If creation, handshake, or the stability smoke fails, do not claim stable operation. Apply the circuit breaker; do not create a subagent or another executor. Do not touch TikTok state unless the registered executor owns Chrome and the active envelope permits it. Archive only empty partial Threads created by this failed bootstrap.
+If creation, registry, callback, or smoke fails, do not create another task or
+claim stable operation.
 
 ## Default action envelope
 
 - Post like is disabled.
-- Favorite/save, TikTok Repost, and proactive top-level comments may be selectively authorized on strong-core content after each lane passes its own independent gate.
-- Favorite must remain selected immediately, near +3 seconds, and after a 10-second total settlement window before reload/reopen and exact account-level Favorites evidence.
-- Repost must expose actual `Repost`/`Undo repost`. Opening Share sheet is read-only navigation; generic Share, copy-link, send, and other targets remain excluded.
-- Comments are context-specific and funny, preferably 2–12 words and never more than 30 words; every comment is reload-verified.
-- Never set engagement quotas or infer ranking effects from a successful action.
+- Favorite, TikTok Repost, and proactive comments may be selectively used on
+  strong-core posts only after their own persistence gates pass.
+- Favorite requires immediate, +3 second, +10 second, reopen, and account proof.
+- Repost means only TikTok's explicit Repost control, never generic Share.
+- Comments are contextual, preferably 2-12 words, never over 30 words, and each
+  must survive reload verification.
+- Never set engagement quotas or infer ranking effects.
 
 ## Healthy started response
 
-Only after first proof, report compactly:
+Only after first proof, report:
 
 ```text
 已启动。当前账号：@handle。
 方向：resolved persona / audience。
 时长：duration；预计结束：local date and time。
-两个 Luna/High 持久化任务已接管，第一轮已产生真实浏览或操作 proof。
+当前任务已成为 Luna/High 运营主任务；一个 Luna/High Chrome 执行任务已注册，第一轮已产生真实浏览 proof。
 ```

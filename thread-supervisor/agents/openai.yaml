@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thread Supervisor"
+  short_description: "Coordinate persistent tasks with callbacks"
+  default_prompt: "Use $thread-supervisor to coordinate one persistent execution task from this task."

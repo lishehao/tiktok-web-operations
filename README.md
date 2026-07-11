@@ -1,8 +1,8 @@
 # TikTok Web Operations
 
-这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。公开仓库只保留一个安装入口和一个完整 Skill；详细运营规则以 Skill 内 references 为准。
+这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.10`
+Protocol version: `2026.07.11.11`
 
 ## 直接安装
 
@@ -22,34 +22,34 @@ Protocol version: `2026.07.11.10`
 
 - Repository: `https://github.com/lishehao/tiktok-web-operations`
 - Archive: `https://codeload.github.com/lishehao/tiktok-web-operations/zip/refs/heads/main`
-- Skill directory: `tiktok-web-operations/`
-- Install target: `${CODEX_HOME:-$HOME/.codex}/skills/tiktok-web-operations`
-- Version source: `tiktok-web-operations/manifest.json`
+- Skill directories: `thread-supervisor/` and `tiktok-web-operations/`
+- Install targets: `${CODEX_HOME:-$HOME/.codex}/skills/thread-supervisor` and `${CODEX_HOME:-$HOME/.codex}/skills/tiktok-web-operations`
+- Version sources: each Skill's `manifest.json`
 - Version protocol: `tiktok-web-operations/references/version-management.md`
 
-通过 HTTPS 下载并安全解压 archive。确认目标 Skill 目录唯一，并检查：
+通过 HTTPS 下载并安全解压 archive。确认两个目标 Skill 目录各自唯一，并检查：
 
-- `SKILL.md` 含有效 `name` 与 `description` frontmatter。
-- `manifest.json` 的 name、version、schema 和 repository 可读。
-- `agents/openai.yaml`、所有 references 及 SKILL.md 直接引用的文件存在且可读。
+- 两个 `SKILL.md` 都含有效 `name` 与 `description` frontmatter。
+- 两个 `manifest.json` 的 name、version、schema、repository 和 repository_path 可读。
+- 两个 `agents/openai.yaml`、所有 references 及 SKILL.md 直接引用的文件存在且可读。
 
 Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者依赖。存在 Skill validator 时可以使用；不存在时完成上述等价结构检查。
 
 ### 2. 版本决策、安装与升级
 
-在修改本地目录前，完整读取下载包里的 `references/version-management.md`。先验证固定 repository/name/path，再把 `YYYY.MM.DD.N` 拆成四段整数比较；同版本时对完整受管树做确定性内容指纹。内部先记录 `local_version`、`incoming_version`、`version_relation`、`content_relation`、`active_runtime` 和唯一 `install_action`。
+在修改本地目录前，完整读取下载包里的 `tiktok-web-operations/references/version-management.md`。先验证固定 repository/name/path 和两个 manifest 的共同 bundle 版本，再把 `YYYY.MM.DD.N` 拆成四段整数比较；同版本时分别对两个完整受管树做确定性内容指纹。内部先记录每个 Skill 的比较结果和唯一 `bundle_action`。
 
-- 未安装：安装完整 Skill 目录。
+- 未安装：安装两个完整 Skill 目录。
 - 已安装但没有 manifest：视为 legacy，先完整备份再升级。
-- GitHub 版本更高：先确认没有正在使用旧版本的 TikTok 运营任务，再备份旧目录，用同文件系统 sibling staging 原子替换整个受管目录。
-- 版本和内容都相同：`NOOP`。
+- GitHub 版本更高：先确认没有正在使用旧版本的 TikTok 运营任务，再备份旧目录，用同文件系统 sibling staging 替换两个完整受管目录。
+- 两个版本和内容都相同：`NOOP`。
 - 同版本但内容不同：`BLOCKED_CONFLICT`，不静默覆盖；只有用户明确要求“强制重装/覆盖同版本”才允许 `FORCE_REINSTALL`。
 - GitHub 版本更低：`BLOCKED_DOWNGRADE`；只有用户明确要求降级才允许 `FORCE_DOWNGRADE`。
 - 旧版本仍被 active coordinator/executor 使用：只下载并校验，返回 `DEFERRED_ACTIVE_RUNTIME`；等待 executor 给出 `STOPPED_AND_RELEASED` 后再重试，绝不热覆盖。
 - 无法确认是否有 active runtime 且将替换现有目录：`BLOCKED_RUNTIME_UNVERIFIED`。
-- 替换后校验失败：恢复旧目录并报告 `ROLLED_BACK`，不继续 TikTok 预检。
+- 任一替换后校验失败：恢复两个旧目录并报告 `ROLLED_BACK`，不继续 TikTok 预检。
 
-不要逐文件混合新旧版本。取得单一 installer lock；先验证 archive，再验证同文件系统 staging；通过 whole-directory rename 切换；最后校验准确目标目录。备份放入 `${CODEX_HOME:-$HOME/.codex}/skill-backups/`。任何 explicit force 都不能绕过来源校验、active-runtime fence、备份、安装后校验或回滚。
+不要逐文件混合新旧版本，也不要留下两个不同 bundle 版本。取得单一 installer lock；先验证 archive，再验证同文件系统 staging；通过 whole-directory rename 切换两个目录；最后校验两个准确目标目录。备份放入 `${CODEX_HOME:-$HOME/.codex}/skill-backups/`。任何 explicit force 都不能绕过来源校验、active-runtime fence、备份、安装后校验或回滚。
 
 ### 3. 只读预检
 
@@ -58,12 +58,12 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 1. Chrome Browser control 能实际连接，并能用 `chrome.tabs.new()` 创建一个隔离的临时标签页；掉线时最多重连两次。
 2. 在这个新标签页里只读打开 TikTok，确认它继承同一 Chrome profile 的登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码，也不要 claim 其他任务的标签页。
 3. 当前页面没有阻塞性的 CAPTCHA、验证挑战、rate limit、warning、restriction 或账号错配。
-4. Codex App 能创建、读取、命名、归档和跨任务发送消息；`create_thread` 与 `send_message_to_thread` 支持 `gpt-5.6-luna` + `high`。
+4. Codex App 能创建、列出、读取、命名、归档和跨任务发送消息；当前启动任务能通过唯一标题 nonce 自注册准确 Thread ID；`create_thread` 与 `send_message_to_thread` 支持 `gpt-5.6-luna` + `high`。
 5. 用 `list_threads`/`read_thread` 检查所有 active TikTok 任务；不得在旧的同账号 mutation executor、Goal Mode 或其 subagent 仍 active/uncertain 时创建新 executor。无关任务占用另一个 Chrome tab 不构成全局 blocker；若它同时只读浏览同一 TikTok 账号，只标记推荐流归因污染。若用户要求替换 mutation executor，先取得 `STOPPED_AND_RELEASED`，不能把 archive 当成 release proof。
 6. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
 7. 完成后只关闭/释放 bootstrap 自己创建的临时标签页。
 
-Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 Browser、终端浏览器和普通 Web Search 不能替代。两条运营任务必须都是持久化、用户可见的 Codex Threads；不能用 subagent、agent tree、单个合并任务或其他模型替代。
+Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 Browser、终端浏览器和普通 Web Search 不能替代。启动任务本身必须留下来成为持久化主任务，并只创建一个用户可见的持久化执行任务；不能用 subagent、agent tree、单个合并任务或其他模型替代。
 
 预检内部记录安装动作、Skill 版本、Chrome/TikTok 状态、准确账号、warning、thread/model 支持、当地时间和 ledger。不要把依赖表、Task ID、tab ID、模型探测、日志或时区计算展示给用户。
 
@@ -123,7 +123,7 @@ operation_stop_at:
 
 用户回复方向/时长或使用默认启动词后，调用已安装的 `$tiktok-web-operations`，不要再次运行安装流程。
 
-创建并注册恰好两个持久化、用户可见的 Luna/High Threads：
+保留当前启动任务，并注册恰好两个持久化、用户可见的 Luna/High Threads：
 
 ```text
 TikTok 运营主任务       gpt-5.6-luna / high
@@ -132,15 +132,15 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 
 启动顺序：
 
-1. 创建 `TikTok 运营主任务`。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
-2. 创建 `TikTok Chrome执行任务`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是同账号 mutation 的唯一 writer 和 ledger writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调 bootstrap 任务。
-3. 记录两条准确 Thread ID，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
-4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给两条任务。
-5. Coordinator 先向同一 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
-6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation 才算 stability pass；页面 blocker 是证据，但不算稳定通过。
-7. Smoke 通过后才可派完整 `search_heavy` 或互动 block。之后 coordinator 继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；bootstrap 任务才可归档自己。两条运营 Threads 保持未归档和持久化。
+1. 当前任务生成唯一 `run_nonce`，把自己重命名为 `TikTok 运营主任务 · <run_nonce>`，再通过 `list_threads` 与 `read_thread` 证明自己的准确 ID。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
+2. 只创建一个 `TikTok Chrome执行任务`，并强制 `gpt-5.6-luna/high`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是同账号 mutation 和 ledger 的唯一 writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调其他任务。
+3. 记录主任务与执行任务的准确 ID，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
+4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给执行任务。
+5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。
+6. 在当前启动 turn 内读取 executor 的真实 proof。只有 3 条搜索结果、5 个可靠 feed identity、4 次成功 native advance、零 reset、零 mutation才算 stability pass；页面 blocker 是证据，但不算稳定通过。
+7. Smoke 通过后才可派完整 `search_heavy` 或互动 block。之后当前主任务继续 callback 驱动的有边界 blocks，直到 `operation_stop_at`；它不归档自己，两条运营 Threads 都保持未归档和持久化。
 
-如果只创建一条、握手失败、首轮没有 proof、独立标签页创建失败或同账号 mutation writer 不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
+如果主任务无法自注册、executor 创建/握手失败、首轮没有 proof、独立标签页创建失败或同账号 mutation writer 不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
 
 ## 运营规则摘要
 
@@ -193,6 +193,11 @@ TikTok Chrome执行任务  gpt-5.6-luna / high
 
 ```text
 README.md
+thread-supervisor/
+  SKILL.md
+  manifest.json
+  agents/
+  references/
 tiktok-web-operations/
   SKILL.md
   manifest.json
@@ -206,7 +211,7 @@ tiktok-web-operations/
 
 ## 发布维护
 
-Skill 的 `references/distribution-and-upgrades.md` 是维护协议。任何 material change 都必须递增版本、同步 README 与完整 Skill、重建本地 ZIP，并从新的 GitHub archive 反向验证。
+TikTok Skill 的 `references/distribution-and-upgrades.md` 是 bundle 维护协议。任何 material change 都必须递增版本、同步 README 与两个完整 Skills、重建本地 ZIP，并从新的 GitHub archive 反向验证。
 
 ## License
 

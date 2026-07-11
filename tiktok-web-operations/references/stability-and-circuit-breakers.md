@@ -36,7 +36,11 @@ Treat these fields as byte-for-byte immutable after `SELF_REGISTRY`: coordinator
 
 ## Persistence mechanism
 
-Persistence comes from two user-visible Codex Threads plus callback-driven bounded blocks. Neither Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create descendant workers. The coordinator never operates Chrome. The executor never creates a replacement for itself.
+Persistence comes from the starter task after it becomes coordinator plus one
+user-visible executor, connected by callback-driven bounded blocks. Neither
+Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create descendant
+workers. The coordinator never operates Chrome. The executor never creates a
+replacement for itself.
 
 An idle Thread is healthy persistent state. Do not manufacture activity through polling, Goal Mode continuation, or self-dispatch.
 

@@ -6,7 +6,7 @@ description: >-
   calibration, search-first vertical browsing, native feed scrolling,
   search/hashtag seeding, short meme-aware comments with optional standing
   authorization, publishing, comment follow-up, verification, and a
-  two-persistent-thread coordinator/executor system. Use when the user asks to
+  starter-as-coordinator plus one persistent executor system. Use when the user asks to
   browse or scroll TikTok, train recommendations, search communities or
   keywords, like/favorite/repost/comment, operate, grow, audit, publish,
   schedule, or
@@ -19,14 +19,22 @@ Use TikTok's web surfaces as an evidence-led operating system. Keep strategy, Ch
 
 ## System Topology
 
-For persistent operation, use exactly two user-owned Codex Threads. Both must be created with `model=gpt-5.6-luna` and `thinking=high`:
+For persistent operation, use exactly two user-owned Codex Threads. The starter
+task remains the coordinator and creates only one executor. Both operational
+roles use `model=gpt-5.6-luna` and `thinking=high`. Use `$thread-supervisor` for
+generic registry, callback, heartbeat, and lifecycle mechanics.
 
 | Thread | Owns | Must not do |
 |-|-|-|
-| `coordination_thread` — title `TikTok 运营主任务` | User conversation, direction, standing authorization, executor supervision, decisions, risk, and final reporting | Navigate or operate TikTok |
+| Current starter task, renamed `TikTok 运营主任务` | User conversation, direction, standing authorization, executor supervision, decisions, risk, and final reporting | Navigate or operate TikTok |
 | `execution_thread` — title `TikTok Chrome执行任务` | The logged-in Chrome session, ordered browsing, searches, authorized actions, verification, and raw evidence ledger | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
 
-The short-lived installer/bootstrap task first installs and runs read-only preflight, returns the guided direction/duration prompt, and waits. Only after the user replies with a direction/duration or the default start word does it create both persistent Threads, register their IDs, prove a two-way `send_message_to_thread` handshake, obtain first real operation proof, then archive itself. Never use a subagent, agent tree, or agent-path callback for this system.
+The starter task first installs the bundled Skills, runs read-only preflight,
+returns the guided direction/duration prompt, and waits. After the user's second
+message, it self-registers its exact Thread ID, becomes the coordinator, creates
+one persistent executor, proves the callback handshake, and obtains first real
+operation proof. It does not archive itself. Never use a subagent, agent tree,
+or agent-path callback for this system.
 
 Use `references/operating-model.md` for the exact creation, handshake, callback, lifecycle, and recovery protocol.
 
@@ -48,10 +56,10 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 | User says | Execute |
 |-|-|
 | Installer Prompt or first `帮我运营 TikTok` before bootstrap is initialized | Install/upgrade and run read-only preflight, return the guided direction/duration handoff, and wait. Do not create operating Threads or touch TikTok state yet. |
-| Healthy handoff followed by `继续`, `开始`, a direction, or a duration | Resolve the `direction_profile`, fill missing fields from defaults, create the two persistent Threads, obtain first operation proof, and begin the bounded run. |
+| Healthy handoff followed by `继续`, `开始`, a direction, or a duration | Resolve the `direction_profile`, keep this task as coordinator, create one persistent executor, obtain first operation proof, and begin the bounded run. |
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
 | `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, reposts, follows, or comments. |
-| `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Use the two persistent user-owned Threads. The coordinator dispatches bounded blocks to the same execution Thread with `send_message_to_thread`. |
+| `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Keep this task as coordinator and dispatch bounded blocks to its one persistent execution Thread with `send_message_to_thread`. |
 | `刷视频并互动`, `点赞收藏评论`, `收藏并 repost`, `去发几个评论` | Find strong core candidates and use only independently verified like, favorite, repost, or proactive-comment lanes covered by the exact standing envelope. Treat Repost as distinct from generic Share. |
 | `评论不用问我`, `自动发短评论` | Activate `autonomous_comment_mode` only for the exact account/audience/voice envelope; enforce the 30-word hard limit and every persistence stop rule. |
 | `发视频`, `上传`, `排期` | Validate the exact asset/settings, confirm, execute one item, and verify. |
@@ -60,8 +68,23 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 
 ## Two-Phase Bootstrap
 
-1. **Install, preflight, and ask:** use `version-management.md` to install, upgrade, no-op, defer, block, or roll back the complete versioned Skill as one transaction. Never hot-reload an active TikTok runtime or merge old/new files. After a validated active version exists, prove Chrome control can create an isolated tab, exact TikTok login in that new tab, absence of blocking warnings, required thread tools, exact `gpt-5.6-luna/high` thread creation support, no conflicting same-account mutation executor, local time, and a writable ledger. An unrelated Chrome task using another tab is not a blocker. Keep TikTok read-only, finalize only the bootstrap tab, return the exact guided direction/duration prompt from `startup-health-check.md`, and wait one user turn.
-2. **Resolve and operate:** after the healthy user replies, resolve the requested direction/persona and duration. Missing direction defaults to North American college/dorm life; missing duration defaults to 3 hours. Create `TikTok 运营主任务` and `TikTok Chrome执行任务` as two separate persistent user-owned Threads with Luna/High; exchange both Thread IDs; prove executor-to-coordinator callback; give the executor its dedicated-tab and same-account mutation-writer role; dispatch the read-only first-run stability smoke in `stability-and-circuit-breakers.md`; require its real page proof before a full calibration block or mutation; then archive only the bootstrap task.
+1. **Install, preflight, and ask:** use `version-management.md` to install,
+   upgrade, no-op, defer, block, or roll back the complete versioned
+   `thread-supervisor` plus `tiktok-web-operations` bundle. Never hot-reload an
+   active TikTok runtime or merge old/new files. After validation, prove Chrome
+   control, exact TikTok login, absence of blocking warnings, required thread
+   tools, starter-task self-registration, exact `gpt-5.6-luna/high` executor
+   creation support, no conflicting same-account mutation executor, local time,
+   and a writable ledger. Keep TikTok read-only, finalize only the bootstrap tab,
+   return the guided direction/duration prompt, and wait one user turn.
+2. **Resolve and operate:** after the healthy user replies, resolve the requested
+   direction/persona and duration. Missing direction defaults to North American
+   college/dorm life; missing duration defaults to 3 hours. Rename this task
+   `TikTok 运营主任务`, prove its exact ID, create only `TikTok Chrome执行任务`
+   with Luna/High, exchange both IDs, prove executor-to-coordinator callback,
+   dispatch the read-only first-run stability smoke, and require real page proof
+   before a full calibration block or mutation. Keep both tasks persistent and
+   unarchived.
 
 A failed hard dependency stops phase 2 and returns one concrete repair action. Do not silently fall back to a subagent, a different model, a different reasoning effort, or one combined Thread.
 
@@ -89,10 +112,14 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - Use the user's existing Chrome profile and TikTok login. Never enter or store credentials.
 - If TikTok is logged out, leave the page as a handoff and ask the user to log in manually.
 - Each Chrome-control session owns only its own tabs. The executor normally creates a dedicated tab with `chrome.tabs.new()` and must never claim, navigate, close, or reuse a tab owned by another task. The coordinator never touches Chrome; bootstrap may use one disposable read-only tab and must finalize only that tab.
-- Keep exactly two persistent operating Threads. Do not use subagents or create analyst/driver descendants.
+- Keep exactly two persistent operating Threads: this coordinator plus one
+  executor. Do not create a second coordinator, use subagents, or create
+  analyst/driver descendants.
 - Do not use Goal Mode for persistence. Neither operating Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create replacement workers.
 - Before every executor creation or replacement, inspect active TikTok Threads. Block same-account mutation only when another mutation executor is active/uncertain or a submission may be in flight. An unrelated task using Chrome or another TikTok tab is not a global blocker and must not be interrupted or archived. If it browses the same account concurrently, record recommendation-attribution contamination; do not attribute feed changes to one task. Archiving alone is not release proof for an incumbent mutation executor.
-- Use only registered cross-thread IDs. The executor reports solely to `TikTok 运营主任务`; never callback to a Skill-development or bootstrap task.
+- Use only registered cross-thread IDs. The executor reports solely to this
+  starter task after it becomes `TikTok 运营主任务`; never callback to a
+  Skill-development task or any other bootstrap task.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
