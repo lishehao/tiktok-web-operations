@@ -174,7 +174,9 @@ claim stable operation.
 
 ## Default action envelope
 
-- Post like is disabled.
+- Defaults fill only fields absent from the latest explicit user instruction.
+- Post like is disabled when not requested. An explicit latest request moves it
+  to `pending_fresh_gate`; an old mission failure is historical evidence only.
 - Favorite, TikTok Repost, and proactive comments may be selectively used on
   strong-core posts only after their own persistence gates pass.
 - Favorite requires immediate, +3 second, +10 second, reopen, and account proof.

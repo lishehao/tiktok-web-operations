@@ -144,7 +144,7 @@ When an explicit handoff `claimTab()` reports `already part of browser session <
 Classify runtime continuity before changing authorization state:
 
 - **Soft control reconnect:** the Chrome automation/control client timed out or restarted, then reattached to the same Chrome profile and TikTok storage/session; the expected account is still visible; no warning/challenge appears; and no mutation was in flight or left uncertain. Re-audit account, URL, warnings, and pending submission state, then resume the existing standing comment envelope. Do not require a new user confirmation or a new persistence test solely because the control client reinitialized.
-- **Hard browser/runtime change:** the Chrome profile, TikTok account, login/cookie state, browser context, device verification state, or session identity changed or cannot be proven; or a mutation may have been interrupted. Disable standing mutation envelopes, inspect for uncertain submission, and call back for a new decision or authentication handoff.
+- **Hard browser/runtime change:** the Chrome profile, TikTok account, login/cookie state, browser context, device verification state, or session identity changed or cannot be proven; or a mutation may have been interrupted. Pause standing mutation envelopes and inspect for uncertain submission. Require a decision only for manual authentication, unresolved submission, account ambiguity, or expanded scope. If the same account and submission certainty are later proven, restore the unchanged latest user envelope automatically without asking for another confirmation.
 
 A soft reconnect may be logged as a runtime event, but it is not a new `key_risk` unless account continuity, warning state, or submission certainty cannot be established. A recovered `dns_network`, `proxy_tls`, `blocked_by_client`, `ambiguous_render`, or tab-binding event is likewise infrastructure evidence, not a TikTok warning.
 
@@ -168,7 +168,7 @@ Every live account and browser/runtime combination starts with its own capabilit
 
 | Action type | Packaged startup state | Enablement gate |
 |-|-|-|
-| Post like | `disabled` | Explicit user authorization plus a fresh independent immediate/reopen/account-level persistence test |
+| Post like | `disabled_by_default` or `pending_fresh_gate` when explicitly requested | Latest explicit user authorization plus one fresh independent immediate/reopen/account-level persistence test; old mission failures are historical only |
 | Favorite/save | `unverified` / `disabled_pending_gate` | One strong-core post; selected state immediately, near +3 seconds, and after a 10-second total settlement window; then reopen/reload and account-level proof when exposed |
 | TikTok Repost | `unverified` / `disabled_pending_gate` | One strong-core post; click only the explicit TikTok Repost control, then verify immediate, reopen/reload, and account-level evidence when available |
 | Proactive comment | `unverified` / `disabled_pending_gate` | One eligible strong-core post, one submission, exact author/text visible after reload |
@@ -176,7 +176,7 @@ Every live account and browser/runtime combination starts with its own capabilit
 | `Not interested` | `untested` / `disabled` | Separate exact-post gate and user authorization |
 | Follow | `untested` / `disabled` | Separate exact-creator gate and user authorization |
 
-A failed lane does not prove that another lane fails. A stopped batch makes later unattempted actions `not_executed`, not failed. Disable only the failed lane unless a warning, throttle, challenge, uncertain submission, account mismatch, or hard runtime change makes every mutation unsafe.
+A current failed lane does not prove that another lane fails. A stopped batch makes later unattempted actions `not_executed`, not failed. Pause only the failed lane for the current account/runtime unless a current warning, throttle, challenge, uncertain submission, account mismatch, or hard runtime change makes every mutation unsafe. When a later explicit mission requests that lane and no current blocker is visible, move it to `pending_fresh_gate` and test once without asking the user to reconfirm; keep the earlier failure as historical ledger evidence.
 
 Store account handles, test URLs, timestamps, and raw persistence evidence only in that run's private ledger. Do not publish account-specific evidence in the reusable Skill or its public README.
 

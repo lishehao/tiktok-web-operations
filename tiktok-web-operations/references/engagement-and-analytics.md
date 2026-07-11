@@ -16,7 +16,7 @@ Before enabling any active engagement lane for a browser/account combination, ru
 2. The same state after reload or reopening the post.
 3. Account-level evidence when TikTok exposes it.
 
-If any required signal fails, disable that action type for the session. Do not infer that a sibling type failed; test it later only through a separately confirmed one-action packet. Keep research, comment reading, drafting, Studio management, and analytics available.
+If any required signal fails, pause that action type for the current session. Do not infer that a sibling type failed. In a later mission/runtime, a latest explicit instruction for that action may authorize one fresh gate without another confirmation; the old result remains historical evidence rather than a permanent blocker. Keep research, comment reading, drafting, Studio management, and analytics available.
 
 Comment drafting is not comment publication. Use either exact per-item confirmation or a currently active standing autonomous-comment envelope. Submit once, then reload the post and locate the account's comment before recording success.
 

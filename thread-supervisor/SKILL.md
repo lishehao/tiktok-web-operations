@@ -149,9 +149,12 @@ After a callback:
 - optionally read the target thread's latest 1-3 turns
 - for `completed` with no user decision, report or dispatch the next authorized
   step normally
-- for `blocked`, `validation_failed`, `needs_decision`, or `key_risk`, do not
-  dispatch again; consolidate the risk, affected scope, safe stopped state,
-  recommendation, and at most three choices into one coordinator message
+- for `blocked`, `validation_failed`, `needs_decision`, or `key_risk`, pause the
+  affected scope and respect the calling domain's `decision_required` field. If
+  true, consolidate the risk, affected scope, safe stopped state,
+  recommendation, and at most three choices into one coordinator message. If
+  false, keep the original authorization and exact external resume condition;
+  do not manufacture a user confirmation or recovery-tier choice
 - resume only after the user decides in the coordinator or a verifiable
   external-state change clears the blocker
 - remove completed threads from the active watchlist

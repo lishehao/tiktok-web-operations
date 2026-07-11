@@ -131,6 +131,11 @@ Keep these feedback lanes separate:
 
 Do not stack like + favorite + repost + comment on every good post. Use distinct posts for first capability gates, then the smallest justified signal. A natural operating profile includes many read-only decisions, a few strong candidates, and sparse verified mutations.
 
+An ended warning, rate limit, or failed gate from an older mission is historical
+evidence, not a continuing blocker. When the latest explicit instruction requests
+that lane and the current page/runtime is clean, run one fresh gate without
+asking for the same authorization again. Pause only from current evidence.
+
 ## Ledger and capability matrix
 
 For each viewed item record timestamp, source surface, ordered position when available, URL, freshness, creator, topic cluster, relevance label, premise/payoff understood, action candidate, and risk. For search-origin posts also record `opened_from_search=true`, stable post identity, playback progression evidence, and `qualified_search_view=true|false`. Keep `search_results_assessed`, `qualified_search_views`, and For You composition separate. Persist incrementally and validate each JSONL line immediately so a runtime failure or malformed append cannot erase/corrupt the block.

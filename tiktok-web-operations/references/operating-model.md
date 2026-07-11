@@ -161,15 +161,20 @@ Fast Mode unless the tool surface exposes and confirms that field.
    authorization, deadline, and risk. Never treat card relevance as consumed
    training evidence.
 4. If status is `blocked`, `validation_failed`, `needs_decision`, or `key_risk`,
-   pause all new dispatches. Consolidate one user-facing decision in `TikTok 主控台`:
+   pause the affected scope and inspect `decision_required`. When true,
+   consolidate one user-facing decision in `TikTok 主控台`:
    risk, exact error code, evidence-bounded `可能原因`, same-domain/neutral probe
    evidence, recovery actions already attempted, affected lane/block/run, what
    has already stopped, whether read-only work remains safe, one minimal user
    action, and at most three options.
    Do not tell the user to inspect or reply in `TikTok 执行台`.
-5. Resume only after the user decides in `TikTok 主控台` or a verifiable external-state
-   change clears the blocker. Never treat a worker-local reply or its final
-   message as user authorization.
+5. When `decision_required=false`, do not ask the user to reconfirm or choose a
+   recovery tier. Store the latest instruction plus `auto_resume_condition`; a
+   coordinator-owned heartbeat may dispatch one bounded read-only recheck to the
+   executor and never touches Chrome itself. Resume the unchanged instruction automatically after a
+   verifiable external-state change clears the blocker. When
+   `decision_required=true`, resume only after the user decides in `TikTok 主控台`.
+   Never treat a worker-local reply or its final message as user authorization.
 6. Otherwise choose one next bounded block or stop. The default is one complete
    search-training block: three assessed five-card clusters and normally 9–15
    qualified opened/watched core posts. Dispatch a separate 5–10 item held-out
@@ -316,7 +321,10 @@ For each message from the registered coordinator ID:
 3. Append raw evidence at the checkpoints required by the active TikTok block.
 4. Release only the executor's Chrome control at completion or terminal failure.
 5. Callback once to the coordinator with Luna/High and the schema below.
-6. For any non-`completed` result, set `decision_required: true`; do not ask the
+6. For a non-`completed` result, set `decision_required` from actual need. Use
+   `false` for a known current wait-and-recheck condition with an exact
+   `auto_resume_condition`; use `true` only when human action, missing/expanded
+   authorization, or a non-inferable safety decision is required. Do not ask the
    user a question or propose continuation in the executor Thread. Its final
    response may only say that the result was sent to `TikTok 主控台` and it is idle.
 7. Become idle. Never self-dispatch, create another Thread, spawn an agent, or
@@ -332,7 +340,7 @@ Every dispatch includes run ID, both Thread IDs, account, roles, Luna/High profi
 dedicated-tab and sole-writer rules, full `direction_profile`, search clusters,
 content ontology, sample parameters, continuous-feed invariant, capability
 matrix, lane-specific authorization, comment voice and 30-word ceiling, ledger,
-stop time, circuit-breaker state, and callback schema.
+stop time, latest instruction/authority version, circuit-breaker state, and callback schema.
 
 Copy registry values byte-for-byte. Any drift before Chrome connection is a
 terminal `registry_mismatch`. Never include a Skill-development task or another
@@ -340,7 +348,10 @@ bootstrap task as callback target.
 
 ## Default action envelope
 
-- Post like remains disabled.
+- Defaults apply only to fields absent from the latest explicit user instruction.
+- Post like is disabled by default when not requested. When the latest instruction
+  explicitly authorizes it, set it to `pending_fresh_gate`; historical failures
+  stay in the ledger and do not require another confirmation.
 - Favorite, TikTok Repost, and proactive top-level comments may be used only on
   strong-core posts after each lane passes its independent persistence gate.
 - Favorite requires immediate, near +3 seconds, total +10 seconds, reload/reopen,
@@ -360,6 +371,7 @@ terminal_event: NONE | EXECUTOR_RELEASED
 release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
 run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
 run_id:
+instruction_version:
 coordinator_thread_id:
 executor_thread_id:
 block_id:
@@ -380,6 +392,8 @@ likely_cause_basis:
 recovery_actions_attempted:
 user_action_required: true | false
 user_action:
+current_blocker:
+auto_resume_condition:
 composition:
 queries_used:
 actions_performed:
@@ -394,10 +408,14 @@ ledger_path:
 recommended_next_block:
 ```
 
-Every `blocked`, `validation_failed`, `needs_decision`, and `key_risk` callback
-sets `decision_required: true` and prevents another dispatch. `decision_options`
-contains zero to three coordinator-ready choices, never a question addressed to
-the executor Thread. `completed` may set `decision_required: false` even when it
+Every non-`completed` callback pauses the affected scope. Set
+`decision_required=true` only when a human action/choice is needed; its
+`decision_options` contains zero to three coordinator-ready choices, never a
+question addressed to the executor Thread. A current platform wait with an exact
+`auto_resume_condition` uses `decision_required=false`; the coordinator does not
+convert it into a confirmation prompt and resumes the latest authorized
+instruction after verified clearance. `completed` may also set
+`decision_required=false` when it
 records non-actionable observations in `risks`, including a fully recovered
 transient Chrome/network event. A persistent infrastructure failure returns one
 coordinator-ready `blocked`/`key_risk` callback with exact class, code, scope,

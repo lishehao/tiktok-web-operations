@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.12.2`
+Protocol version: `2026.07.12.3`
 
 ## 直接安装
 
@@ -93,6 +93,9 @@ Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 
 - 只给时长：方向使用默认 `北美大学生 / dorm life`。
 - 回复 `继续`、`开始` 或同义表达且预检已健康：使用全部默认值并立即启动。
 - 自定义方向缺少地区/语言且无法安全推断时只提一个必要问题；不能把“喜欢狗”等广泛方向静默收敛成中文或英语语境。其余缺省字段直接补默认值。
+- 最新明确用户指令覆盖冲突的默认强度、启发式、恢复建议、历史风险权重和旧 mission 字段；不要要求用户重复确认已经给出的方向、时长、强度或动作。
+- 已结束的旧 warning、rate limit 或失败只留在 ledger，不阻止新 mission。只有当前页面/工具明确显示 active CAPTCHA/challenge/rate limit/lock/login mismatch、动作不可用、明确失败或提交不确定时，才暂停受影响动作。
+- 当前阻塞清除后，在授权和时限仍有效时自动恢复用户原指令；不要求改用“恢复档”，不把建议变成授权门槛，也不扩大用户未授权的动作。
 
 把用户描述整理成一个可执行 `direction_profile`：
 
@@ -119,7 +122,7 @@ operation_stop_at:
 - Exclusions: admissions、SAT/GPA、申请建议、纯学习鸡血和没有校园生活语境的泛内容。
 - Voice: 英文、简短、具体、玩梗；评论优先 2–12 个词，绝不超过 30 个词。
 - Duration: `3 hours`，standard intensity。
-- Post like: disabled。
+- Post like: 未明确请求时默认 disabled；用户最新明确请求时进入一次 `pending_fresh_gate`，历史失败不要求二次确认。
 - Favorite、TikTok Repost、proactive top-level comment: 仅在 strong-core 内容上、各自通过独立持久化 gate 后选择性使用；不设互动配额。
 
 ### 6. 用户开始运营后
@@ -178,7 +181,7 @@ HTTPS 安装/版本比较
 下轮计划：<一个有边界的目标>
 ```
 
-执行台仍在运行时，下轮计划只能是等待 callback，不能重叠派发；风险待决时写等待用户决定且不执行新 TikTok 操作；最终 Heartbeat 写 `下次心跳：无（进入终止结算）`，整体完成后写 `无（任务已完成）`。
+执行台仍在运行时，下轮计划只能是等待 callback，不能重叠派发；`decision_required=true` 时写等待用户决定且不执行新 TikTok 操作，`false` 时写下一次只读恢复条件检查并保留原授权；最终 Heartbeat 写 `下次心跳：无（进入终止结算）`，整体完成后写 `无（任务已完成）`。
 
 如果主任务无法自注册、executor 创建/握手失败、首轮没有 proof、独立标签页创建失败或同账号 mutation writer 不明确，不得声称运营已启动，也不得进行 TikTok 写操作。
 
@@ -199,6 +202,7 @@ HTTPS 安装/版本比较
 - Executor 每个 turn 只执行一个有边界 block，完成后释放 Chrome、callback、idle。多轮运行由 coordinator 在上一轮完成后逐轮派发。
 - TikTok 主控台是唯一用户决策入口。Executor 遇到 `blocked`、`validation_failed`、`needs_decision`、`key_risk`、uncertain submission 或平台风险时，必须先停止当前 block、释放自己的 Chrome、写 ledger，再只向注册的 TikTok 主控台回调并 idle；不得在 TikTok 执行台里询问用户、提出继续按钮、自行恢复或派发下一轮。
 - TikTok 主控台收到上述非成功状态后必须暂停新 dispatch，把风险、影响范围、当前已停止内容、是否仍可安全只读、推荐方案和不超过三个选项合并成一次用户提示。只有用户在 TikTok 主控台明确回复继续方式，或风险被可验证的外部状态变化消除后，才可恢复。用户无需查看或回复 TikTok 执行台。
+- `decision_required=false` 的当前平台等待不得被改写成用户确认：主控台保存原指令和最短可观察恢复条件，状态清除后自动恢复。只有人工登录/挑战、提交不确定、授权缺失或扩大、版权披露等真正需要用户选择的情况才询问用户。
 - 每个多轮计时型 run 默认只给 coordinator 配一个长期 timer heartbeat，作为低频状态检查、漏回调保险和 `operation_stop_at` 截止时钟。它必须由 coordinator 自己创建并显式绑定/回读自己的准确 Thread ID；executor、installer、Skill-development 和其他 coordinator 都不能代建或接管。executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
 - 每个普通 block 的 `completed` 只表示该轮完成；Heartbeat 到点也只表示时间到了。整场完成必须经过 `STOP_REQUESTED -> EXECUTOR_RELEASED -> RUN_COMPLETED`，并由 TikTok 主控台给用户一条最终汇总。
 - TikTok 的 Heartbeat 不静默：每次都固定报告“本轮完成 / 下次心跳 / 下轮计划”三行。下次时间必须来自同一 timer 更新后的 readback，使用用户本地日期、时间和时区；不展示 automation ID。
@@ -220,7 +224,7 @@ HTTPS 安装/版本比较
 
 ### 互动能力
 
-- Post like 保持独立且默认 disabled。
+- Post like 保持独立；未请求时默认 disabled，最新指令明确请求时运行一次 fresh persistence gate。旧 mission 的失败只作历史证据。
 - Favorite 点击一次后，必须在即时、约 +3 秒和总计 +10 秒保持 selected，之后才刷新/重开并检查账号 Favorites exact URL。
 - Repost 只指实际 `Repost`/`Undo repost` 状态。允许只读打开 Share sheet 寻找明确 Repost；禁止执行 generic Share、Copy link、Send 或其他分享目标。
 - 主动顶层评论必须理解视频 setup/payoff，使用视频语言，优先 2–12 个英文词，硬上限 30 个词，并逐条刷新验证。
@@ -229,7 +233,7 @@ HTTPS 安装/版本比较
 
 ### 停止条件
 
-登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、Thread/automation identity mismatch、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据，风险统一回调 TikTok 主控台等待决策。用户说停止时执行同一整场终止事务：执行台最终结算并回传释放证明，主控台验证后才清理 timer 和宣布安全停止。两个运营 Threads 保持 idle。临时探针/诊断完成释放后归档；已被替换的退休执行台仅在确认无 heartbeat、Chrome tab 或不确定 mutation 后归档。
+当前登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、Thread/automation identity mismatch、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据。已结束的历史事件不持续阻塞。风险统一回调 TikTok 主控台；能通过明确外部状态清除的 blocker 不要求用户二次确认，清除后按原指令自动恢复。真正需要人工处理或选择时才等待决策。用户说停止时执行同一整场终止事务：执行台最终结算并回传释放证明，主控台验证后才清理 timer 和宣布安全停止。两个运营 Threads 保持 idle。临时探针/诊断完成释放后归档；已被替换的退休执行台仅在确认无 heartbeat、Chrome tab 或不确定 mutation 后归档。
 
 用户侧最终输出保持简单：
 

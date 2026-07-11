@@ -129,9 +129,14 @@ add a fourth receipt line.
 2. release Chrome;
 3. callback `blocked` or `key_risk` once;
 4. keep both persistent Threads idle;
-5. wait for a user instruction or a verifiable external-state change.
+5. wait for a user decision only when `decision_required=true`; otherwise keep
+   the latest instruction and let the coordinator schedule one bounded read-only
+   recheck of the exact external-state condition.
 
 Changing query wording, removing a hashtag, renaming a probe, rebuilding a subagent, or declaring a “fresh blocked audit” is not an external-state change and does not reset the circuit breaker.
+An ended historical warning/failure is not an active circuit state. Once the
+recorded current blocker visibly clears, close the affected circuit and resume
+the still-authorized latest instruction without another confirmation.
 
 Handle expected UI gate failures as data, not exceptions. Compute `count/visible/enabled/identity_changed`; when a required boolean fails, write the terminal block result, release Chrome, and callback. Do not `throw` an expected ambiguity back into the reasoning loop, and do not run another locator diagnostic after the terminal condition is known.
 

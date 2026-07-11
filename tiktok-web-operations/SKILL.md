@@ -63,12 +63,15 @@ Before any persistent Thread or heartbeat action, also read
 | Upload, publish, or schedule | `references/publishing-and-scheduling.md`, `references/platform-boundaries.md` |
 | Review comments or analytics | `references/engagement-and-analytics.md`, `references/loci-content-system.md` |
 
+Before starting, changing, resuming, or recovering any operating mission, read
+`references/instruction-precedence.md` and apply its latest-instruction contract.
+
 ## Entrypoint Contract
 
 | User says | Execute |
 |-|-|
 | Installer Prompt or first `帮我运营 TikTok` before bootstrap is initialized | Automatically install or upgrade when the incoming bundle is newer, validate the installed bundle, and continue read-only preflight in the same turn. Return the guided direction/duration handoff only after preflight; do not pause merely to announce an available upgrade, create operating Threads, or touch TikTok state yet. |
-| Healthy handoff followed by `继续`, `开始`, a direction, or a duration | Resolve the `direction_profile`, keep this task as coordinator, create one persistent executor, obtain first operation proof, and begin the bounded run. |
+| Healthy handoff followed by `继续`, `开始`, a direction, duration, intensity, or action list | Resolve the latest explicit fields, keep this task as coordinator, create one persistent executor, obtain first operation proof, and begin without reconfirming supplied values. |
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
 | `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, reposts, follows, or comments. |
 | `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Keep this task as coordinator and dispatch bounded blocks to its one persistent execution Thread with `send_message_to_thread`. |
@@ -77,6 +80,21 @@ Before any persistent Thread or heartbeat action, also read
 | `发视频`, `上传`, `排期` | Validate the exact asset/settings, confirm, execute one item, and verify. |
 | `看数据`, `复盘` | Use account/TikTok Studio analytics read-only. |
 | `现在状态`, `有什么风险` | Answer from coordinator state, execution callbacks, and the ledger. |
+
+## User Instruction Precedence
+
+Treat the user's latest explicit instruction as the highest operating input
+inside system safety, the authorized account/action scope, immutable Thread
+identity, submission certainty, and real current platform capability. It replaces
+conflicting defaults, heuristics, recovery suggestions, historical risk weight,
+and old mission fields. Defaults fill only fields the user did not supply.
+
+Historical ended warnings, rate limits, and failures remain ledger evidence; they
+do not block a new mission or force a recovery tier. Pause an action only from
+current page/tool evidence that it cannot run. Preserve the user's instruction
+and resume it automatically after the observable blocker clears. Ask again only
+for genuinely missing/expanded authorization, a human-only login/challenge,
+uncertain submission, or another non-inferable safety decision.
 
 ## Two-Phase Bootstrap
 
@@ -112,7 +130,7 @@ consumption, and comment voice. For a custom direction, ask one necessary
 question when they cannot be safely inferred; do not silently collapse a broad
 topic such as `dogs` into a Chinese- or English-only audience.
 
-When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. The coordinator owns later direction changes and must update the executor envelope before the next block.
+When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. Any later explicit direction, duration, intensity, or action change supersedes the corresponding old mission fields and updates the executor authority envelope before the next block without a second confirmation.
 
 ## Execution Thread Loop
 
@@ -149,9 +167,10 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   never asks the user to continue inside `TikTok 执行台`, attempts recovery after
   a terminal callback/circuit opening, or dispatches another block. Before a
   terminal callback, it must still complete the explicit bounded recovery in
-  `references/runtime-and-recovery.md`. The coordinator pauses dispatch, consolidates one risk prompt,
-  and resumes only after a decision in `TikTok 主控台` or a verified external-state
-  change.
+  `references/runtime-and-recovery.md`. The coordinator pauses the affected
+  scope. It asks the user only when `decision_required=true`; otherwise it stores
+  the shortest `auto_resume_condition` and resumes the unchanged latest user
+  instruction after a verified external-state change.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
 - Include `run_id`, coordinator/executor IDs, host/project identity, automation
   owner, heartbeat ID/target, authority version, ledger, stop time, exact titles,
@@ -197,7 +216,7 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   `waking_thread_id == targetThreadId == coordinator_thread_id` and the exact
   registered automation ID. A mismatch returns
   `MISBOUND_HEARTBEAT_NO_ACTION`; it must not inspect TikTok or dispatch work.
-- A `blocked` or `key_risk` callback opens the recovery circuit in `stability-and-circuit-breakers.md`. Do not self-declare a fresh audit, rebuild a worker, or hop across transition methods. Wait for a user instruction or verified external-state change after the bounded recovery budget is exhausted.
+- A current `blocked` or `key_risk` callback opens the recovery circuit in `stability-and-circuit-breakers.md`. Do not self-declare a fresh audit, rebuild a worker, or hop across transition methods. After the bounded recovery budget, wait for the recorded user decision when one is truly required or for the exact verified external-state change; the latter automatically resumes the still-authorized latest instruction. Historical ended events never keep this circuit open.
 - Scope circuit breakers by lane. A For You next/down failure with healthy
   account, dedicated-tab control, and search-origin playback marks the held-out
   validation `partial|unavailable`; after two consecutive occurrences, disable
@@ -215,7 +234,7 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   JSONL line immediately; a malformed append stops the block before more
   browsing.
 - Keep post likes, favorites, reposts, generic shares, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
-- A standing vertical-feed envelope may authorize selective post likes, favorites, reposts, and proactive comments, but each lane must first pass its own one-action persistence gate. For Favorite/save, verify the selected state immediately, again after roughly 3 seconds, and again after a 10-second total server-settlement window before reloading; only then run reload/reopen and account-level Favorites evidence. This is a consistency wait, not simulated-human behavior. A failure disables only that lane; do not cancel unrelated authorized lanes unless a platform warning, challenge, or uncertain submission makes all mutation unsafe.
+- A standing vertical-feed envelope may authorize selective post likes, favorites, reposts, and proactive comments, but each lane must first pass its own one-action persistence gate in the current account/runtime. For Favorite/save, verify the selected state immediately, again after roughly 3 seconds, and again after a 10-second total server-settlement window before reloading; only then run reload/reopen and account-level Favorites evidence. This is a consistency wait, not simulated-human behavior. A current failure pauses only that lane for the current runtime; a later explicit mission may run one fresh gate without another authorization prompt. Do not cancel unrelated authorized lanes unless a current platform warning, challenge, or uncertain submission makes all mutation unsafe.
 - Repost means TikTok's actual `Repost`/`Undo repost` state. Opening the visible Share action sheet is allowed as a read-only navigation step when TikTok nests Repost there; opening the sheet is not itself a successful Repost. Inside it, click only an explicit `Repost` control. Never click or substitute generic Share, copy-link, send-to-recipient, or another share target, and never infer persistence from the sheet merely opening.
 - Use distinct strong-core posts for first like, favorite, repost, and comment gates so one action does not contaminate another lane's evidence. After verification, choose the smallest genuine signal rather than stacking multiple actions on each post.
 - Do not set engagement quotas. Zero outward actions is valid when quality, audience fit, rights, or persistence gates fail.
@@ -238,13 +257,13 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 
 - Exact account, URL/asset, text/settings, privacy, disclosure, and schedule time.
 - No private information, fake claim, copied comment, unsupported metric, or uncertain prior submission.
-- Exact confirmation covers this item, or the active comment envelope matches every field.
+- The latest instruction already covers this item, or the active standing envelope matches every field. Never reconfirm a field the user already supplied.
 
 After acting, verify persisted state. Never duplicate an uncertain send.
 
 ## Stop Conditions
 
-Stop mutation for login mismatch, CAPTCHA, verification challenge, rate limit, warning/restriction, copyright failure, missing rights/disclosure, lost executor ownership, uncertain submission, or persistence failure. Read-only inspection may continue only when safe. Detect system warnings from explicit system UI, never from ordinary caption/hashtag/comment text. Apply the recovery circuit breaker after repeated failures.
+Stop the affected mutation for a current login mismatch, CAPTCHA, verification challenge, rate limit, warning/restriction, copyright failure, missing rights/disclosure, lost executor ownership, uncertain submission, or current persistence failure. Read-only inspection may continue only when safe. Detect system warnings from explicit current system UI, never from ordinary caption/hashtag/comment text or historical ledger entries. Preserve the latest authorized mission and auto-resume after the exact blocker clears unless a human decision is genuinely required.
 
 ## Thread Reporting Contract
 

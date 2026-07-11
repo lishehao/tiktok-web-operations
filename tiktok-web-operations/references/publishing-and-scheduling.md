@@ -26,7 +26,8 @@ Prepare one packet per video:
 1. Validate the local asset before opening the upload flow.
 2. Compare the packet with recent account history and the current live trend/context.
 3. Run Check A and produce the final exact packet.
-4. Request action-time confirmation for the packet.
+4. Use the user's latest exact packet as action-time authorization. Ask only for
+   a required field that was never supplied; do not reconfirm unchanged fields.
 5. Upload one video and wait for the page to parse it.
 6. Apply only the confirmed settings.
 7. Run Check B, including copyright and disclosure state.
@@ -34,7 +35,9 @@ Prepare one packet per video:
 9. Verify in TikTok Studio Posts, the schedule list, or the public profile.
 10. Store the resulting URL/status and processing state in the ledger.
 
-If any confirmed field changes materially, stop and reconfirm before submission.
+If a material field changes without a newer explicit user instruction, stop and
+ask once before submission. A newer explicit instruction is the replacement
+packet and does not require confirmation of the values it already supplies.
 
 ## Quality rules
 
