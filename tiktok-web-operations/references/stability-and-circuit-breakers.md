@@ -12,6 +12,15 @@ Before creating or dispatching an executor, query recent TikTok-related Codex Th
 
 Do not create a second Chrome executor while ownership is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first, verify, then archive only when the user requested archival.
 
+## Immutable registry contract
+
+Treat these fields as byte-for-byte immutable after `SELF_REGISTRY`: coordinator Thread ID, executor Thread ID, account handle, ledger path, mutation authorization, role, model, and thinking level.
+
+- The coordinator must construct every dispatch by copying the registered values; it must not retype, shorten, normalize, relocate, or regenerate them.
+- Before connecting to Chrome, the executor must compare every dispatch field with its local registry snapshot.
+- Any mismatch is a terminal `registry_mismatch`: do not connect/navigate Chrome, do not create a second ledger, and callback once with both values.
+- A bootstrap correction may replace the dispatch only before Chrome navigation and only when it repeats the original authoritative registry exactly. It does not change the registry itself.
+
 ## Persistence mechanism
 
 Persistence comes from two user-visible Codex Threads plus callback-driven bounded blocks. Neither Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create descendant workers. The coordinator never operates Chrome. The executor never creates a replacement for itself.
@@ -57,6 +66,7 @@ If a risk locator or diagnostic API fails, mark the system-warning state `unveri
 - Do not pass DOM-CUA element objects or circular structures as coordinates.
 - Do not use unavailable page globals such as `NodeFilter`, broad page-evaluate text walkers, or unbounded container scans.
 - Re-resolve locators after navigation or DOM replacement.
+- Never persist or reuse a Chrome tab ID across turns, prompts, ledgers, or recovery blocks. At the start of every executor block, call the live `openTabs()` surface and obtain the tab object from that same returned set. Select by the current URL/title and account context, not by an old literal ID. If no unique safe TikTok tab can be selected, return a terminal gate result as data; do not `throw`, guess, or navigate another tab.
 
 ## Recovery budget
 
