@@ -90,6 +90,11 @@ starter task becomes coordinator
 - Let the coordinator own user conversation, strategy, pending work, and
   lifecycle. Let the executor own the external system and raw evidence. Never
   let both operate the same mutable surface.
+- Make the coordinator the only user-facing decision surface. A worker that
+  encounters a block, validation failure, decision need, key risk, uncertain
+  external action, or terminal event must callback the coordinator, stop its
+  current work, and become idle. It must not ask the user to decide inside the
+  worker Thread, self-authorize recovery, or scatter risk handling across tasks.
 - Amortize callback overhead with meaningful bounded rounds. Routine per-item
   progress stays in the ledger; callback only at round completion or on a
   terminal event.
@@ -109,13 +114,20 @@ Changed:
 Validation:
 Risks:
 Decision needed:
+Decision owner: coordinator
 ```
 
 After a callback:
 
 - read the callback first
 - optionally read the target thread's latest 1-3 turns
-- report the result to the user or dispatch the next explicit step
+- for `completed` with no user decision, report or dispatch the next authorized
+  step normally
+- for `blocked`, `validation_failed`, `needs_decision`, or `key_risk`, do not
+  dispatch again; consolidate the risk, affected scope, safe stopped state,
+  recommendation, and at most three choices into one coordinator message
+- resume only after the user decides in the coordinator or a verifiable
+  external-state change clears the blocker
 - remove completed threads from the active watchlist
 
 ## Dispatch pacing

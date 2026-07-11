@@ -124,13 +124,21 @@ Fast Mode unless the tool surface exposes and confirms that field.
    and current block ID against the immutable registry.
 3. Reconcile composition, query quality, capability changes, pending user work,
    authorization, deadline, and risk.
-4. Choose one next bounded block or stop. A normal block should amortize callback
+4. If status is `blocked`, `validation_failed`, `needs_decision`, or `key_risk`,
+   pause all new dispatches. Consolidate one user-facing decision in `主控台`:
+   risk, evidence, affected lane/block/run, what has already stopped, whether
+   read-only work remains safe, one recommendation, and at most three options.
+   Do not tell the user to inspect or reply in `执行器`.
+5. Resume only after the user decides in `主控台` or a verifiable external-state
+   change clears the blocker. Never treat a worker-local reply or its final
+   message as user authorization.
+6. Otherwise choose one next bounded block or stop. A normal block should amortize callback
    overhead: normally 10-20 minutes, 20-40 feed items, or one complete search
    cluster plus a For You checkpoint.
-5. If no user decision is required and the standing duration authorizes
+7. If no user decision is required and the standing duration authorizes
    continuation, send exactly one next block to the registered executor ID with
    Luna/High, mark it `running_current_task`, and end the turn.
-6. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
+8. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
 
 Routine per-video observations stay in the ledger. Callback only on completed
 block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
@@ -156,7 +164,10 @@ For each message from the registered coordinator ID:
 3. Append raw evidence at the checkpoints required by the active TikTok block.
 4. Release only the executor's Chrome control at completion or terminal failure.
 5. Callback once to the coordinator with Luna/High and the schema below.
-6. Become idle. Never self-dispatch, create another Thread, spawn an agent, or
+6. For any non-`completed` result, set `decision_required: true`; do not ask the
+   user a question or propose continuation in the executor Thread. Its final
+   response may only say that the result was sent to `主控台` and it is idle.
+7. Become idle. Never self-dispatch, create another Thread, spawn an agent, or
    create/update/delete an automation.
 
 ## Execution envelope
@@ -200,9 +211,19 @@ actions_performed:
 mutations_count:
 capability_matrix_delta:
 risks:
+affected_scope: lane | current_block | whole_run
+safe_to_continue_read_only: true | false
+decision_required: true | false
+decision_options:
 ledger_path:
 recommended_next_block:
 ```
+
+Every `blocked`, `validation_failed`, `needs_decision`, and `key_risk` callback
+sets `decision_required: true` and prevents another dispatch. `decision_options`
+contains zero to three coordinator-ready choices, never a question addressed to
+the executor Thread. `completed` may set `decision_required: false` even when it
+records non-actionable observations in `risks`.
 
 ## Stop and recovery
 

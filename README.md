@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.15`
+Protocol version: `2026.07.11.16`
 
 ## 直接安装
 
@@ -179,6 +179,8 @@ HTTPS 安装/版本比较
 
 - 持久化只依靠两个用户可见 Threads 与 callback；禁止 `create_goal`、`update_goal`、subagent、agent tree 和自建 replacement worker。
 - Executor 每个 turn 只执行一个有边界 block，完成后释放 Chrome、callback、idle。多轮运行由 coordinator 在上一轮完成后逐轮派发。
+- 主控台是唯一用户决策入口。Executor 遇到 `blocked`、`validation_failed`、`needs_decision`、`key_risk`、uncertain submission 或平台风险时，必须先停止当前 block、释放自己的 Chrome、写 ledger，再只向注册主控台回调并 idle；不得在执行器 Thread 里询问用户、提出继续按钮、自行恢复或派发下一轮。
+- 主控台收到上述非成功状态后必须暂停新 dispatch，把风险、影响范围、当前已停止内容、是否仍可安全只读、推荐方案和不超过三个选项合并成一次用户提示。只有用户在主控台明确回复继续方式，或风险被可验证的外部状态变化消除后，才可恢复。用户无需查看或回复执行器 Thread。
 - 无人值守时只给 coordinator 配一个低频 heartbeat，作为漏回调与结束时间保险。它必须由 coordinator 自己创建并显式绑定/回读自己的准确 Thread ID；executor、installer、Skill-development 和其他 coordinator 都不能代建或接管。executor 运行中保持静默，heartbeat 不能碰 Chrome、重建任务、绕过 blocker 或并发派发。
 - 不硬编码 Chrome Skill 的版本缓存路径；只使用当前 runtime 与受支持的 Playwright locator。
 - 只从 CAPTCHA、challenge、系统 dialog/banner/toast、账号 warning 等明确系统 UI 判断风险；caption、hashtag、comment 或搜索内容里的 `warning`/`verify` 字样不是平台警告。
@@ -203,7 +205,7 @@ HTTPS 安装/版本比较
 
 ### 停止条件
 
-登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、Thread/automation identity mismatch、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据。用户说停止时，executor 只释放自己的标签页并写 final checkpoint，主任务只暂停/删除自己 registry 中的 heartbeat；两个运营 Threads 保持 idle，只有用户明确要求时才归档。
+登录错配、CAPTCHA、验证挑战、rate limit、warning/restriction、账号变化、失去专属标签页控制、同账号 mutation writer 冲突、Thread/automation identity mismatch、hard runtime change、uncertain submission 或持久化失败时，停止对应 mutation 并保留证据，风险统一回调主控台等待决策。用户说停止时，executor 只释放自己的标签页并写 final checkpoint，主任务只暂停/删除自己 registry 中的 heartbeat；两个运营 Threads 保持 idle，只有用户明确要求时才归档。
 
 ## Requirements
 

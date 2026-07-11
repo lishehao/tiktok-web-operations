@@ -125,6 +125,14 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - Use only registered cross-thread IDs. The executor reports solely to this
   starter task after it becomes `主控台`; never callback to a
   Skill-development task or any other bootstrap task.
+- Treat `主控台` as the only user decision surface. On `blocked`,
+  `validation_failed`, `needs_decision`, `key_risk`, uncertain submission, or a
+  platform risk, the executor stops the block, releases its own Chrome, writes
+  evidence, callbacks only the registered coordinator, and becomes idle. It
+  never asks the user to continue inside `执行器`, self-recovers, or dispatches
+  another block. The coordinator pauses dispatch, consolidates one risk prompt,
+  and resumes only after a decision in `主控台` or a verified external-state
+  change.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
 - Include `run_id`, coordinator/executor IDs, host/project identity, automation
   owner, heartbeat ID/target, authority version, ledger, and stop time in the
@@ -200,9 +208,18 @@ actions_performed:
 mutations_count:
 capability_matrix_delta:
 risks:
+affected_scope: lane | current_block | whole_run
+safe_to_continue_read_only: true | false
+decision_required: true | false
+decision_options:
 ledger_path:
 recommended_next_block:
 ```
+
+For every non-`completed` status, set `decision_required: true`. The executor's
+own final response is only a terse handoff stating that evidence was sent to
+`主控台` and the executor is idle; it must not contain a user-facing question or
+invite the user to reply there.
 
 The coordinator reports meaningful checkpoints to the user with:
 
