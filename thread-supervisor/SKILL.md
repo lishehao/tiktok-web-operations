@@ -72,10 +72,12 @@ starter task becomes coordinator
 ```
 
 - Keep the starter task as coordinator when it can prove its own exact Thread ID.
-  Rename it with the stable role/account/nonce title contract in
+  Use the temporary nonce registration title in
   `references/identity-and-automation.md`, resolve the exact matching task with
-  `list_threads`, confirm it with `read_thread`, and record the returned ID. Do
-  not guess an ID from a directory name, stale prompt, or previous run.
+  `list_threads`, confirm it with `read_thread`, record the returned ID, then set
+  the final title to `主控台`. Record the executor ID returned by `create_thread`
+  before setting its final title to `执行器`. Do not guess an ID from a final
+  title, directory name, stale prompt, or previous run.
 - Create the executor with `create_thread`; never substitute `spawn_agent`, a
   collaboration subagent, Goal Mode, or an agent tree when the contract requires
   a persistent sidebar task.

@@ -16,8 +16,8 @@ evidence contract.
 ```text
 Starter task
   phase 1: install/upgrade -> read-only preflight -> ask direction/duration -> wait
-  phase 2: rename itself TikTok 主控台 · @handle · <run_nonce> -> prove own ID
-           -> create one TikTok Chrome 执行器 · @handle · <run_nonce>
+  phase 2: temporary nonce title -> prove own ID -> final title 主控台
+           -> create one executor -> final title 执行器
            -> handshake -> smoke
            -> optional coordinator-owned heartbeat -> bounded operating rounds
 ```
@@ -30,20 +30,22 @@ sole same-account mutation writer, and is the sole raw-ledger writer.
 
 The coordinator must know its exact Thread ID before creating the executor:
 
-1. Generate a short unique `run_nonce` and rename the current task, using the
-   self-targeting title operation, to
-   `TikTok 主控台 · @handle · <run_nonce>`.
+1. Generate a short unique `run_nonce` and temporarily rename the current task,
+   using the self-targeting title operation, to
+   `主控台注册 · <run_nonce>`.
 2. Use `list_threads` with that exact title and require one matching current
    local task in the expected project/directory context.
 3. Use `read_thread` on the returned ID and confirm the current bootstrap state,
    account, direction handoff, and `run_nonce` are consistent.
 4. Record that returned ID as `coordinator_thread_id`. Never derive an ID from a
    directory name, old prompt, previous run, or another task's callback.
-5. Create the run registry with `run_id`, `run_nonce`, coordinator ID/title/host,
+5. Create the run registry with `run_id`, `run_nonce`, coordinator ID/host,
    executor ID initially `NONE`, account, Luna/High profile, ledger, authority
    envelope version, stop time, automation owner equal to the coordinator ID,
    and heartbeat fields initially `NONE`.
-6. If zero or multiple candidates remain, stop with
+6. Rename the verified coordinator to the final title `主控台`. Final title is
+   presentation only and must never replace the registered ID.
+7. If zero or multiple candidates remain, stop with
    `BLOCKED_COORDINATOR_ID_UNVERIFIED`. Do not create a disposable coordinator or
    start polling as a silent fallback.
 
@@ -60,11 +62,10 @@ accepts defaults:
 4. Select the same saved project for the executor when clearly available;
    otherwise create it as a projectless local Thread.
 5. Call `create_thread(model="gpt-5.6-luna", thinking="high")` exactly once for
-   `TikTok Chrome 执行器 · @handle · <run_nonce>`. Its initial prompt includes the coordinator ID,
+   the executor. Its initial prompt includes the coordinator ID,
    account, envelope, ledger, dedicated-tab rule, sole mutation-writer role, and
    callback schema, and says to wait for `SELF_REGISTRY` without touching Chrome.
-6. Record the returned executor ID and require its exact title to be
-   `TikTok Chrome 执行器 · @handle · <run_nonce>`.
+6. Record the returned executor ID and set its final title to `执行器`.
 7. Send `SELF_REGISTRY` to the exact returned executor ID with Luna/High. Include
    both IDs, account, ledger, authority, role, and stop time byte-for-byte.
 8. Require the executor to callback `THREAD_READY` to the registered coordinator

@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor to preflight, name this task TikTok 主控台, create one Luna/High TikTok Chrome 执行器 with the same account/nonce identity, and bind any heartbeat only after proof."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor to preflight, keep this task as 主控台, create one Luna/High 执行器, and bind any heartbeat only after exact identity proof."

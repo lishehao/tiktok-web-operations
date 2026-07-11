@@ -26,8 +26,8 @@ generic registry, callback, heartbeat, and lifecycle mechanics.
 
 | Thread | Owns | Must not do |
 |-|-|-|
-| Current starter task, renamed `TikTok 主控台 · @handle · <run_nonce>` | User conversation, direction, standing authorization, executor supervision, decisions, risk, and final reporting | Navigate or operate TikTok |
-| `execution_thread` — title `TikTok Chrome 执行器 · @handle · <run_nonce>` | The logged-in Chrome session, ordered browsing, searches, authorized actions, verification, and raw evidence ledger | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
+| Current starter task, final title `主控台` | User conversation, direction, standing authorization, executor supervision, decisions, risk, and final reporting | Navigate or operate TikTok |
+| `execution_thread` — final title `执行器` | The logged-in Chrome session, ordered browsing, searches, authorized actions, verification, and raw evidence ledger | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
 
 The starter task first installs the bundled Skills, runs read-only preflight,
 returns the guided direction/duration prompt, and waits. After the user's second
@@ -82,8 +82,8 @@ Before any persistent Thread or heartbeat action, also read
 2. **Resolve and operate:** after the healthy user replies, resolve the requested
    direction/persona and duration. Missing direction defaults to North American
    college/dorm life; missing duration defaults to 3 hours. Rename this task
-   `TikTok 主控台 · @handle · <run_nonce>`, prove its exact ID, create only
-   `TikTok Chrome 执行器 · @handle · <run_nonce>`
+   `主控台` after temporary nonce-based self-registration, prove its exact ID,
+   and create only one `执行器`
    with Luna/High, exchange both IDs, prove executor-to-coordinator callback,
    dispatch the read-only first-run stability smoke, and require real page proof
    before a full calibration block or mutation. Keep both tasks persistent and
@@ -121,7 +121,7 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - Do not use Goal Mode for persistence. Neither operating Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create replacement workers.
 - Before every executor creation or replacement, inspect active TikTok Threads. Block same-account mutation only when another mutation executor is active/uncertain or a submission may be in flight. An unrelated task using Chrome or another TikTok tab is not a global blocker and must not be interrupted or archived. If it browses the same account concurrently, record recommendation-attribution contamination; do not attribute feed changes to one task. Archiving alone is not release proof for an incumbent mutation executor.
 - Use only registered cross-thread IDs. The executor reports solely to this
-  starter task after it becomes `TikTok 主控台`; never callback to a
+  starter task after it becomes `主控台`; never callback to a
   Skill-development task or any other bootstrap task.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
 - Include `run_id`, coordinator/executor IDs, host/project identity, automation
