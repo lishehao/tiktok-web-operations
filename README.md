@@ -2,7 +2,7 @@
 
 这是 `tiktok-web-operations` Codex Skill 的公开分发仓库。公开仓库只保留一个安装入口和一个完整 Skill；详细运营规则以 Skill 内 references 为准。
 
-Protocol version: `2026.07.11.9`
+Protocol version: `2026.07.11.10`
 
 ## 直接安装
 
@@ -25,6 +25,7 @@ Protocol version: `2026.07.11.9`
 - Skill directory: `tiktok-web-operations/`
 - Install target: `${CODEX_HOME:-$HOME/.codex}/skills/tiktok-web-operations`
 - Version source: `tiktok-web-operations/manifest.json`
+- Version protocol: `tiktok-web-operations/references/version-management.md`
 
 通过 HTTPS 下载并安全解压 archive。确认目标 Skill 目录唯一，并检查：
 
@@ -34,19 +35,21 @@ Protocol version: `2026.07.11.9`
 
 Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者依赖。存在 Skill validator 时可以使用；不存在时完成上述等价结构检查。
 
-### 2. 安装与升级
+### 2. 版本决策、安装与升级
 
-按 `manifest.json` 数字段比较 `YYYY.MM.DD.N`：
+在修改本地目录前，完整读取下载包里的 `references/version-management.md`。先验证固定 repository/name/path，再把 `YYYY.MM.DD.N` 拆成四段整数比较；同版本时对完整受管树做确定性内容指纹。内部先记录 `local_version`、`incoming_version`、`version_relation`、`content_relation`、`active_runtime` 和唯一 `install_action`。
 
 - 未安装：安装完整 Skill 目录。
 - 已安装但没有 manifest：视为 legacy，先完整备份再升级。
-- GitHub 版本更高：备份旧目录后，用同文件系统临时目录原子替换整个受管目录。
+- GitHub 版本更高：先确认没有正在使用旧版本的 TikTok 运营任务，再备份旧目录，用同文件系统 sibling staging 原子替换整个受管目录。
 - 版本和内容都相同：`NOOP`。
-- 同版本但内容不同：停止为冲突，不静默覆盖。
-- GitHub 版本更低：默认不降级。
-- 替换后校验失败：恢复旧目录。
+- 同版本但内容不同：`BLOCKED_CONFLICT`，不静默覆盖；只有用户明确要求“强制重装/覆盖同版本”才允许 `FORCE_REINSTALL`。
+- GitHub 版本更低：`BLOCKED_DOWNGRADE`；只有用户明确要求降级才允许 `FORCE_DOWNGRADE`。
+- 旧版本仍被 active coordinator/executor 使用：只下载并校验，返回 `DEFERRED_ACTIVE_RUNTIME`；等待 executor 给出 `STOPPED_AND_RELEASED` 后再重试，绝不热覆盖。
+- 无法确认是否有 active runtime 且将替换现有目录：`BLOCKED_RUNTIME_UNVERIFIED`。
+- 替换后校验失败：恢复旧目录并报告 `ROLLED_BACK`，不继续 TikTok 预检。
 
-不要逐文件混合新旧版本。备份放入 `${CODEX_HOME:-$HOME/.codex}/skill-backups/`。
+不要逐文件混合新旧版本。取得单一 installer lock；先验证 archive，再验证同文件系统 staging；通过 whole-directory rename 切换；最后校验准确目标目录。备份放入 `${CODEX_HOME:-$HOME/.codex}/skill-backups/`。任何 explicit force 都不能绕过来源校验、active-runtime fence、备份、安装后校验或回滚。
 
 ### 3. 只读预检
 

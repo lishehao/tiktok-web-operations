@@ -34,8 +34,8 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 
 | Request | Read |
 |-|-|
-| Install from GitHub, run dependency checks, or bootstrap | `references/startup-health-check.md`, `references/stability-and-circuit-breakers.md`, `references/runtime-and-recovery.md`, `references/operating-model.md` |
-| Package, publish, upgrade, or distribute | `references/distribution-and-upgrades.md` |
+| Install from GitHub, run dependency checks, or bootstrap | `references/version-management.md`, `references/startup-health-check.md`, `references/stability-and-circuit-breakers.md`, `references/runtime-and-recovery.md`, `references/operating-model.md` |
+| Package, publish, upgrade, overwrite, downgrade, or distribute | `references/version-management.md`, `references/distribution-and-upgrades.md` |
 | Broad operating request | all relevant references below |
 | Research trends or choose content | `references/loci-content-system.md`, `references/platform-boundaries.md` |
 | Browse/scroll or leave short comments | `references/feed-browsing-and-comments.md`, `references/engagement-and-analytics.md`, `references/platform-boundaries.md` |
@@ -60,7 +60,7 @@ Use `references/operating-model.md` for the exact creation, handshake, callback,
 
 ## Two-Phase Bootstrap
 
-1. **Install, preflight, and ask:** install or upgrade the complete versioned Skill, validate it, prove Chrome control can create an isolated tab, exact TikTok login in that new tab, absence of blocking warnings, required thread tools, exact `gpt-5.6-luna/high` thread creation support, no conflicting same-account mutation executor, local time, and a writable ledger. An unrelated Chrome task using another tab is not a blocker. Keep TikTok read-only, finalize only the bootstrap tab, return the exact guided direction/duration prompt from `startup-health-check.md`, and wait one user turn.
+1. **Install, preflight, and ask:** use `version-management.md` to install, upgrade, no-op, defer, block, or roll back the complete versioned Skill as one transaction. Never hot-reload an active TikTok runtime or merge old/new files. After a validated active version exists, prove Chrome control can create an isolated tab, exact TikTok login in that new tab, absence of blocking warnings, required thread tools, exact `gpt-5.6-luna/high` thread creation support, no conflicting same-account mutation executor, local time, and a writable ledger. An unrelated Chrome task using another tab is not a blocker. Keep TikTok read-only, finalize only the bootstrap tab, return the exact guided direction/duration prompt from `startup-health-check.md`, and wait one user turn.
 2. **Resolve and operate:** after the healthy user replies, resolve the requested direction/persona and duration. Missing direction defaults to North American college/dorm life; missing duration defaults to 3 hours. Create `TikTok 运营主任务` and `TikTok Chrome执行任务` as two separate persistent user-owned Threads with Luna/High; exchange both Thread IDs; prove executor-to-coordinator callback; give the executor its dedicated-tab and same-account mutation-writer role; dispatch the read-only first-run stability smoke in `stability-and-circuit-breakers.md`; require its real page proof before a full calibration block or mutation; then archive only the bootstrap task.
 
 A failed hard dependency stops phase 2 and returns one concrete repair action. Do not silently fall back to a subagent, a different model, a different reasoning effort, or one combined Thread.

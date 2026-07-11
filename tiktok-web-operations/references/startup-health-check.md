@@ -7,8 +7,10 @@ Use this reference for install, upgrade, or first launch. Phase 1 is read-only, 
 Record internally:
 
 ```text
-install_action: INSTALLED | UPGRADED | NOOP | BLOCKED_CONFLICT | BLOCKED_DOWNGRADE | ROLLED_BACK
+install_action: INSTALLED | UPGRADED | NOOP | DEFERRED_ACTIVE_RUNTIME | BLOCKED_RUNTIME_UNVERIFIED | BLOCKED_CONFLICT | BLOCKED_DOWNGRADE | FORCE_REINSTALLED | FORCE_DOWNGRADED | ROLLED_BACK
 skill_version: old | incoming | active
+version_relation: ABSENT | LEGACY | REMOTE_NEWER | EQUAL | REMOTE_OLDER
+content_relation: UNKNOWN | IDENTICAL | DIFFERENT
 github_source: AVAILABLE | UNAVAILABLE
 skill_validation: PASSED | FAILED
 chrome_control: AVAILABLE | RECONNECTED | UNAVAILABLE
@@ -29,8 +31,8 @@ bootstrap_state: PREFLIGHT_HEALTHY_WAITING_FOR_DIRECTION | BLOCKED
 
 Run checks in order:
 
-1. Download the canonical GitHub archive, locate exactly one Skill directory, read `manifest.json`, and validate before installation.
-2. Compare numeric versions. Back up and atomically replace the complete Skill directory for upgrades; block same-version conflicts and unauthorized downgrades; restore on validation failure.
+1. Download the canonical GitHub archive, require exactly the expected repository root and one Skill directory, read `manifest.json` plus `references/version-management.md`, and validate source identity before installation.
+2. Follow `version-management.md` exactly: compare numeric version tuples and managed-tree fingerprints; choose one explicit install action; acquire the installer lock; fence active runtimes; use a same-filesystem whole-directory transaction; validate the live target; and restore on failure. Never hot-reload an active runtime or silently force an equal-version conflict/downgrade.
 3. Prove Chrome control by creating one disposable tab with `chrome.tabs.new()`. Retry dropped control at most twice. Do not substitute another browser tool and do not claim another task's tab.
 4. Navigate that new tab to TikTok read-only, prove it shares the expected logged-in profile, read the exact identity, and inspect warnings/challenges. Never enter credentials or verification codes.
 5. Prove `list_projects`, `create_thread`, `read_thread`, `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
