@@ -20,17 +20,18 @@ The two operational Threads are peers connected by registered Thread IDs. The co
 
 Only after read-only dependency preflight is healthy and the user has supplied direction/duration or accepted defaults:
 
-1. Use `list_projects` to select the current saved project when one is clearly available; otherwise create both as projectless local Threads. Use the same target type for both.
-2. Resolve the user's `direction_profile`, duration, and `operation_stop_at`. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, exact account, resolved audience/persona, duration, authorizations, and instruct it to wait for the executor registry without touching Chrome.
-3. Record the returned coordinator Thread ID and set title `TikTok 运营主任务`; pin it when the pin tool is available.
-4. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, sole Chrome ownership, ledger path, envelope, and callback schema, but must explicitly say: wait for `SELF_REGISTRY`; do not infer or guess your own Thread ID; do not send `THREAD_READY` and do not touch Chrome yet.
-5. Record the returned executor Thread ID and set title `TikTok Chrome执行任务`; pin it when available.
-6. Send `SELF_REGISTRY` to the returned executor ID with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`. Include the exact executor ID, coordinator ID, account, ledger, and sole-owner role. Only then may the executor echo those exact supplied IDs in `THREAD_READY` to the coordinator.
-7. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
-8. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor received that exact ID through `SELF_REGISTRY`, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`. Treat the callback transport `source_thread_id` plus bootstrap registry as authoritative; an ID mismatch blocks dispatch until corrected.
-9. The coordinator sends the first bounded block to the executor using its registered ID and Luna/High override. The executor begins only after the registry matches.
-10. Read back the executor's first real proof: at least one verified direction-relevant page search/browse micro-round or a concrete page-based no-action/blocker result. Thread creation, handshake, dispatch, or planning alone is not startup proof.
-11. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, first dispatch, and first proof are verified.
+1. Use `list_threads` and `read_thread` to inspect active TikTok tasks. Do not create a pair while another Chrome executor, Goal Mode loop, or descendant agent is active or uncertain. When the user requested replacement, send `STOP_AND_RELEASE`, verify the final checkpoint, then archive only the exact tasks the user asked to archive.
+2. Use `list_projects` to select the current saved project when one is clearly available; otherwise create both as projectless local Threads. Use the same target type for both.
+3. Resolve the user's `direction_profile`, duration, and `operation_stop_at`. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, exact account, resolved audience/persona, duration, authorizations, and instruct it to wait for the executor registry without touching Chrome.
+4. Record the returned coordinator Thread ID and set title `TikTok 运营主任务`; pin it when the pin tool is available.
+5. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, sole Chrome ownership, ledger path, envelope, and callback schema, but must explicitly say: wait for `SELF_REGISTRY`; do not infer or guess your own Thread ID; do not send `THREAD_READY` and do not touch Chrome yet.
+6. Record the returned executor Thread ID and set title `TikTok Chrome执行任务`; pin it when available.
+7. Send `SELF_REGISTRY` to the returned executor ID with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`. Include the exact executor ID, coordinator ID, account, ledger, and sole-owner role. Only then may the executor echo those exact supplied IDs in `THREAD_READY` to the coordinator.
+8. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
+9. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor received that exact ID through `SELF_REGISTRY`, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`. Treat the callback transport `source_thread_id` plus bootstrap registry as authoritative; an ID mismatch blocks dispatch until corrected.
+10. The coordinator sends the read-only `stability_smoke_01` block to the executor using its registered ID and Luna/High override. The executor begins only after the registry matches.
+11. Read back the executor's smoke result. Stable startup requires the exact acceptance criteria in `stability-and-circuit-breakers.md`; a concrete blocker is evidence but not a stability pass.
+12. Navigate the Codex app to the coordinator when supported. Archive the temporary bootstrap task only after both Threads, handshake, first dispatch, and first real proof are verified.
 
 The bootstrap task is not an operating Thread. If creation or handshake partially fails, do not operate TikTok. Archive only the empty Threads created by this failed bootstrap, preserve evidence, and return one repair action.
 
@@ -71,6 +72,10 @@ Require `gpt-5.6-luna` with `thinking=high` for both thread creation and every o
 5. Mark the executor `running_current_task` and end the coordinator turn. Do not poll, touch Chrome, or busy-wait.
 6. Let the executor callback trigger the next coordinator turn.
 
+On `blocked` or `key_risk`, apply `stability-and-circuit-breakers.md`. Do not call Goal Mode, spawn/rebuild a worker, declare a fresh blocked audit, or self-authorize another recovery sequence. Wait after the bounded recovery budget is exhausted.
+
+For a user-requested unattended duration, a coordinator heartbeat may check at low frequency for a completed callback and dispatch exactly one next block. It must not poll Chrome, run TikTok actions, overlap a running executor turn, or bypass the circuit breaker. Callback remains primary; heartbeat is only a scheduler/watchdog.
+
 Queue unrelated next work while the executor is running. Send an immediate amendment only when it corrects/overrides the current block or prevents unsafe/wasted work.
 
 ## Executor loop
@@ -83,6 +88,8 @@ For each message from the registered coordinator ID:
 4. Release Chrome control at block completion or blocker.
 5. Send one structured callback to the coordinator ID with Luna/High override.
 6. Become idle. Never start the next block independently and never create another Thread or subagent.
+
+Never call `create_goal`, `update_goal`, or `spawn_agent`. Persistent idleness plus coordinator callbacks is the intended lifecycle.
 
 Send a mid-block callback only for `blocked`, `validation_failed`, `needs_decision`, `key_risk`, authorization mismatch, hard runtime change, or uncertain submission.
 
@@ -136,7 +143,10 @@ recommended_next_block:
 ## Persistence and recovery
 
 - Keep both user-owned Threads idle between turns; idleness does not end persistence.
-- Prefer soft-hook callbacks. Use a heartbeat only for an explicitly time-based wakeup, an unreliable callback path, or an explicit user request.
+- Execute one bounded block per executor turn. Multi-round operation is a sequence of completed callback → one coordinator decision → one next dispatch, optionally guarded by a coordinator-only heartbeat.
+- Treat `STOP_AND_RELEASE` as an immediate override. Stop the active block and any recovery without another probe, release Chrome, append a final checkpoint, callback `STOPPED_AND_RELEASED`, and remain idle.
+- Do not reset a blocked audit through wording changes, a new query, or a rebuilt worker. Only a user instruction or verified external-state change may close the circuit breaker.
+- Prefer soft-hook callbacks. For an unattended time-bounded run, use one coordinator-only heartbeat as a missed-callback/time-stop safety net; never attach an operating heartbeat to the executor.
 - On user stop, coordinator sends `STOP_AND_RELEASE` to the executor. Executor releases Chrome, writes a final checkpoint, callbacks `completed`, and both Threads remain idle and unarchived.
 - Archive either operating Thread only when the user explicitly asks.
 - If the executor disappears or becomes unusable, coordinator first checks uncertain submissions and Chrome ownership. Create a replacement persistent Luna/High executor only with explicit user authorization, update the registry, and repeat the handshake.
