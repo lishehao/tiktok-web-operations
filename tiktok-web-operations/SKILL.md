@@ -146,8 +146,10 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   `validation_failed`, `needs_decision`, `key_risk`, uncertain submission, or a
   platform risk, the executor stops the block, releases its own Chrome, writes
   evidence, callbacks only the registered coordinator, and becomes idle. It
-  never asks the user to continue inside `TikTok 执行台`, self-recovers, or dispatches
-  another block. The coordinator pauses dispatch, consolidates one risk prompt,
+  never asks the user to continue inside `TikTok 执行台`, attempts recovery after
+  a terminal callback/circuit opening, or dispatches another block. Before a
+  terminal callback, it must still complete the explicit bounded recovery in
+  `references/runtime-and-recovery.md`. The coordinator pauses dispatch, consolidates one risk prompt,
   and resumes only after a decision in `TikTok 主控台` or a verified external-state
   change.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
@@ -246,107 +248,14 @@ Stop mutation for login mismatch, CAPTCHA, verification challenge, rate limit, w
 
 ## Thread Reporting Contract
 
-The execution Thread returns one structured callback after every bounded block:
+For any persistent two-Thread run, read and use the authoritative
+`Callback schema`, `Three-line heartbeat receipt`, `Whole-run completion
+transaction`, and `Simple user result` sections in
+`references/operating-model.md`. Do not copy or locally reconstruct those
+schemas in dispatch prompts.
 
-```text
-status: completed | blocked | validation_failed | needs_decision | key_risk
-callback_scope: block | run_terminal
-terminal_event: NONE | EXECUTOR_RELEASED
-release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
-run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
-run_id:
-coordinator_thread_id:
-executor_thread_id:
-block_id:
-summary:
-sample_counts:
-search_results_assessed:
-qualified_search_views:
-feed_validation_status: not_run | verified | partial | unavailable | disabled
-feed_validation_sample_count:
-runtime_recovery_status: not_needed | recovered | failed | platform_risk
-recovery_class: none | tab_binding_stale | browser_disconnected | dns_network | proxy_tls | http_status | blocked_by_client | ambiguous_render
-error_code:
-failure_scope: none | tab | browser | network_global | tiktok_domain | target_page | platform
-recovery_attempts:
-account_reverified: true | false | not_needed
-likely_cause:
-likely_cause_basis:
-recovery_actions_attempted:
-user_action_required: true | false
-user_action:
-composition:
-queries_used:
-actions_performed:
-mutations_count:
-capability_matrix_delta:
-risks:
-affected_scope: lane | current_block | whole_run
-safe_to_continue_read_only: true | false
-decision_required: true | false
-decision_options:
-ledger_path:
-recommended_next_block:
-```
-
-For every non-`completed` status, set `decision_required: true`. The executor's
-own final response is only a terse handoff stating that evidence was sent to
-`TikTok 主控台` and the executor is idle; it must not contain a user-facing question or
-invite the user to reply there.
-
-Use `callback_scope=block`, `terminal_event=NONE`, and `release_state=NONE` for
-ordinary rounds. Reserve `run_terminal/EXECUTOR_RELEASED` for the single final
-release callback.
-
-Whole-run completion is a separate transaction. At deadline, user stop, or
-objective completion, the coordinator sends one terminal `STOP_AND_RELEASE` even
-if the executor appears idle. The executor performs no new TikTok action; it
-resolves submission certainty, releases its owned tab, writes final cumulative
-evidence, and callbacks with `callback_scope=run_terminal`,
-`terminal_event=EXECUTOR_RELEASED`, and
-`release_state=STOPPED_AND_RELEASED`. Only then may the coordinator retire its
-timer, reconcile the ledger, and mark `RUN_COMPLETED`. Missing proof becomes
-`RUN_FINALIZATION_BLOCKED`, never a successful completion.
-
-Routine progress, including a recovered transient Chrome/network event, must
-use the exact three-line receipt below. Do not create a separate fourth
-`风险`/`恢复` line. Persistent failures are surfaced only by `TikTok 主控台` and
-must state exact code, `可能原因`, attempted actions, and the smallest user action
-inside the same three-line shape when a timed receipt is active.
-
-For the whole run, keep the user-facing response to one compact message:
-
-```text
-运营完成。运行：<duration>；浏览：<count>；收藏：<count>；Repost：<count>；评论：<count>。风险：无｜<one short risk>。
-```
-
-Do not expose heartbeat IDs, callback IDs, registry fields, release-state names,
-or the internal completion transaction unless finalization is blocked.
-
-After timer creation and every valid nonterminal heartbeat, use exactly:
-
-```text
-本轮完成：<one sentence>
-下次心跳：<YYYY-MM-DD HH:mm timezone>
-下轮计划：<one bounded purpose>
-```
-
-For a recovered transient, fold the code and brief possible cause into
-`本轮完成`; do not notify immediately. For a persistent failure, use:
-
-```text
-本轮完成：已暂停当前 block；<exact code>；可能原因：<hypothesis>；已尝试：<bounded actions>。
-下次心跳：<verified time | 未建立（等待用户处理）>
-下轮计划：请你<minimal user action>；完成后回复“继续”，期间不执行新的 TikTok 动作。
-```
-
-Never add a fourth line.
-
-Report the next time only after updating/viewing the exact owned automation and
-verifying its target and schedule. If the executor is still running, the plan is
-to wait for its callback, not dispatch overlapping work. On a risk, the plan is
-to wait for the user's decision and perform no new TikTok action. At the final
-tick use `下次心跳：无（进入终止结算）`; after completion use
-`下次心跳：无（任务已完成）`.
-
-Ordinary evidence stays in the ledger. See `references/operating-model.md` for cross-thread dispatch and lifecycle rules.
+Core invariants remain: callback after every bounded block; every non-
+`completed` result requires coordinator handling; the executor asks no user
+question and becomes idle; ordinary completion is not whole-run completion;
+terminal completion requires verified executor release. Ordinary evidence stays
+in the ledger, and user-facing timed receipts never add a fourth line.
