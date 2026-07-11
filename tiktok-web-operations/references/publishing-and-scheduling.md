@@ -2,9 +2,9 @@
 
 ## Web capability baseline
 
-Do not hard-code upload limits. Recheck the live UI because TikTok changes limits and regional eligibility. On 2026-07-10, the live `@shehaolili` upload page showed a maximum of `30 GB / 60 minutes`, recommended MP4, recommended 1080p/1440p/4K, and recommended 9:16 or 16:9. This already differed from an older TikTok support-page snapshot, so the account's current upload UI is authoritative.
+Do not hard-code upload limits, formats, duration ceilings, resolution recommendations, or scheduling eligibility. Recheck the live uploader for the current account and region on every publishing run; the current account UI is authoritative when it differs from an older reference.
 
-The web uploader uploads the complete file; trimming may require the app.
+The web uploader may upload the complete file without exposing every mobile editing feature. Treat only currently visible web controls as available.
 
 TikTok Studio may expose upload, schedule, post management, comment management, analytics, cover selection, caption, audience, interaction settings, and copyright checking. Treat only visible controls as available.
 
