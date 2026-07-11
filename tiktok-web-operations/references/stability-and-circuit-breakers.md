@@ -2,7 +2,7 @@
 
 Use this reference during bootstrap, first-run validation, browser recovery, and any blocked or key-risk callback.
 
-## Exclusive-owner preflight
+## Same-account mutation-writer preflight
 
 Before creating or dispatching an executor, query recent TikTok-related Codex Threads and inspect any active or in-progress result. Require one of these states:
 
@@ -10,14 +10,19 @@ Before creating or dispatching an executor, query recent TikTok-related Codex Th
 - the exact incumbent was explicitly retired by the user, returned `STOPPED_AND_RELEASED`, released Chrome, and has no mutation or submission in flight; or
 - the incumbent is the same registered executor being resumed.
 
-Do not create a second Chrome executor while ownership is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first, verify, then archive only when the user requested archival.
+Do not create a second same-account mutation executor while write authority is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first, verify, then archive only when the user requested archival.
 
-Also prove browser-session ownership, because a non-TikTok Thread may legitimately be using the same Chrome/TikTok tab:
+## Dedicated-tab isolation
 
-1. Initialize Chrome from the current Chrome plugin root's `scripts/browser-client.mjs` and call `user.openTabs()` once.
-2. Select one unique TikTok tab by current URL/title/group and pass that exact returned object to `user.claimTab()`. Never use `tabs.get(openTab.id)`; `tabs.get()` only resolves tabs already controlled by the current browser session.
-3. If the claim reports `already part of browser session <uuid>`, call `read_thread(<uuid>)` directly. When it is active, classify `active_external_browser_owner`, report its title/ID, and wait. Do not interrupt, archive, or work around that Thread.
-4. If the UUID cannot be resolved or the owner state is not provably inactive/released, classify `stale_or_unverified_browser_owner` and stop. A current external owner is an external-state blocker, not a Feed/control failure; the same registered pair may retry one fresh smoke only after that owner releases Chrome.
+Chrome session ownership is per controlled tab, not a global lock on the user's Chrome profile:
+
+1. Initialize Chrome from the current Chrome plugin root's `scripts/browser-client.mjs`.
+2. At normal executor block start, create a new tab with `chrome.tabs.new()` and navigate that returned tab to TikTok. Verify the expected account in this dedicated tab before any further action.
+3. Reuse a tab only when it is already part of this executor's current browser-control session. Use `user.openTabs()` plus `user.claimTab()` only for an explicit user-requested handoff or continuation of a known unclaimed tab.
+4. If an existing tab reports `already part of browser session <uuid>`, leave it untouched and create a new tab. Do not interrupt, archive, or wait for that unrelated task. The message is not a global Chrome blocker.
+5. Stop only if `tabs.new()` or navigation/control fails, the new tab does not inherit the expected login/account, another same-account mutation executor is active/uncertain, or a submission is uncertain.
+6. A concurrent read-only task on the same TikTok account does not block a mechanical smoke, but mark `recommendation_attribution_contaminated`; do not claim that one task caused feed changes.
+7. At block completion, finalize only tabs created or controlled by this executor session. Never close or navigate another task's tabs.
 
 ## Immutable registry contract
 
@@ -51,7 +56,7 @@ Soft callbacks remain the primary sequencing signal. The heartbeat is a missed-c
 
 Run this read-only block before a new executor performs a full calibration block or any mutation:
 
-1. Verify the registered IDs, exact account, no incumbent owner, no submission in flight, and no system-level challenge.
+1. Verify the registered IDs, exact account, no incumbent same-account mutation writer, no submission in flight, and no system-level challenge. Create the dedicated tab and record whether concurrent same-account browsing contaminates recommendation attribution.
 2. Open one direction-relevant search query and classify the first three visible results without opening interaction controls.
 3. Enter For You once.
 4. Enumerate the navigation controls once and identify the down control by a direction-specific signature: prefer an accessible name/title/test id/data-e2e that specifically means next/down; otherwise use the unique down-chevron SVG signature observed in the current live UI. The currently verified fallback signature is `button:has(svg path[d^="m24 28.75"])`, but use it only after confirming it is the visible down control. Never use a broad locator such as `button:not([disabled])`, because the up and down controls can both become enabled after position 1.
@@ -74,7 +79,7 @@ If a risk locator or diagnostic API fails, mark the system-warning state `unveri
 - Do not pass DOM-CUA element objects or circular structures as coordinates.
 - Do not use unavailable page globals such as `NodeFilter`, broad page-evaluate text walkers, or unbounded container scans.
 - Re-resolve locators after navigation or DOM replacement.
-- Never persist or reuse a Chrome tab ID across turns, prompts, ledgers, or recovery blocks. At the start of every executor block, call the live `openTabs()` surface, select by current URL/title/account context, and pass the exact selected object to `user.claimTab()`. Never feed an `openTabs()` ID to `tabs.get()`. If no unique safe TikTok tab exists or another live browser session owns it, return a terminal ownership gate as data; do not `throw`, guess, or navigate another tab.
+- Never persist or reuse a Chrome tab ID across turns, prompts, ledgers, or recovery blocks. At normal block start, create a dedicated tab with `chrome.tabs.new()` and use the returned tab object. Do not inspect, claim, navigate, or close another task's tab. `openTabs()`/`claimTab()` is reserved for an explicit handoff; an ownership message on an existing tab means skip that tab, not block the entire Chrome profile.
 
 ## Recovery budget
 
@@ -82,7 +87,7 @@ One operation block may have at most one narrowly scoped read-only recovery bloc
 
 Do not hop among native button, PageDown, ArrowDown, wheel, script scroll, reload, and page reset. Under the packaged default, a failed native next/down smoke stops feed sampling. A scroll-only fallback requires a new explicit user decision; the coordinator cannot self-authorize it.
 
-Two consecutive failures with the same ownership, transition, rendering, or diagnostic failure class open the circuit breaker:
+Two consecutive failures with the same dedicated-tab, mutation-writer, transition, rendering, or diagnostic failure class open the circuit breaker:
 
 1. stop the executor block;
 2. release Chrome;
