@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.11.12`
+Protocol version: `2026.07.11.13`
 
 ## 直接安装
 
@@ -128,8 +128,8 @@ operation_stop_at:
 保留当前启动任务，并注册恰好两个持久化、用户可见的 Luna/High Threads：
 
 ```text
-TikTok 运营主任务       gpt-5.6-luna / high
-TikTok Chrome执行任务  gpt-5.6-luna / high
+TikTok 主控台 · @handle · <run_nonce>         gpt-5.6-luna / high
+TikTok Chrome 执行器 · @handle · <run_nonce>  gpt-5.6-luna / high
 ```
 
 完整状态机：
@@ -153,8 +153,8 @@ HTTPS 安装/版本比较
 
 启动顺序：
 
-1. 当前任务生成唯一 `run_id/run_nonce`，把自己重命名为 `TikTok 运营主任务 · <run_nonce>`，再通过 `list_threads` 与 `read_thread` 证明自己的准确 ID，并建立 immutable run registry。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
-2. 只创建一个 `TikTok Chrome执行任务`，并强制 `gpt-5.6-luna/high`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是同账号 mutation 和 ledger 的唯一 writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调其他任务。
+1. 当前任务生成唯一 `run_id/run_nonce`，把自己重命名为 `TikTok 主控台 · @handle · <run_nonce>`，再通过 `list_threads` 与 `read_thread` 证明自己的准确 ID，并建立 immutable run registry。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
+2. 只创建一个 `TikTok Chrome 执行器 · @handle · <run_nonce>`，并强制 `gpt-5.6-luna/high`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是同账号 mutation 和 ledger 的唯一 writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调其他任务。
 3. 记录主任务与执行任务的准确 ID、host/project、run ID、授权版本、ledger 和停止时间，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
 4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给执行任务。
 5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词观察 3 条，再进入一次连续 For You，用唯一 native next/down 控件取得 5 个可靠位置；零 reload/reset、零 mutation。

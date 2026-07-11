@@ -72,7 +72,8 @@ starter task becomes coordinator
 ```
 
 - Keep the starter task as coordinator when it can prove its own exact Thread ID.
-  Rename it with a unique run nonce, resolve the exact matching task with
+  Rename it with the stable role/account/nonce title contract in
+  `references/identity-and-automation.md`, resolve the exact matching task with
   `list_threads`, confirm it with `read_thread`, and record the returned ID. Do
   not guess an ID from a directory name, stale prompt, or previous run.
 - Create the executor with `create_thread`; never substitute `spawn_agent`, a

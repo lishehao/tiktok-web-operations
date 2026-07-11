@@ -43,6 +43,44 @@ Never derive identity from a directory suffix, copied URL, remembered ID,
 focused Codex window, task ordering, matching title alone, another coordinator's
 registry, or an automation prompt.
 
+## Thread title contract
+
+Use a stable identity title, not a status sentence:
+
+```text
+<system> 主控台 · <account_or_scope> · <run_nonce>
+<system> <surface> 执行器 · <account_or_scope> · <run_nonce>
+```
+
+Requirements:
+
+- Keep the same `system`, `account_or_scope`, and `run_nonce` across the pair.
+- Use a short 4-6 character lowercase alphanumeric nonce generated for this run.
+- Put the role early so the sidebar distinguishes coordinator from executor.
+- Use the exact stable account handle when the domain has one; otherwise use a
+  concise stable scope slug.
+- Do not put `running`, `idle`, `blocked`, duration, model, version, date,
+  iteration number, validation result, or current strategy in the title. Those
+  values belong in the registry, description, or report and can change.
+- Avoid emoji and generic names such as `Main Thread`, `Worker`, `测试`,
+  `新任务`, or `运营任务`.
+
+For TikTok, use exactly:
+
+```text
+TikTok 主控台 · @handle · <run_nonce>
+TikTok Chrome 执行器 · @handle · <run_nonce>
+```
+
+Set final titles only after the account/scope is proven and before the pair
+handshake. Store both expected titles in the immutable registry and confirm each
+with `read_thread`. A title mismatch blocks registration, but a matching title
+alone never proves identity.
+
+After registration, do not rename either task for routine status changes. If an
+account identity correction requires a rename, stop dispatch, update both
+titles, update the registry, and repeat identity verification before resuming.
+
 ## Pair state machine
 
 Use one state at a time:

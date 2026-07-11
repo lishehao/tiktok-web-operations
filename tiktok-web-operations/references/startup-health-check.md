@@ -113,10 +113,11 @@ application advice, pure study motivation, and generic non-campus content.
 
 Follow `operating-model.md` exactly:
 
-1. Rename this task `TikTok 运营主任务 · <run_nonce>`, resolve and verify its
+1. Rename this task `TikTok 主控台 · @handle · <run_nonce>`, resolve and verify its
    exact Thread ID, and create the immutable run registry with automation owner
    equal to that coordinator ID.
-2. Create one `TikTok Chrome执行任务` with `gpt-5.6-luna/high`; include the
+2. Create one `TikTok Chrome 执行器 · @handle · <run_nonce>` with
+   `gpt-5.6-luna/high`; include the
    coordinator ID and require it to wait for `SELF_REGISTRY`.
 3. Send the exact returned executor ID through `SELF_REGISTRY`, then require a
    `THREAD_READY` callback to the coordinator.

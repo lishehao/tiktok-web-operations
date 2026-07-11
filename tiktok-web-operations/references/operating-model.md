@@ -16,8 +16,8 @@ evidence contract.
 ```text
 Starter task
   phase 1: install/upgrade -> read-only preflight -> ask direction/duration -> wait
-  phase 2: rename itself TikTok 运营主任务 -> prove own ID
-           -> create one TikTok Chrome执行任务
+  phase 2: rename itself TikTok 主控台 · @handle · <run_nonce> -> prove own ID
+           -> create one TikTok Chrome 执行器 · @handle · <run_nonce>
            -> handshake -> smoke
            -> optional coordinator-owned heartbeat -> bounded operating rounds
 ```
@@ -31,7 +31,8 @@ sole same-account mutation writer, and is the sole raw-ledger writer.
 The coordinator must know its exact Thread ID before creating the executor:
 
 1. Generate a short unique `run_nonce` and rename the current task, using the
-   self-targeting title operation, to `TikTok 运营主任务 · <run_nonce>`.
+   self-targeting title operation, to
+   `TikTok 主控台 · @handle · <run_nonce>`.
 2. Use `list_threads` with that exact title and require one matching current
    local task in the expected project/directory context.
 3. Use `read_thread` on the returned ID and confirm the current bootstrap state,
@@ -59,11 +60,11 @@ accepts defaults:
 4. Select the same saved project for the executor when clearly available;
    otherwise create it as a projectless local Thread.
 5. Call `create_thread(model="gpt-5.6-luna", thinking="high")` exactly once for
-   `TikTok Chrome执行任务`. Its initial prompt includes the coordinator ID,
+   `TikTok Chrome 执行器 · @handle · <run_nonce>`. Its initial prompt includes the coordinator ID,
    account, envelope, ledger, dedicated-tab rule, sole mutation-writer role, and
    callback schema, and says to wait for `SELF_REGISTRY` without touching Chrome.
-6. Record the returned executor ID and rename that task `TikTok Chrome执行任务 ·
-   <run_nonce>`.
+6. Record the returned executor ID and require its exact title to be
+   `TikTok Chrome 执行器 · @handle · <run_nonce>`.
 7. Send `SELF_REGISTRY` to the exact returned executor ID with Luna/High. Include
    both IDs, account, ledger, authority, role, and stop time byte-for-byte.
 8. Require the executor to callback `THREAD_READY` to the registered coordinator
