@@ -4,6 +4,8 @@ Use this reference for long-running feed calibration, keyword/community seeding,
 
 Assume the persistent `execution_thread` role defined in `operating-model.md`. This file defines browsing and recommendation-calibration behavior only; it does not grant authority or change the two-Thread ownership model.
 
+Before the first full block of a new executor/runtime, pass the read-only `stability_smoke_01` in `stability-and-circuit-breakers.md`. Do not combine the smoke with mutation gates.
+
 ## Calibration state machine
 
 1. **Audit** — Verify account identity, warnings, current feature visibility, driver ownership, and per-action capability state.
@@ -69,13 +71,13 @@ Prefer recent posts from roughly the last 30 days when suitable current results 
 
 Prefer the visible native next/down control when it preserves playback, ordered feed context, and visible watch state. Before position 1, record how the control was identified through accessible name, role, stable UI placement, or another unambiguous locator. Click it exactly once per transition and verify the before/after identity packet before continuing.
 
-Incremental scroll/wheel gestures are a fallback, not a peer default. Use them only in a separately declared scroll-only checkpoint when the visible control is absent or cannot be identified unambiguously. Never mix button and scroll transitions in one checkpoint, because mixed methods make failures and repeats harder to attribute. Direct URLs remain appropriate for exact verification and revisiting candidates, but they are not a replacement for feed sampling.
+Incremental scroll/wheel gestures are not an automatic fallback. Under the packaged default, failure of the visible native next/down control stops feed sampling and callbacks once. A scroll-only checkpoint requires a new explicit user decision after the stopped block. Never mix button, keyboard, wheel, script scroll, reload, or reset transitions in one checkpoint or recovery sequence. Direct URLs remain appropriate for exact verification and revisiting candidates, but they are not a replacement for feed sampling.
 
 For You sampling is one continuous-session invariant. Initial entry before position 1 may use the normal TikTok navigation link. After position 1, remain on the same page and preserve feed order. Do not use reload, `goto`, Home reopening, direct-post navigation, or a second For You entry as an ordinary transition. A reset is permitted only after the current block is explicitly stopped and reported as a separate hard recovery; recovered items belong to a new checkpoint, never the old denominator.
 
 For every transition store `position_before`, `identity_before`, `action`, `position_after`, `identity_after`, and `advanced=true|false`. A repeated identity stays in the raw denominator and is labeled `duplicate`; a control that does not advance or destroys stable identity is `transition_failure`. Stop rather than disguising either condition.
 
-The purpose is interface fidelity, not stealth. Never randomize timing, move the pointer artificially, insert fake indecision, or claim to be human. Respect CAPTCHA, verification, warnings, and rate limits.
+The purpose is interface fidelity, not stealth. Never randomize timing, move the pointer artificially, insert fake indecision, or claim to be human. Respect CAPTCHA, verification, warnings, and rate limits. Detect platform warnings only from explicit system UI; never treat ordinary caption, hashtag, comment, or search-result words as system warnings.
 
 Watch long enough to understand the content. Do not encode a universal dwell-time formula: video length, clarity, replay need, and the research objective vary. Record whether the premise/payoff was understood, not a fabricated human-behavior score.
 
