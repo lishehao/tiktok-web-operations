@@ -14,19 +14,19 @@ Temporary bootstrap task
 After the healthy user's second message, registration, handshake, first dispatch, and first real proof: archive temporary bootstrap task.
 ```
 
-The two operational Threads are peers connected by registered Thread IDs. The coordinator is user-facing and owns decisions. The executor is the only Chrome operator and owns raw evidence.
+The two operational Threads are peers connected by registered Thread IDs. The coordinator is user-facing and owns decisions. The executor owns its dedicated Chrome tab, is the sole same-account mutation writer, and owns raw evidence.
 
 ## Bootstrap creation contract
 
 Only after read-only dependency preflight is healthy and the user has supplied direction/duration or accepted defaults:
 
-1. Use `list_threads` and `read_thread` to inspect active TikTok tasks, then apply the browser-session owner preflight in `stability-and-circuit-breakers.md`. Do not create a pair while another Chrome executor, Goal Mode loop, descendant agent, or unrelated active Thread owns the Chrome TikTok tab. When the user requested replacement, send `STOP_AND_RELEASE`, verify the final checkpoint, then archive only the exact tasks the user asked to archive. Never stop unrelated Chrome work without explicit authorization.
+1. Use `list_threads` and `read_thread` to inspect active TikTok tasks, then apply the same-account mutation-writer preflight in `stability-and-circuit-breakers.md`. Do not create a pair while another same-account mutation executor, Goal Mode loop, or descendant agent is active/uncertain. An unrelated task using another Chrome tab is allowed and must not be stopped. When the user requested replacement, send `STOP_AND_RELEASE`, verify the final checkpoint, then archive only the exact tasks the user asked to archive.
 2. Use `list_projects` to select the current saved project when one is clearly available; otherwise create both as projectless local Threads. Use the same target type for both.
 3. Resolve the user's `direction_profile`, duration, and `operation_stop_at`. Create `coordination_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must identify the Skill, role, exact account, resolved audience/persona, duration, authorizations, and instruct it to wait for the executor registry without touching Chrome.
 4. Record the returned coordinator Thread ID and set title `TikTok 运营主任务`; pin it when the pin tool is available.
-5. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, sole Chrome ownership, ledger path, envelope, and callback schema, but must explicitly say: wait for `SELF_REGISTRY`; do not infer or guess your own Thread ID; do not send `THREAD_READY` and do not touch Chrome yet.
+5. Create `execution_thread` with `create_thread(model="gpt-5.6-luna", thinking="high")`. Its initial prompt must include the coordinator Thread ID, the Skill, dedicated-tab isolation, sole same-account mutation-writer authority, ledger path, envelope, and callback schema, but must explicitly say: wait for `SELF_REGISTRY`; do not infer or guess your own Thread ID; do not send `THREAD_READY` and do not touch Chrome yet.
 6. Record the returned executor Thread ID and set title `TikTok Chrome执行任务`; pin it when available.
-7. Send `SELF_REGISTRY` to the returned executor ID with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`. Include the exact executor ID, coordinator ID, account, ledger, and sole-owner role. Only then may the executor echo those exact supplied IDs in `THREAD_READY` to the coordinator.
+7. Send `SELF_REGISTRY` to the returned executor ID with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`. Include the exact executor ID, coordinator ID, account, ledger, dedicated-tab rule, and sole same-account mutation-writer role. Only then may the executor echo those exact supplied IDs in `THREAD_READY` to the coordinator.
 8. Send the executor registry and full operating envelope to the coordinator with `send_message_to_thread(model="gpt-5.6-luna", thinking="high")`.
 9. Read the latest turns from both Threads. Require a two-way handshake: coordinator knows the exact executor ID, executor received that exact ID through `SELF_REGISTRY`, and the coordinator received executor `THREAD_READY` through `send_message_to_thread`. Treat the callback transport `source_thread_id` plus bootstrap registry as authoritative; an ID mismatch blocks dispatch until corrected.
 10. The coordinator sets `dispatch_target` from the registered executor ID, verifies the tool-call target equals that value, and sends the read-only `stability_smoke_01` block with Luna/High override. Never reconstruct the target from the coordinator ID. If a failed call proves the actual target was a typo and no real Thread received it, record `dispatch_target_typo` and allow one corrected send to the registered ID; if the actual target already equaled the registry, stop instead of retrying. The executor begins only after the registry matches.
@@ -58,7 +58,7 @@ Require `gpt-5.6-luna` with `thinking=high` for both thread creation and every o
 | Audience/search strategy | Owns | Executes current envelope |
 | Authorization and decisions | Owns | Matches exact authority |
 | Thread registry and lifecycle | Owns | Cannot create/replace Threads |
-| Chrome and TikTok | Never touches | Sole owner |
+| Chrome and TikTok | Never touches | Own dedicated tab; sole same-account mutation writer |
 | Raw ledger | Read-only consumer | Sole writer |
 | Capability evidence | Interprets policy | Collects immediate/reload/account proof |
 | Reports | User-facing | Structured callback to coordinator |
@@ -82,7 +82,7 @@ Queue unrelated next work while the executor is running. Send an immediate amend
 
 For each message from the registered coordinator ID:
 
-1. Verify sender/registry, exact account, sole Chrome ownership, capability matrix, ledger tail, and stop conditions.
+1. Verify sender/registry, exact account, dedicated-tab isolation, sole same-account mutation-writer authority, capability matrix, ledger tail, and stop conditions.
 2. Execute only the bounded block or exact authorized action.
 3. Write raw events and persistence evidence to the sole ledger incrementally at the checkpoints defined by the active block; do not buffer a full browsing block only in conversational state.
 4. Release Chrome control at block completion or blocker.
@@ -98,7 +98,7 @@ Send a mid-block callback only for `blocked`, `validation_failed`, `needs_decisi
 Every dispatch includes:
 
 - Coordinator and executor Thread IDs.
-- Exact TikTok account and sole Chrome ownership.
+- Exact TikTok account, dedicated-tab isolation, and sole same-account mutation-writer authority.
 - Resolved `direction_profile`: persona, target audience, region/language, content pillars, excluded topics, voice, search seeds, future-post alignment, duration, and `operation_stop_at`.
 - Target audience, core/adjacent/excluded ontology, language, and region.
 - Approved search/hashtag/creator/sound clusters.
@@ -151,7 +151,7 @@ recommended_next_block:
 - Prefer soft-hook callbacks. For an unattended time-bounded run, use one coordinator-only heartbeat as a missed-callback/time-stop safety net; never attach an operating heartbeat to the executor.
 - On user stop, coordinator sends `STOP_AND_RELEASE` to the executor. Executor releases Chrome, writes a final checkpoint, callbacks `completed`, and both Threads remain idle and unarchived.
 - Archive either operating Thread only when the user explicitly asks.
-- If the executor disappears or becomes unusable, coordinator first checks uncertain submissions and Chrome ownership. Create a replacement persistent Luna/High executor only with explicit user authorization, update the registry, and repeat the handshake.
+- If the executor disappears or becomes unusable, coordinator first checks uncertain submissions and same-account mutation-writer state. Create a replacement persistent Luna/High executor only with explicit user authorization, update the registry, and repeat the handshake.
 - If the coordinator disappears, executor stops mutation, releases Chrome, and waits. It must not redirect reports to another Thread by guesswork.
 
 ## No fallback
