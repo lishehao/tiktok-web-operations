@@ -27,12 +27,16 @@ When login is missing:
 
 For a stale tab or dropped connection, reconnect to Chrome, obtain a fresh tab if needed, and re-read the page state. Do not switch browser surfaces merely because Chrome needs reconnection.
 
+Resolve the current Chrome Skill/runtime dynamically. Never import a hard-coded versioned plugin-cache path. Prefer supported Playwright locators; do not pass DOM-CUA objects/circular structures as coordinates, use unavailable page globals such as `NodeFilter`, or run broad text walkers to diagnose state.
+
 Classify recovery before changing authorization state:
 
 - **Soft control reconnect:** the Chrome automation/control client timed out or restarted, then reattached to the same Chrome profile and TikTok storage/session; the expected account is still visible; no warning/challenge appears; and no mutation was in flight or left uncertain. Re-audit account, URL, warnings, and pending submission state, then resume the existing standing comment envelope. Do not require a new user confirmation or a new persistence test solely because the control client reinitialized.
 - **Hard browser/runtime change:** the Chrome profile, TikTok account, login/cookie state, browser context, device verification state, or session identity changed or cannot be proven; or a mutation may have been interrupted. Disable standing mutation envelopes, inspect for uncertain submission, and call back for a new decision or authentication handoff.
 
 A soft reconnect may be logged as a runtime event, but it is not a new `key_risk` unless account continuity, warning state, or submission certainty cannot be established.
+
+Classify warnings only from explicit system UI such as CAPTCHA/challenge, login, rate-limit/restriction dialogs, alerts/status regions, TikTok banners/toasts, or account warnings. Caption, hashtag, comment, creator, and search-result text containing words such as `warning` or `verify` is content, not a platform warning. If the diagnostic locator/API fails, stop with warning state `unverified`; do not broaden the scan or repeatedly probe.
 
 If interruption happens near submit:
 
@@ -43,6 +47,8 @@ If interruption happens near submit:
 TikTok pages often render in stages. A search or upload page may expose only a shell for roughly 1-3 seconds. Wait for a concrete result card, file input, or empty-state message before declaring the page unavailable. TikTok Studio navigation may report a navigation timeout after the destination has actually loaded; inspect the final URL, title, and DOM before retrying.
 
 Do not treat a click, red heart, toast, count animation, or successful network response as final proof of an engagement action. Verify each lane with the action-specific settlement and persistence checks in `engagement-and-analytics.md`.
+
+Apply the bounded recovery budget in `stability-and-circuit-breakers.md`. One narrow recovery is allowed per distinct failure class; two consecutive same-class failures open the circuit and require idle wait for user or external-state change.
 
 ## Capability evidence isolation
 
