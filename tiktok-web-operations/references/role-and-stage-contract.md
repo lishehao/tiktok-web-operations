@@ -15,12 +15,18 @@ reads: public bundle, installed manifests, current login/account, user input.
 writes: launcher handoff record and immutable assignment reference.
 outputs: EXECUTOR_ASSIGNED or one concrete bootstrap repair request.
 never: become TikTok 主控台; operate a mission; own/create a Heartbeat; supervise;
-poll after handoff; receive callback; make later decisions; touch executor tabs.
+poll after handoff; receive callback; make later decisions; touch executor tabs;
+list/search/read/reuse/message/unarchive/revive/archive/replace historical executors.
 ```
 
 The first available presentation action is title `TikTok 启动台`. Healthy
 handoff does not rename or promote this task. It remains launcher and becomes
 idle. Rename failure is `DEGRADED_RENAME_UNAVAILABLE`, not a blocker.
+
+Every launch generates a new `run_id` and requires one fresh `create_thread`
+result. Same-title, archived, completed, or live historical executors are all
+ignored and untouched. A failed/uncertain create is a terminal launch failure;
+it never selects an old owner or creates a replacement.
 
 ### TIKTOK_EXECUTOR — `TikTok 执行台`
 
@@ -49,7 +55,7 @@ Every launcher or executor records exactly one applicable stage.
 | Stage | Owner | Work | Exit proof | Next |
 |-|-|-|-|-|
 | `L0_BOOTSTRAP` | launcher | immediate title; bundle validation/install; read-only preflight | healthy dependencies/login/account and released bootstrap tab | `L1_ASSIGN` |
-| `L1_ASSIGN` | launcher | resolve defaults; create one executor; send canonical assignment | exact executor ID, assignment hash, `ASSIGNMENT_ACCEPTED`; launcher idle | launcher `L2_IDLE`, executor `E0_SMOKE` |
+| `L1_ASSIGN` | launcher | resolve defaults; fresh-create one new executor; send canonical assignment | this create call's exact executor ID, new run ID, assignment hash, `ASSIGNMENT_ACCEPTED`; launcher idle | launcher `L2_IDLE`, executor `E0_SMOKE` |
 | `L2_IDLE` | launcher | no monitoring or operating work | none; new work requires a new explicit setup/mission invocation | terminal idle |
 | `E0_SMOKE` | executor | one read-only search-origin smoke and ledger append | account/tab stability, parseable ledger, zero mutation | `E1_RUN` |
 | `E1_RUN` | executor | continuous search-led training, held-out validation, authorized lanes, self-heartbeat | durable checkpoints until stop/cutoff | remain or `E2_HARD_REPAIR`/`E3_FINALIZE` |
@@ -75,7 +81,10 @@ without waiting for a timer.
 ## Audit checklist
 
 - Setup's first presentation action attempted `TikTok 启动台`.
-- Launcher created at most one executor and became idle after acceptance.
+- Launcher made exactly one fresh create attempt, used only its new returned ID,
+  and became idle after acceptance; create failure produced no reuse/replacement.
+- Old matching-title, archived, completed, and live executors were ignored and
+  left unchanged.
 - No `TikTok 主控台`, callback target, coordinator timer, or supervisor timer.
 - Executor owns exactly one self-target recurring Heartbeat and dedicated tab.
 - Runs never inspect, coordinate with, or block on other TikTok tasks.

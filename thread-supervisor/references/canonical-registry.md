@@ -39,6 +39,12 @@ The executor validates bytes/hash/its exact ID and records
 `ASSIGNMENT_ACCEPTED`. No callback target, coordinator identity, supervisor
 timer, or launcher-owned mutable state belongs in this schema.
 
+For `fresh_only_dispatch`, `run_id` is newly generated for every launch and
+`executor_thread_id` must equal the exact ID newly returned by that launch's
+single create call. No historical registry/mission/authority/ledger/timer/tab or
+same-title task is an input. If no exact new ID was returned, no assignment
+object may be created and no historical ID may be substituted.
+
 Direction, authority, and mission are independently versioned. The executor is
 their sole writer after acceptance, applying new user instructions at safe
 boundaries. Mutable progress, timer ID, next wake, resume cursor, lane state,

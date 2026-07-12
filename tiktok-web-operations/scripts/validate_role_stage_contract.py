@@ -17,6 +17,7 @@ def route(event: str):
         "direction_change":"EXECUTOR_VERSION_AT_SAFE_BOUNDARY",
         "deadline":"EXECUTOR_FINALIZE",
         "other_run_present":"IGNORE_USE_OWN_RESOURCES",
+        "historical_executor_present":"IGNORE_NO_INSPECTION_FRESH_CREATE",
     }[event]
 
 def main():
@@ -28,10 +29,11 @@ def main():
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     events = ("assignment_accepted","candidate_outside_scope","network_fault","captcha",
-              "direction_change","deadline","other_run_present")
+              "direction_change","deadline","other_run_present","historical_executor_present")
     scenarios = {e: route(e) for e in events}
     assert scenarios["captcha"] == "EXECUTOR_ASK_USER_DIRECTLY"
     assert scenarios["other_run_present"] == "IGNORE_USE_OWN_RESOURCES"
+    assert scenarios["historical_executor_present"] == "IGNORE_NO_INSPECTION_FRESH_CREATE"
     print(json.dumps({"status":"PASS","steady_role_count":2,"scenarios":scenarios}, sort_keys=True))
 
 if __name__ == "__main__": main()

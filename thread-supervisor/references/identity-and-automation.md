@@ -11,6 +11,8 @@ Mutable state associated with `executor_assignment/v1`:
 ```text
 launcher_title: TikTok 启动台 | DEGRADED_RENAME_UNAVAILABLE
 launcher_state: PREFLIGHT | ASSIGNING | IDLE
+dispatch_policy: FRESH_ONLY
+fresh_create_attempts: 0 | 1
 executor_thread_id:
 executor_title: TikTok 执行台
 executor_owner_state: NEW | ASSIGNMENT_ACCEPTED | ACTIVE | HARD_REPAIR | RELEASED
@@ -46,19 +48,19 @@ not a manager, callback target, replacement owner, or automation owner.
 Independent executors never list/read one another, inspect same-account state,
 reuse titles as identity, or claim another resource/timer.
 
-## Owner failure before handoff
+## Fresh-only creation failure
 
-`failed to resolve rollout path ... file does not exist` is
-`STALE_OWNER_TOMBSTONE`. Host unavailable, timeout, network, or tool transport
-fault is `LIVENESS_UNVERIFIED_TRANSIENT` and must not immediately create a
-duplicate.
+For a fresh-only launch, historical owner discovery and recovery do not exist.
+Do not list, search, read, reuse, unarchive, revive, message, archive, replace,
+or modify old executors, including same-title, archived, completed, stale, or
+currently live tasks. They remain untouched history.
 
-Before any external work, a launcher may create at most one clean replacement
-for a definitively failed new executor. Record old/new exact IDs and assignment
-ref. After accepted handoff the launcher is idle and does not monitor, revive,
-or replace the executor.
-
-Archived executors are retired and are never automatically unarchived.
+Make one fresh create attempt. If it fails or returns no exact new ID, record
+`FRESH_TASK_CREATION_FAILED|UNKNOWN` and stop this launch. Do not probe task
+lists, retry creation, create a replacement, or fall back to an old ID. If the
+new exact task cannot accept assignment, record `FRESH_TASK_ASSIGNMENT_FAILED`
+and stop without replacement. Owner-liveness/tombstone classification is not a
+TikTok launcher path.
 
 ## Heartbeat ownership
 

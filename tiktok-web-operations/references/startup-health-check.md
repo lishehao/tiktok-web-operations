@@ -14,6 +14,10 @@ chrome_control: AVAILABLE | RECONNECTED | UNAVAILABLE
 tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_tools: READY | UNAVAILABLE
+fresh_only_dispatch: REQUIRED
+fresh_create_attempts: 0 | 1
+fresh_executor_thread_id: NONE | exact newly returned id
+fresh_create_state: NOT_STARTED | CREATED | FAILED | UNKNOWN
 executor_profile_support: gpt-5.6-luna/high | UNAVAILABLE
 automation_support: AVAILABLE | UNAVAILABLE
 canonical_store: WRITABLE | UNAVAILABLE
@@ -65,12 +69,19 @@ use reversible defaults and never block dispatch.
 
 Follow `operating-model.md`:
 
-1. create exactly one `TikTok 执行台` with Luna/High and inert bootstrap;
-2. store exact returned ID;
+1. generate a new `run_id`; make exactly one fresh `create_thread` attempt for a
+   new `TikTok 执行台` with Luna/High and inert bootstrap;
+2. store only that call's exact newly returned ID;
 3. send one canonical `executor_assignment/v1`;
 4. require `ASSIGNMENT_ACCEPTED` before external work;
 5. release launcher Chrome and record `EXECUTOR_ASSIGNED`;
 6. launcher becomes `L2_IDLE` and performs no later supervision/callback work.
+
+The launcher must not list/search/read historical tasks, choose a same-title
+task, reuse/unarchive/revive/message/archive/replace an old executor, or inherit
+an old mission/registry/Heartbeat/tab/ledger. Old archived, completed, and live
+runs remain untouched. A create failure/unknown result ends this launch with one
+fresh-task error report and no fallback or replacement.
 
 The executor then performs the read-only smoke, creates/validates its own
 Heartbeat, and starts real mission work in its own task. Future user interaction

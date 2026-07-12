@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: immediately name setup TikTok 启动台, run preflight, create and assign one independent TikTok 执行台, then leave the launcher idle; the executor owns its Chrome tab, ledger, recovery, self-target recurring Heartbeat, and user reports while cultivating profile alignment plus a verified Favorite/Repost/short-comment activity proxy."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: immediately name setup TikTok 启动台, run preflight, fresh-create exactly one new independent TikTok 执行台 without searching or reusing any historical task, then leave the launcher idle; the executor owns its Chrome tab, ledger, recovery, self-target recurring Heartbeat, and user reports."

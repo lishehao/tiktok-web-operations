@@ -37,7 +37,7 @@ record the exact reason.
 Its first available presentation action is renaming the current task
 `TikTok 启动台`. It has one objective: install/upgrade and validate the bundle,
 run read-only Chrome/TikTok preflight, resolve the initial mission using explicit
-values plus safe defaults, create exactly one `TikTok 执行台`, send one canonical
+values plus safe defaults, fresh-create exactly one new `TikTok 执行台`, send one canonical
 assignment, verify that the assignment was accepted, release its disposable tab,
 then become idle.
 
@@ -45,6 +45,15 @@ The launcher never becomes `TikTok 主控台`, never creates or owns a Heartbeat
 never supervises the execution task, never receives callbacks, and never acts as
 a later risk or decision surface. A rename-tool failure is
 `DEGRADED_RENAME_UNAVAILABLE`; it does not block setup.
+
+Every setup/bootstrap/new operating start is `fresh_only_dispatch=true`. The
+launcher calls `create_thread` once and accepts only that call's newly returned
+exact task ID plus a new `run_id`. It must not list, search, read, reuse,
+unarchive, revive, replace, message, archive, or modify any historical TikTok
+executor. Old tasks remain untouched history whether their title matches, they
+are archived, or they are still live. If fresh creation fails or returns an
+uncertain result, report `FRESH_TASK_CREATION_FAILED|UNKNOWN` for this launch and
+stop; never fall back to an old task or make a replacement create call.
 
 ### TikTok 执行台 (`TIKTOK_EXECUTOR`)
 
@@ -67,7 +76,7 @@ Read `references/role-and-stage-contract.md` and
 | User request | Behavior |
 |-|-|
 | Installer/setup prompt | Rename to `TikTok 启动台`, automatically install/upgrade, validate, and run preflight in the same turn. |
-| Clear mission with a healthy installation | Use quick health reuse, resolve safe defaults, and create/assign the executor in the same turn. |
+| Clear mission with a healthy installation | Reuse only dependency health, resolve safe defaults, and fresh-create/assign a new executor in the same turn. Never reuse an operating task. |
 | `继续` or `开始` without details | Default to North American college/dorm life, 3 hours, standard intensity. |
 | Direction only | Use that direction and default duration to 3 hours. |
 | Duration only | Use the packaged college/dorm direction and that duration. |
@@ -143,7 +152,8 @@ continue.
   store, or bypass credentials.
 - Every executor creates and owns a dedicated tab. Never reuse a tab ID from a
   prompt, prior turn, memory, or another task.
-- Do not inspect, interrupt, archive, or coordinate with another TikTok task.
+- The launcher and executor do not list, search, read, inspect, interrupt,
+  message, unarchive, revive, archive, replace, or coordinate with another TikTok task.
   Another task using Chrome, TikTok, or the same account is not a blocker.
 - Classify stale binding/browser disconnect, DNS/network `ERR_*`, proxy/TLS,
   HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render faults separately.

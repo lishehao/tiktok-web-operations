@@ -56,26 +56,21 @@ trees, and continue dependency preflight in the same turn.
 
 ## Active-runtime fence
 
-Before replacing either Skill, inspect active managed TikTok runtimes only for
-hot-reload safety. Do not hot-reload an active launcher preflight or executor
-using an installed version. Download and validate the incoming bundle, then
-return `DEFERRED_ACTIVE_RUNTIME`. Retry only after the launcher is idle and every
-affected executor reports `RUN_RELEASED`. If runtime state cannot be inspected, return
-`BLOCKED_RUNTIME_UNVERIFIED`.
+Before replacing either Skill, consult only the durable installed-runtime state,
+registered automation bindings, or an exact current runtime ID already supplied
+to this install transaction. This check is solely for hot-reload safety. The
+launcher must not list/search/read historical TikTok tasks to discover owners.
 
-Treat a task as active only with current evidence that it is running, owns a
-TikTok/Chrome mutation session, has an uncertain submission, or has not released
-its executor. Historical, completed, archived, `notLoaded`, or otherwise idle
-tasks with released Chrome and no uncertain submission do not trigger the
-fence. Do not turn stale task history into an upgrade prompt.
+Do not hot-reload an active launcher preflight or executor using an installed
+version. Download and validate the incoming bundle, then return
+`DEFERRED_ACTIVE_RUNTIME`. Retry only after the exact affected runtime records
+`RUN_RELEASED`. If durable runtime state is active or cannot safely prove
+release, defer; do not browse task history, infer from titles, or mutate old
+tasks/automations to clear the fence.
 
-A definitive `STALE_OWNER_TOMBSTONE` is not an active runtime after all exact
-run automations targeting the missing ID are paused/removed and no uncertain
-submission evidence remains. A title/summary/search hit alone never triggers the
-fence. Conversely, host unavailable, timeout, network, or tool transport failure
-is only `LIVENESS_UNVERIFIED_TRANSIENT`; do not infer stale/released state from it.
-If replacement would otherwise proceed while liveness remains unverified, use
-`BLOCKED_RUNTIME_UNVERIFIED`.
+Historical, completed, archived, or same-title tasks are not operational inputs
+to a fresh launch and remain untouched. Fresh-only dispatch is independent from
+the upgrade fence: deferring installation never authorizes reuse of an old task.
 
 Publishing from an isolated release directory while an older installed runtime
 is active is allowed. Do not imply the installed version changed.

@@ -18,10 +18,11 @@ def main():
     required = ("executor_bootstrap/v1", "executor_assignment/v1", "canonical", "sort_keys=True",
                 "separators=(\",\", \":\")", "assignment_id", "executor_thread_id",
                 "direction_ref", "authority_ref", "mission_ref", "NO_CALLBACK_NO_SUPERVISION",
+                "fresh_only_dispatch", "exact ID newly returned", "newly generated for every launch",
                 "gpt-5.6-luna", "thinking\":\"high")
     missing = [x for x in required if x not in joined]
     assert not missing, missing
-    assignment = {"schema":"executor_assignment/v1","assignment_id":"a","run_id":"r",
+    assignment = {"schema":"executor_assignment/v1","assignment_id":"a","run_id":"fresh-r",
                   "executor_thread_id":"e","role":"TIKTOK_EXECUTOR",
                   "execution_profile":{"model":"gpt-5.6-luna","thinking":"high"},
                   "direction_ref":{"id":"d","version":1,"sha256":"1"*64},
@@ -35,7 +36,7 @@ def main():
     wrong = dict(assignment); wrong["executor_thread_id"] = "other"
     assert hashlib.sha256(canonical(wrong)).hexdigest() != digest
     print(json.dumps({"status":"PASS","assignment_sha256":digest,
-                      "scenarios":{"key_order_invariant":True,"exact_executor_required":True,
-                                   "no_callback_fields":True}}, sort_keys=True))
+                      "scenarios":{"key_order_invariant":True,"exact_fresh_executor_required":True,
+                                   "new_run_id_required":True,"no_callback_fields":True}}, sort_keys=True))
 
 if __name__ == "__main__": main()

@@ -17,8 +17,10 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
 1. Launcher verifies its title, bundle, tools, Chrome control, TikTok account,
    writable storage, local time, and ability to create the required task/profile.
 2. Resolve `direction_profile`, `authority_envelope`, `mission`, ledger path,
-   `operation_stop_at`, and a unique `run_id`.
-3. Create exactly one executor with an inert `executor_bootstrap/v1` object:
+   `operation_stop_at`, and a brand-new unique `run_id`. Do not read or inherit
+   any old mission, registry, Heartbeat, tab, ledger, task ID, or owner state.
+3. Set `fresh_only_dispatch=true` and call `create_thread` exactly once to create
+   a new executor with an inert `executor_bootstrap/v1` object:
 
 ```json
 {
@@ -30,8 +32,10 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
 }
 ```
 
-4. Record the exact returned executor ID and set title `TikTok 执行台`. Do not
-   discover/reuse an executor by title or inspect another TikTok task.
+4. Record only the exact new ID returned by this create call and set its title
+   `TikTok 执行台`. Same-name titles are non-unique presentation. Do not call
+   list/search/read on any historical task, and do not reuse, unarchive, revive,
+   message, archive, replace, or otherwise modify one.
 5. Serialize one canonical `executor_assignment/v1` as UTF-8 JSON using
    `sort_keys=True` and `separators=(",", ":")`. Store byte length and SHA-256.
 6. Send those exact stored bytes once to the exact new executor. Required fields:
@@ -64,10 +68,13 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
    monitoring. It releases its bootstrap tab, records `EXECUTOR_ASSIGNED`, and
    becomes idle. It neither waits for smoke proof nor reads the task again.
 
-If the newly created task definitively cannot accept the assignment before any
-external work, the launcher may create at most one clean replacement, retire
-the failed exact ID, and assign the replacement. Transient host/network/tool
-errors receive bounded recheck and do not immediately create duplicates.
+If `create_thread` fails, or its result is uncertain and no exact new returned ID
+is available, record `FRESH_TASK_CREATION_FAILED` or
+`FRESH_TASK_CREATION_UNKNOWN`, report this launch failure, and stop. Do not list
+tasks to discover whether one appeared, do not retry creation in the same
+launch, and do not fall back to or modify any historical executor. If the exact
+fresh ID exists but assignment acceptance fails, report
+`FRESH_TASK_ASSIGNMENT_FAILED`; do not replace it or use an old task.
 
 ## Executor initialization
 

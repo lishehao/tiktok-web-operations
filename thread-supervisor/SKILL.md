@@ -45,6 +45,12 @@ For this topology:
 - a launcher may read the exact newly-created task once only to verify assignment
   acceptance, then becomes idle.
 
+The calling domain may additionally require `fresh_only_dispatch=true`. TikTok
+does. In fresh-only dispatch, each setup/bootstrap/new run generates a new
+`run_id`, calls `create_thread` exactly once, and recognizes only the exact new
+ID returned by that call. Historical tasks are not candidates or recovery
+resources.
+
 TikTok declares `launcher_self_owned_executor`; do not apply coordinator rules
 to it.
 
@@ -58,7 +64,9 @@ to it.
 - Never guess an ID from a directory, prompt, previous run, or title.
 - Treat model/reasoning/service tier/host as an opaque `execution_profile`.
   Copy explicit caller values exactly; if none are supplied, omit overrides.
-- An archived domain executor is retired and is not automatically unarchived.
+- In fresh-only dispatch, never list/search/read/reuse/unarchive/revive/message/
+  archive/replace a historical executor. Matching title, archive state, liveness,
+  or readable summary is irrelevant and the old task remains untouched.
 
 Read `references/canonical-registry.md` and
 `references/identity-and-automation.md` before persistent assignment or timer
@@ -69,7 +77,8 @@ creation.
 1. Apply the domain's launcher title as the first available presentation action.
    Rename failure is presentation degradation, not a reason to duplicate tasks.
 2. Run the domain preflight and resolve one mission.
-3. Create at most one initial executor with an inert bootstrap object and
+3. Generate a new run ID and call `create_thread` exactly once for one fresh
+   executor with an inert bootstrap object and
    `external_work=forbidden_until_assignment_acceptance`.
 4. Store the exact returned ID and set the domain title.
 5. Build one canonical assignment containing exact executor ID, run ID,
@@ -80,12 +89,13 @@ creation.
 7. Launcher may read that exact task once to verify acceptance, releases its
    temporary resource, records handoff, and becomes idle.
 
-If the new executor definitively cannot accept before any external work, create
-at most one clean replacement. Host/network/tool transport failure is
-`LIVENESS_UNVERIFIED_TRANSIENT`; bounded-recheck it and do not immediately
-duplicate. `failed to resolve rollout path ... file does not exist` is
-`STALE_OWNER_TOMBSTONE`, but after a completed one-way handoff no launcher
-monitors or replaces a later missing executor.
+For fresh-only dispatch, `create_thread` failure or an uncertain result without
+an exact returned ID is `FRESH_TASK_CREATION_FAILED|UNKNOWN`. Report it for this
+launch and stop. Do not list/search tasks, retry create, select an old title,
+reuse/unarchive/revive/message/archive an old task, or create a replacement. If
+the exact fresh task cannot accept assignment, report
+`FRESH_TASK_ASSIGNMENT_FAILED` and stop without fallback. After handoff the
+launcher never monitors or replaces the executor.
 
 ## Self-owned recurring Heartbeat
 
@@ -137,7 +147,8 @@ automation, or pause because another task exists.
 
 - Naming follows the domain contract; title is not identity.
 - Archive only after terminal release or when the user explicitly requests it.
-- Never unarchive a retired executor just to reuse its title.
+- Fresh-only launchers never archive, unarchive, revive, or otherwise modify
+  historical executors; the executor may finalize only its own task resources.
 - A self-owned executor reports progress, hard blockers, and completion in its
   own task. The launcher has no pending-result reminders after handoff.
 

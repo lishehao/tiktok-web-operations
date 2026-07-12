@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.12.13`
+Protocol version: `2026.07.12.14`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -49,7 +49,7 @@ because an update exists.
 ```text
 TikTok 启动台
   install/upgrade -> read-only preflight -> resolve initial mission
-  -> create/assign one TikTok 执行台 -> verify acceptance -> idle
+  -> fresh-create/assign one new TikTok 执行台 -> verify acceptance -> idle
 
 TikTok 执行台
   read-only smoke -> create self-target recurring Heartbeat
@@ -62,6 +62,14 @@ coordinator/supervisor Heartbeat, centralized monitoring, or cross-run lock.
 Every execution task is independent and uses its own task ID, Chrome tab,
 ledger, and Heartbeat. Future user changes and true hard blockers are handled
 directly in `TikTok 执行台`.
+
+Every setup/bootstrap/new operating start is fresh-only. The launcher generates
+a new run ID and calls `create_thread` exactly once. It recognizes only that
+call's exact newly returned task ID. It never lists/searches/reads/reuses/
+unarchives/revives/messages/archives/replaces a historical executor, including
+same-title, archived, completed, or live tasks; those remain untouched history.
+If fresh creation fails or its result is uncertain, this launch reports the
+fresh-task creation failure and stops without retry, replacement, or fallback.
 
 The launcher uses `gpt-5.6-luna`/high for the executor exactly as required by the
 TikTok Skill. It never substitutes a subagent or Goal Mode.
@@ -118,6 +126,10 @@ From the repository root, run both Skill structural validators and all TikTok
 scenario validators. Required scenarios include:
 
 - setup immediate launcher rename;
+- old matching title ignored and untouched;
+- archived and live old runs ignored and untouched;
+- a fresh create is required for every new launch;
+- create failure produces no reuse, retry, or replacement;
 - launcher one-time dispatch then idle;
 - executor self-owned recurring Heartbeat;
 - no callback to launcher;
