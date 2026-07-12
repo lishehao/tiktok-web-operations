@@ -56,12 +56,12 @@ def main() -> None:
         "Hard blocker whitelist",
         "no_action_checkpoint",
         "global English with North American bias",
-        "Preferences are not authorization boundaries",
-        "Timed rate limits as automatic waits",
-        "Freeze that exact target/action",
-        "Only a live hard blocker",
-        "do not callback",
-        "no-gap replacement",
+        "Preferences such as region",
+        "auto-recheck",
+        "freeze exact target/action",
+        "asks the user directly",
+        "never returns to the launcher",
+        "replacement first",
     )
     absent = [term for term in required if term.lower() not in joined.lower()]
     assert not absent, f"missing blocker-minimization assertions: {absent}"

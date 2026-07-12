@@ -54,7 +54,7 @@ def main() -> None:
         "Like disabled",
         "mutation_allowed=false",
         "Zero outward actions is valid only when",
-        "not a proven internal TikTok weight",
+        "not proof of TikTok's private ranking weights",
     )
     absent = [term for term in required if term.lower() not in joined.lower()]
     assert not absent, f"missing dual-objective assertions: {absent}"

@@ -56,11 +56,11 @@ trees, and continue dependency preflight in the same turn.
 
 ## Active-runtime fence
 
-Before replacing either Skill, inspect active TikTok tasks and registries. Do
-not hot-reload a coordinator or executor using an installed version. Download
-and validate the incoming bundle, then return `DEFERRED_ACTIVE_RUNTIME`. Retry
-only after the executor reports `STOPPED_AND_RELEASED` and the coordinator is
-idle or retired. If runtime state cannot be inspected, return
+Before replacing either Skill, inspect active managed TikTok runtimes only for
+hot-reload safety. Do not hot-reload an active launcher preflight or executor
+using an installed version. Download and validate the incoming bundle, then
+return `DEFERRED_ACTIVE_RUNTIME`. Retry only after the launcher is idle and every
+affected executor reports `RUN_RELEASED`. If runtime state cannot be inspected, return
 `BLOCKED_RUNTIME_UNVERIFIED`.
 
 Treat a task as active only with current evidence that it is running, owns a

@@ -1,478 +1,144 @@
-# Starter Coordinator And Persistent Executor
+# Launcher And Self-Owned Executor
 
-Use exactly two user-visible persistent Codex Threads. The starter/install task
-becomes the coordinator; it creates one execution Thread. Both TikTok roles use
-`gpt-5.6-luna` with `thinking=high`. Never use a collaboration subagent, Goal
-Mode, or an agent tree for either role.
+Use two user-visible persistent Codex tasks for one run:
 
-Use `$thread-supervisor` for generic registration, callback, work-state,
-heartbeat fallback, stop/release, and archival mechanics. Read
-`$thread-supervisor/references/canonical-registry.md` and
-`$thread-supervisor/references/identity-and-automation.md` before creating either
-the executor or an automation. The canonical reference owns serialization,
-versioned envelopes, and reconciliation; this reference owns the TikTok-specific
-authority split and evidence contract.
+```text
+TikTok 启动台 --one-way assignment--> TikTok 执行台
+TikTok 启动台 --after acceptance--> idle
+TikTok 执行台 --self Heartbeat--> same TikTok 执行台
+```
 
-Role ownership, the bootstrap-to-coordinator transition, decision boundaries,
-and stage exit gates live only in `role-and-stage-contract.md`. Read it before
-this reference. This file does not redefine either role; it implements the
-registry, scheduler, callback, and finalization mechanics required by that
-contract.
+There is no long-term coordinator, callback, centralized scheduler, supervisor
+Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
+`thinking=high`. Never substitute a subagent, Goal Mode, or an agent tree.
 
-## Contents
+## One-way assignment
 
-- Starter self-registration and bootstrap creation
-- Stale-owner recovery
-- Hard tool and model requirements
-- Runtime responsibility handoff
-- Durable scheduler and first-install supervision
-- Execution envelope and default actions
-- Callback schema
-- Stop, release, and finalization
+1. Launcher verifies its title, bundle, tools, Chrome control, TikTok account,
+   writable storage, local time, and ability to create the required task/profile.
+2. Resolve `direction_profile`, `authority_envelope`, `mission`, ledger path,
+   `operation_stop_at`, and a unique `run_id`.
+3. Create exactly one executor with an inert `executor_bootstrap/v1` object:
 
-## Starter self-registration
+```json
+{
+  "schema":"executor_bootstrap/v1",
+  "run_id":"<uuid>",
+  "role":"TIKTOK_EXECUTOR",
+  "execution_profile":{"model":"gpt-5.6-luna","thinking":"high"},
+  "external_work":"forbidden_until_assignment_acceptance"
+}
+```
 
-The setup task must already have made `TikTok 启动台` its first available
-presentation action. After healthy preflight and bootstrap-tab release, prove
-that same task's exact ID, then promote it in place to coordinator; never create
-a second main task. The coordinator identity must be fixed before creating the
-executor:
+4. Record the exact returned executor ID and set title `TikTok 执行台`. Do not
+   discover/reuse an executor by title or inspect another TikTok task.
+5. Serialize one canonical `executor_assignment/v1` as UTF-8 JSON using
+   `sort_keys=True` and `separators=(",", ":")`. Store byte length and SHA-256.
+6. Send those exact stored bytes once to the exact new executor. Required fields:
 
-1. Generate a short unique `run_nonce` and, only when needed for exact ID proof,
-   temporarily rename the current task,
-   using the self-targeting title operation, to
-   `TikTok 启动台注册 · <run_nonce>`.
-2. Use `list_threads` with that exact title and require one matching current
-   local task in the expected project/directory context.
-3. Use `read_thread` on the returned ID and confirm the current bootstrap state,
-   account, direction handoff, and `run_nonce` are consistent.
-4. Record that returned ID as `coordinator_thread_id`. Never derive an ID from a
-   directory name, old prompt, previous run, or another task's callback.
-5. Create and persist the canonical `thread_bootstrap/v1` envelope. It contains
-   only run/coordinator identity, the exact Luna/High profile, and
-   `external_work=forbidden_until_registry_ack`. Do not create an incomplete
-   identity registry with `executor_id=NONE`, and do not duplicate bootstrap
-   fields in prose.
-6. Rename the same verified coordinator to the final title `TikTok 主控台`, pin it,
-   and verify presentation state when the tool exposes it. Final title/pin are
-   presentation only and must never replace the registered ID.
-7. If the rename tool is unavailable, record presentation degradation, preserve
-   the role transition and exact ID, and retry naming at the next safe point.
-   Do not block operation or create a duplicate main task. If zero or multiple
-   identity candidates remain, stop with
-   `BLOCKED_COORDINATOR_ID_UNVERIFIED`. Do not create a disposable coordinator or
-   start polling as a silent fallback.
+```json
+{
+  "schema":"executor_assignment/v1",
+  "assignment_id":"<uuid>",
+  "run_id":"<uuid>",
+  "executor_thread_id":"<exact returned id>",
+  "role":"TIKTOK_EXECUTOR",
+  "execution_profile":{"model":"gpt-5.6-luna","thinking":"high"},
+  "account":{"platform":"tiktok","handle":"<verified handle>"},
+  "direction_ref":{"id":"...","version":1,"sha256":"..."},
+  "authority_ref":{"id":"...","version":1,"sha256":"..."},
+  "mission_ref":{"id":"...","version":1,"sha256":"..."},
+  "ledger_path":"<private run path>",
+  "dedicated_tab_policy":"EXECUTOR_OWNED",
+  "automation_policy":"EXECUTOR_SELF_OWNED_REPEAT_ON",
+  "launcher_contact_policy":"NO_CALLBACK_NO_SUPERVISION"
+}
+```
 
-## Bootstrap creation contract
+7. Executor validates exact ID, role, profile, refs, bytes, and hash; stores the
+   assignment unchanged; writes `ASSIGNMENT_ACCEPTED` in its own task/ledger;
+   then starts the read-only smoke. A mismatch is
+   `ASSIGNMENT_RECONCILIATION_REQUIRED` before Chrome or mutation.
+8. Launcher may perform one immediate read of the exact newly-created executor
+   solely to confirm `ASSIGNMENT_ACCEPTED`. This is handoff validation, not
+   monitoring. It releases its bootstrap tab, records `EXECUTOR_ASSIGNED`, and
+   becomes idle. It neither waits for smoke proof nor reads the task again.
 
-Only after preflight is healthy and the user supplies direction/duration or
-accepts defaults:
+If the newly created task definitively cannot accept the assignment before any
+external work, the launcher may create at most one clean replacement, retire
+the failed exact ID, and assign the replacement. Transient host/network/tool
+errors receive bounded recheck and do not immediately create duplicates.
 
-1. Inspect active TikTok tasks for tab ownership, recommendation-attribution
-   contamination, and exact target/action submission collision. Another Chrome
-   owner or same-account executor is not a global blocker.
-2. Resolve `direction_profile`, duration, `operation_stop_at`, standing action
-   envelope, and a private ledger path.
-3. Complete starter self-registration and keep the starter as coordinator.
-4. Select the same saved project for the executor when clearly available;
-   otherwise create it as a projectless local Thread.
-5. Call `create_thread(model="gpt-5.6-luna", thinking="high")` exactly once for
-   the initial executor. Its prompt embeds the stored canonical bootstrap JSON
-   once, tells the executor to verify its hash, and says to wait for
-   `SELF_REGISTRY` without touching Chrome, TikTok, a ledger, or automations. Do
-   not independently restate account, authorization, role prose, direction,
-   ledger, or stop time in that prompt.
-6. Record the returned executor ID, set its final title to `TikTok 执行台`, and
-   explicitly keep it unpinned. Now finalize and persist one
-   `thread_identity_registry/v1` generation with structured role codes,
-   Luna/High profile, account, ledger, callback target, and writer/tab policies.
-   Create separate canonical direction, authority, and mission objects.
-7. Send `SELF_REGISTRY` to the exact returned executor ID with Luna/High by
-   copying the stored identity-registry bytes. Include its schema, ID,
-   generation, byte length, and SHA-256; do not render a prose equivalent.
-8. Require the executor to hash the received bytes, store them unchanged, and
-   callback `THREAD_READY` with the exact `registry_ref` to the registered
-   coordinator ID. Verify callback source, payload IDs, profile, and hash.
-9. Dispatch one read-only `stability_smoke_01` to the exact executor ID. Require
-   the acceptance criteria in `stability-and-circuit-breakers.md` before any
-   full calibration mission or mutation.
-10. Start the real mission immediately in the current user turn and validate its
-    first search-training evidence. Do not defer first proof to a timer.
-11. For a timed continuous run, the verified coordinator creates exactly one
-    recurring `coordinator_heartbeat` with explicit
-    `targetThreadId=coordinator_thread_id`. It is `repeat=on`, normally hourly,
-    has finite cutoff protection, and must pass exact ID/target/repeat/next-run/
-    local+UTC/deadline readback. Normal continuation is executor callback ->
-    coordinator validation -> immediate coordinator resume; the Heartbeat is
-    only a read-only watchdog and recovery fallback. The executor never manages
-    it, and no executor-targeted operation Heartbeat is created.
-12. Keep both tasks unarchived. Pin only `TikTok 主控台`; keep `TikTok 执行台`
-    unpinned. Navigate the app to the coordinator when useful.
+## Executor initialization
 
-If self-registration, creation, handshake, or smoke fails, do not claim stable
-operation. Do not create another coordinator or casually create another
-executor. A definitive stale owner may use the stale-owner replacement below;
-pre-Chrome mixed create/SELF snapshots may use exactly one
-`REGISTRY_RECONCILIATION` clean replacement. Both require automation cleanup,
-old/new ID evidence, one canonical owner, and no second retry. Preserve the
-failure evidence.
+After acceptance, executor:
 
-## TikTok stale-owner recovery
+1. creates its own ledger/checkpoint state;
+2. performs one read-only search-origin stability smoke;
+3. creates one recurring `executor_heartbeat` targeted to its own exact ID;
+4. validates repeat-on, next local/UTC time, and finite cutoff;
+5. starts real mission work immediately and continues across logical units.
 
-Apply `$thread-supervisor/references/identity-and-automation.md` before reusing
-or dispatching any registered executor:
+The timer is self-resume insurance, not a per-unit pause. If a turn can keep
+working safely, it does. At a natural yield it releases the owned Chrome tab and
+persists a cursor; the next self wake resumes.
 
-- title, role, search result, preview, readable summary, and `read_thread` cache
-  are candidate evidence only; require current-session owner-liveness proof;
-- an archived TikTok executor is retired and must not be automatically
-  unarchived for reuse;
-- `failed to resolve rollout path` plus `file does not exist`/`ENOENT` is
-  `STALE_OWNER_TOMBSTONE`, not a TikTok account/platform risk;
-- host unavailable, timeout, network, or tool transport errors are
-  `LIVENESS_UNVERIFIED_TRANSIENT`; retain the owner and do not replace it from
-  that evidence;
-- for a tombstone, run the generic stale executor replacement transaction once:
-  retire the old ID, create one replacement, verify exact new ID and mission
-  acknowledgement, update/read back the existing coordinator Heartbeat's
-  executor reference, and prove no legacy executor-targeted automation, orphan
-  automation, or duplicate canonical owner remains;
-- successful same-envelope replacement is internal self-healing. Only a failed
-  replacement/handshake/dispatch/binding becomes an orchestration blocker in
-  `TikTok 主控台`.
+## Self Heartbeat contract
 
-## Hard tool and model requirements
+The executor is simultaneously automation manager and target:
 
-Require `list_projects`, `create_thread`, `list_threads`, `read_thread`,
-`send_message_to_thread`, `set_thread_title`, and `set_thread_archived`.
-Use `set_thread_pinned` when available to pin the coordinator and unpin the
-executor. Missing presentation-only pin/navigation tools do not block operation;
-record the unavailable action internally.
-Require `automation_update` when the resolved run is timed and expected to span
-more than one model/runtime turn, or when the user requests unattended continuation.
-It must support explicit cross-thread `targetThreadId`, repeat-on recurrence,
-finite stop protection, and view readback. If unavailable, mark scheduled
-continuation degraded and say that multi-hour persistence is unavailable; never
-fake it with `COUNT=1`, worker self-renewal, or an assumption that one turn will
-remain open for the whole mission.
+```text
+automation_role=executor_heartbeat
+automation_manager_thread_id=executor_thread_id
+targetThreadId=executor_thread_id
+repeat=on
+operation_stop_at=<finite cutoff>
+```
 
-TikTok operations explicitly require `gpt-5.6-luna` plus `thinking=high` for the
-starter coordinator, executor creation, and operational dispatches. This is a
-TikTok domain requirement, not a default supplied by Thread Supervisor. If the
-runtime rejects it, stop rather than substitute another model or effort.
+Read back every create/update. A valid wake requires
+`waking_thread_id == targetThreadId == executor_thread_id`, matching run ID and
+automation ID. A mismatch performs no TikTok action.
 
-Fast Mode is a separate runtime/service-tier capability. Record it only when the
-current task or runtime proves it; never claim that `create_thread` propagated
-Fast Mode unless the tool surface exposes and confirms that field.
+Normal failures never retire the timer. Network, Chrome, route, renderer, Feed
+transition, empty candidates, and lane failures remain recoverable. Uncertain
+mutation is never retried but does not stop independent work. For a timer error,
+create/read back the correct replacement first, switch the stored binding, then
+retire the old timer so no continuation gap exists.
 
-## Runtime responsibility handoff
+## Independent-run invariant
 
-Follow `role-and-stage-contract.md` for the coordinator loop, executor
-discretion, risk routing, and mission-change boundary. This mechanics reference
-only enforces the accepted canonical references, one active mission, resumable
-checkpoint identity, exact automation binding, and terminal release proof.
+Each executor uses its own exact task ID, `run_id`, ledger directory, automation
+ID, and newly created Chrome tab. It does not list/read other TikTok tasks,
+search for same-account owners, claim their tabs, modify their timers, or pause
+because they exist. Cross-run recommendation attribution may therefore be
+uncertain; report feed movement as observed composition, never sole causation.
 
-## Callback continuation and stop watchdog
+Within its own ledger, avoid repeating the same target/action and never repeat
+an uncertain submission.
 
-Create one `coordinator_heartbeat` only after coordinator identity, executor
-handshake, stability smoke, and immediate real mission proof are verified. Store
-its exact ID, manager/target, repeat state, next run, local/UTC schedule,
-`operation_stop_at`, and `heartbeat_receipt_policy=always_three_lines`.
+## Reporting and hard blockers
 
-- Normal continuation is callback-driven. During one healthy activation the
-  executor finishes multiple logical training units and Feed checkpoints. At a
-  natural runtime boundary it writes a durable checkpoint, releases its owned
-  tab, and callbacks the coordinator. The coordinator validates the callback
-  and immediately resumes the same mission; it does not wait for a Heartbeat.
-- Coordinator heartbeat: target the exact coordinator, `repeat=on`, normally
-  hourly, with finite cutoff protection. It reads thread state, callbacks, and
-  progress proof; it never operates TikTok or dispatches over an already running
-  mission. If it proves the executor unexpectedly idle/yielded before cutoff,
-  a lost callback, or a due automatic retry condition, the coordinator resumes
-  the same mission from the latest validated checkpoint.
-- The continuation ledger records wake time, executor state
-  `running|yielded|recovering|blocked|terminal`, last validated progress
-  checkpoint, next retry condition, callback/proof, and mutation certainty.
-  Content training units remain in the raw execution ledger; they are not timer
-  slots.
-- On a coordinator wake, verify binding, deadline, current executor state,
-  checkpoint, repeat state, next run, recent ledger progress, executor liveness,
-  and terminal cutoff. A missing/broken continuation chain is
-  `SCHEDULER_CONTINUATION_FAILURE`; repair the same run binding without touching
-  Chrome. If the executor is running, record healthy/no-overlap and do nothing.
-  At or after stop time, dispatch only terminal release handling. Do not delete
-  a healthy timer because page work failed.
-- User mission changes are applied by the coordinator to canonical mission
-  references. Update the Heartbeat only when its stable operation template,
-  cadence, target, or cutoff actually changes.
-- Never create an executor-targeted operation Heartbeat, use `COUNT=1`, or
-  depend on the executor to schedule the next wake. Never let the executor
-  create, update, renew, pause, or delete an automation.
-- If automation support is unavailable, mark scheduled continuation `DEGRADED`,
-  disclose that durable recovery/stop timing is unavailable, and never fake
-  persistence by assuming one turn will remain open.
-
-### Heartbeat survival invariant
-
-A correctly bound run Heartbeat remains repeat-on and active through ordinary
-page, network, Chrome disconnect, route/client-block, renderer, Feed transition,
-and lane-specific mutation failures. These failures update the run ledger and
-auto-resume condition; they do not delete, pause, or recreate the timer. A later
-wake automatically retries only the safe failed surface and continues unaffected
-lanes without asking the user whether to retry.
-
-Uncertain mutation freezes only that exact target/action or affected mutation
-lane until certainty is resolved. The coordinator Heartbeat remains active,
-read-only search work may continue when safe, and the uncertain action is never
-retried.
-
-Retire a run Heartbeat only after explicit user stop, mission deadline,
-authorized objective completion plus terminal executor release, or verified
-replacement of a misbound/duplicate/misconfigured timer. For timer replacement,
-create and read back the correct replacement first, prove repeat/target/next-run/
-cutoff, atomically update the registry binding, then pause/delete the old timer.
-If replacement validation fails, preserve the old timer when safe and report a
-scheduler blocker; never create a continuation gap.
-
-### Three-line heartbeat receipt
-
-After the coordinator Heartbeat is created and every valid wake, provide a visible receipt
-even when progress is healthy:
+No callback schema exists. All progress, risk, user decisions, and final results
+stay in `TikTok 执行台`. Timed receipts are exactly:
 
 ```text
 本轮完成：<one sentence>
-下次心跳：<YYYY-MM-DD HH:mm timezone>
+下次心跳：<verified local date, time, and timezone, or why none exists>
 下轮计划：<one bounded purpose>
 ```
 
-Before reporting, view the registered Heartbeat and verify automation ID,
-target, repeat state, next run, and cutoff. Report that verified local tick.
-Only then persist/report the time. Use the user's local timezone and include the
-date. Do not show an automation ID.
+Ordinary recoveries are ledger entries, not user interruptions. Only the current
+human-only hard-blocker whitelist triggers a direct executor question.
 
-- Executor running: `本轮完成` states verified cumulative progress; `下轮计划`
-  says continuous training remains active and never dispatches overlapping work.
-- Executor yielded/idle before deadline: report the durable checkpoint and the
-  verified continuation wake or immediate resume.
-- Risk/decision pending: report the verified next safety/deadline tick when one
-  remains; `本轮完成` contains exact code, `可能原因`, and attempted recovery;
-  `下轮计划` contains the minimal user action and says no new TikTok action will
-  run meanwhile. Do not add a fourth line.
-- Schedule update/readback failure: keep any last verified timer active, use
-  `下次心跳：未确认（调度校验失败）`, and plan a no-gap binding repair.
-- Final tick: use `下次心跳：无（进入终止结算）` and plan to obtain final executor
-  release proof.
-- Finalized run: use `下次心跳：无（任务已完成）`; the whole-run compact result may
-  follow, without internal IDs.
+## Finalization
 
-The first-install `+15/+35/+60` schedule is implemented by temporarily adjusting
-the same coordinator Heartbeat during its first hour. It creates no additional
-automation; after the overlay is consumed, use the normal hourly cadence.
+On user stop, cutoff, or objective completion:
 
-## First-install supervision window
+1. stop new browsing and mutation;
+2. never retry an uncertain submission;
+3. release only the executor's tabs;
+4. reconcile final ledger/capability state;
+5. retire the exact self Heartbeat;
+6. write `RUN_RELEASED` and a compact result in the executor task.
 
-Use `${CODEX_HOME:-$HOME/.codex}/state/tiktok-web-operations/install-state.json`
-as private machine state outside both managed Skill trees. Store no handle,
-credential, cookie, browser state, or content history.
-
-- A true `INSTALL` writes `first_install_supervision=PENDING`. `UPGRADE`,
-  `NOOP`, force reinstall, and later missions never create or reset it.
-- Phase 1 does not start the clock because no executor exists. On the first real
-  operation, after verified handshake and successful stability smoke, set the
-  marker to `ACTIVE`, record start/end, and apply the first-hour checkpoint
-  cadence to the run's existing coordinator Heartbeat with exact binding proof.
-- Target cumulative checkpoints are approximately `+15`, `+35`, and `+60`
-  minutes from activation. Reuse/update the same exact coordinator Heartbeat;
-  never create a separate supervision automation. Cap the last
-  checkpoint at `operation_stop_at` when the run is shorter than one hour.
-- On wake, verify run/manager/target/automation identity, read the executor's
-  latest 1-3 relevant turns plus callback and ledger state, and do nothing to
-  Chrome/TikTok. Do not interrupt an in-progress executor.
-- On ordinary healthy progress emit only the fixed three-line heartbeat receipt.
-  A missed callback or non-completed state follows the main-console risk
-  consolidation contract while the run Heartbeat remains active. Ask the user
-  only when `decision_required=true`; otherwise the next wake rechecks the exact
-  `auto_resume_condition` and continues automatically.
-- At the overlay's final checkpoint, early user stop, or run end, persist
-  `CONSUMED`. Do not delete the run Heartbeat before terminal executor
-  release; retire it during whole-run
-  finalization. Never recreate the window for another run, upgrade, reinstall
-  over the same managed installation, or task restart.
-- If automation creation/readback is unavailable, persist `DEGRADED`, disclose
-  callback-only supervision once in `TikTok 主控台`, then treat the one-time window as
-  consumed rather than retrying on every future mission.
-
-## Mission execution envelope
-
-Every run uses a canonical `mission_dispatch/v2` object with exact
-`registry_ref`, `direction_ref`, `authority_ref`, and `mission_ref`, plus the
-mission generation, trigger/resume cursor, search clusters, sample thresholds,
-capability snapshot reference, lane states, and callback schema version. Full
-structured objects are retrieved from their accepted artifacts; do not duplicate
-them as hand-written prose in the dispatch.
-
-Before Chrome, reject an unknown or mismatched reference as
-`registry_mismatch` and run at most one `REGISTRY_RECONCILIATION`. A legitimate
-user change creates and acknowledges a new direction/authority/mission version;
-it never edits the identity registry or masquerades as a repair. Never include
-a Skill-development/bootstrap task as callback target.
-
-## Default action envelope
-
-- Defaults apply only to fields absent from the latest explicit user instruction.
-- Post like is disabled by default when not requested. When the latest instruction
-  explicitly authorizes it, set it to `pending_fresh_gate`; historical failures
-  stay in the ledger and do not require another confirmation.
-- Persistent cultivation/growth/account-strength missions default Favorite,
-  TikTok Repost, and proactive top-level comments to independent
-  `pending_fresh_gate` lanes unless the user narrows the mission to read-only.
-  Run the first gates on distinct strong-core posts. After each lane passes,
-  evaluate it in every training unit and use it selectively when a genuine,
-  non-repetitive candidate exists.
-- A successful proactive-comment gate activates standing
-  `autonomous_comment_mode` only for the exact account/direction/language/voice
-  envelope; it does not authorize replies, comment likes, follows, or DMs.
-- Favorite requires immediate, near +3 seconds, total +10 seconds, reload/reopen,
-  and account-level evidence when exposed.
-- Repost permits opening Share sheet read-only, then only the explicit TikTok
-  Repost control; generic Share, copy-link, send, and other targets are excluded.
-- Comments are contextual, preferably 2-12 words, never over 30 words, and must
-  survive reload verification.
-- Never set engagement quotas or infer ranking effects. Do not silently keep a
-  cultivation mission at `mutation_allowed=false`; a zero-action unit must log
-  the no-candidate/current-gate/repetition/safety reason. Report these actions as
-  `account_strength_proxy`, not a proven internal TikTok weight.
-
-## Callback schema
-
-```text
-status: completed | blocked | validation_failed | needs_decision | key_risk
-callback_scope: mission_checkpoint | risk_event | run_terminal
-terminal_event: NONE | EXECUTOR_RELEASED
-release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
-run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
-run_id:
-instruction_version:
-registry_ref:
-direction_ref:
-authority_ref:
-mission_ref:
-coordinator_thread_id:
-executor_thread_id:
-executor_generation:
-executor_owner_state:
-replacement_old_executor_thread_id:
-replacement_new_executor_thread_id:
-orphan_automation_check: NOT_RUN | CLEAR | FAILED
-duplicate_canonical_owner_check: NOT_RUN | CLEAR | FAILED
-segment_id:
-trigger: direct_first_segment | direct_manual | executor_callback | coordinator_heartbeat_recovery
-executor_state: running | yielded | recovering | blocked | terminal
-resume_checkpoint_ref:
-resume_condition:
-summary:
-sample_counts:
-search_results_assessed:
-qualified_search_views:
-feed_validation_status: not_run | verified | partial | unavailable | disabled
-feed_validation_sample_count:
-runtime_recovery_status: not_needed | recovered | failed | platform_risk
-recovery_class: none | tab_binding_stale | browser_disconnected | dns_network | proxy_tls | http_status | blocked_by_client | ambiguous_render
-error_code:
-failure_scope: none | tab | browser | network_global | tiktok_domain | target_page | platform
-recovery_attempts:
-account_reverified: true | false | not_needed
-likely_cause:
-likely_cause_basis:
-recovery_actions_attempted:
-user_action_required: true | false
-user_action:
-current_blocker:
-auto_resume_condition:
-composition:
-queries_used:
-actions_performed:
-mutations_count:
-concurrent_same_account_activity: true | false
-recommendation_attribution_contaminated: true | false
-exact_mutation_conflict: none | target/action
-capability_matrix_delta:
-risks:
-affected_scope: lane | current_block | whole_run
-safe_to_continue_read_only: true | false
-decision_required: true | false
-decision_options:
-ledger_path:
-recommended_mission_adjustment:
-```
-
-Every non-`completed` callback suspends only the affected scope. It never retires
-the correctly bound coordinator Heartbeat. Set
-`decision_required=true` only when a human action/choice is needed; its
-`decision_options` contains zero to three coordinator-ready choices, never a
-question addressed to the executor Thread. A current platform wait with an exact
-`auto_resume_condition` uses `decision_required=false`; the coordinator does not
-convert it into a confirmation prompt and resumes the latest authorized
-instruction after verified clearance. `completed` may also set
-`decision_required=false` when it
-  records non-actionable observations in `risks`, including a fully recovered
-  transient Chrome/network event. A persistent infrastructure failure becomes a
-  normal technical checkpoint with exact class, code, scope, attempts,
-  `likely_cause`, probe basis, automatic resume condition, and ledger evidence;
-  it does not prompt the user or masquerade as account enforcement. Only a live
-  hard blocker in `blocker-minimization.md` may return coordinator-ready
-  `blocked|needs_decision`.
-
-Only a terminal callback may use `callback_scope=run_terminal` or
-`terminal_event=EXECUTOR_RELEASED`; a normal `completed` callback must not use
-them.
-
-## Stop and recovery
-
-### Whole-run completion transaction
-
-At `operation_stop_at`, explicit user stop, or objective completion:
-
-1. The coordinator sets `run_terminal_state=STOP_REQUESTED`, records exactly one
-   `run_completion_reason`, and stops ordinary dispatch.
-2. It sends one terminal `STOP_AND_RELEASE` to the exact registered executor ID,
-   even when the executor appears idle.
-3. The executor performs no new browse or mutation. It stops the active block if
-   any, resolves submission certainty, releases its tab, appends a final
-   cumulative checkpoint, and callbacks once with
-   `callback_scope=run_terminal`, `terminal_event=EXECUTOR_RELEASED`, and
-   `release_state=STOPPED_AND_RELEASED`.
-4. The coordinator validates callback source/payload IDs, final ledger path,
-   release proof, cumulative browse/mutation counts, and zero unresolved action.
-   It then sets `EXECUTOR_RELEASED`, pauses/deletes its exact coordinator
-   Heartbeat,
-   sets `operation_timer_state=COMPLETE`, and marks `RUN_COMPLETED`.
-5. The coordinator gives the user one short final result. It does not callback a
-   bootstrap or Skill-development task and does not expose internal state names.
-
-If any final callback/release/certainty check fails, set
-`RUN_FINALIZATION_BLOCKED`, keep the evidence, and report one concise repair or
-decision. Never convert deadline arrival into successful completion.
-
-Keep the active/idle registered pair unarchived unless the user explicitly asks
-for full cleanup. When a released executor has been replaced in the registry and
-owns no heartbeat, Chrome tab, or uncertain mutation, unpin and archive that
-retired executor so it does not remain in the active task list.
-
-### Simple user result
-
-Use one line when finalization succeeds:
-
-```text
-运营完成。运行：<duration>；画像：<alignment summary>；活跃度代理：收藏 <count>、Repost <count>、评论 <count>、自然回应 <count|未复查>。风险：无｜<one short risk>。
-```
-
-If the user stopped early, start with `已安全停止。` instead. Do not show
-Heartbeat/callback/registry/release identifiers unless finalization is blocked.
-
-If the executor becomes unreachable, first classify it with the owner-liveness
-gate and resolve uncertain submissions. A definitive stale tombstone uses the
-single internal replacement transaction without user confirmation. A transient
-host/network/tool failure never creates a replacement. If replacement fails,
-report an orchestration blocker and stop. If the coordinator disappears, the
-executor stops mutation, releases Chrome, and waits; it never guesses a new
-callback destination.
+The launcher is not contacted, polled, unarchived, or repurposed.

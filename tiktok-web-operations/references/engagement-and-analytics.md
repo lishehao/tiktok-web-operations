@@ -72,8 +72,8 @@ proactive-comment persistence test that survives reload. After activation,
 verify every comment. Routine successes stay in the ledger. Persistence failure
 or removal suspends only autonomous comments; timed throttle auto-waits;
 submission uncertainty freezes only that exact comment. Report these in the next
-normal mission checkpoint. Use an immediate hard-blocker callback only for the
-whitelist in `blocker-minimization.md`.
+normal mission checkpoint. Ask the user directly in the executor only for the
+hard-blocker whitelist in `blocker-minimization.md`.
 
 Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
 

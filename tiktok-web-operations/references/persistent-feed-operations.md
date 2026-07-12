@@ -88,8 +88,8 @@ unit and do not yield merely because one unit completed.
    after it has become a qualified view. Zero comments remains valid only when
    no contextually strong, non-repetitive candidate exists or the lane is
    currently unavailable; record the reason.
-8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line suspends further browsing until the ledger is repaired; it does not retire either Heartbeat.
-9. Run held-out For You validation only after two distinct training units or roughly 20–30 qualified search views, unless the coordinator explicitly requests an earlier diagnostic.
+8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line suspends further mutation until the executor repairs the ledger; it does not retire the self Heartbeat.
+9. Run held-out For You validation only after two distinct training units or roughly 20–30 qualified search views, unless the user directly requests an earlier diagnostic in the executor task.
 
 The default unit success metric is qualified search consumption, not search-card relevance and not For You composition.
 
@@ -147,8 +147,8 @@ Prefer the visible native next/down control when it preserves playback, ordered 
 
 Incremental scroll/wheel gestures are not an automatic fallback. Under the
 packaged default, failure of the visible native next/down control ends only the
-current feed-validation sample and records `partial|unavailable`; do not callback
-or ask the user. If scroll was not already authorized/configured, abandon that
+current feed-validation sample and records `partial|unavailable`; do not ask the
+user. If scroll was not already authorized/configured, abandon that
 method for the runtime and continue search-led training. Never mix button,
 keyboard, wheel, script scroll, reload, or reset transitions in one checkpoint
 or recovery sequence. Direct URLs remain appropriate for exact verification and

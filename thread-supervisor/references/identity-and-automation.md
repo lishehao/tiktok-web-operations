@@ -1,451 +1,76 @@
 # Thread Identity And Automation Ownership
 
-Use this reference for every persistent coordinator/executor pair and every
-heartbeat attached to a Thread. A title, focused window, project directory, or
-old prompt is not identity proof.
+A title, focused window, list/search result, directory, cached summary, or old
+prompt is not task identity. Use the exact ID returned by `create_thread` and
+exact tool readback.
 
-## Canonical identity and mutable run state
+## Launcher/self-owned executor state
 
-Read `canonical-registry.md` first. The canonical identity registry is finalized
-only after `create_thread` returns the exact executor ID. Before creation, use
-the separate inert bootstrap envelope; never embed a second natural-language
-registry in the create prompt.
-
-The following fields are mutable runtime state associated with the accepted
-`registry_ref`; they are not part of its immutable serialized bytes:
+Mutable state associated with `executor_assignment/v1`:
 
 ```text
-coordinator_title:
-bootstrap_title: NONE | caller-supplied title
-starter_role_state: BOOTSTRAP | COORDINATOR
-presentation_state: HEALTHY | DEGRADED_RENAME_UNAVAILABLE
-executor_title:
-executor_owner_state: NONE | CANDIDATE_ONLY | LIVE | ARCHIVED_RETIRED | LIVENESS_UNVERIFIED_TRANSIENT | STALE_OWNER_TOMBSTONE | REPLACEMENT_IN_PROGRESS | REPLACED
-executor_generation:
-owner_liveness_probe_id: NONE | exact id
-owner_liveness_ack_id: NONE | exact id
-retired_executor_thread_ids: []
-stale_owner_error: NONE | exact error
-replacement_old_executor_thread_id: NONE | exact id
-replacement_new_executor_thread_id: NONE | exact id
-replacement_mission_dispatch_id: NONE | exact id
-replacement_operation_heartbeat_id: NONE | exact id
-orphan_automation_check: NOT_RUN | CLEAR | FAILED
-duplicate_canonical_owner_check: NOT_RUN | CLEAR | FAILED
-coordinator_pinned: true | false
-executor_pinned: true | false
-archive_temporary_on_complete: true | false
-archive_retired_executor_after_release: true | false
-registry_ref:
+launcher_title: TikTok 启动台 | DEGRADED_RENAME_UNAVAILABLE
+launcher_state: PREFLIGHT | ASSIGNING | IDLE
+executor_thread_id:
+executor_title: TikTok 执行台
+executor_owner_state: NEW | ASSIGNMENT_ACCEPTED | ACTIVE | HARD_REPAIR | RELEASED
+run_id:
+assignment_ref:
 direction_ref:
 authority_ref:
 mission_ref:
+ledger_path:
+automation_topology: self_owned_executor_tick
+automation_manager_thread_id: exact executor id
+executor_heartbeat_id:
+executor_heartbeat_target_thread_id: exact executor id
+executor_heartbeat_repeat: ON | OFF
+executor_heartbeat_next_tick_at:
 operation_stop_at:
-automation_topology: coordinator_tick | coordinator_managed_worker_tick
-heartbeat_automation_id: NONE | exact id
-heartbeat_target_thread_id: NONE | exact id
-operation_heartbeat_automation_id: NONE | exact id
-operation_heartbeat_target_thread_id: NONE | exact executor id
-operation_heartbeat_repeat: NONE | ON | OFF
-operation_heartbeat_next_tick_at: NONE | timestamp
-supervisor_heartbeat_automation_id: NONE | exact id
-supervisor_heartbeat_target_thread_id: NONE | exact coordinator id
-supervisor_heartbeat_repeat: NONE | ON | OFF
-supervisor_heartbeat_next_tick_at: NONE | timestamp
-operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
-operation_timer_next_tick_at: NONE | timestamp
-operation_timer_next_purpose: NONE | short bounded purpose
-operation_timer_stop_at: NONE | timestamp
-heartbeat_receipt_policy: silent_unless_event | always_three_lines
-run_terminal_state: RUNNING | STOP_REQUESTED | EXECUTOR_RELEASED | RUN_COMPLETED | RUN_FINALIZATION_BLOCKED
-run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
-executor_release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
-final_callback_id: NONE | exact callback id
-first_install_supervision_state: NOT_APPLICABLE | PENDING | ACTIVE | CONSUMED | DEGRADED
-first_install_supervision_started_at: NONE | timestamp
-first_install_supervision_ends_at: NONE | timestamp
-first_install_supervision_checkpoints: NONE | timestamps
-durable_install_state_path: NONE | local path outside managed Skill tree
-identity_state: UNVERIFIED | VERIFIED | MISMATCH
-pair_state:
+resume_cursor:
+run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 ```
 
-The identity registry itself holds run/coordinator/executor/account/profile/
-ledger/writer identity as structured enums and values. Direction, authorization,
-stop time, and current instruction are independently versioned canonical
-objects. Heartbeat IDs, next-run times, owner state, replacement history, slot
-state, and finalization state remain mutable ledger state. Never call that whole
-mutable record an immutable registry and never compare prose summaries.
+The launcher records only immutable handoff provenance and becomes idle. It is
+not a manager, callback target, replacement owner, or automation owner.
 
-The only authoritative identity sources are:
+## Identity proof
 
-- starter/coordinator: unique nonce title resolved with `list_threads`, then
-  confirmed with `read_thread` in the expected host/project/cwd context;
-- executor: the exact ID returned by `create_thread`, confirmed by
-  `read_thread` and the callback transport's `source_thread_id`;
-- callback destination: the registered coordinator ID;
-- automation management: the verified coordinator recorded as manager plus
-  `targetThreadId`, repeat state, next run, and cutoff returned by an
-  `automation_update` view of each exact automation ID.
+- executor identity: exact ID returned by creation plus assignment acceptance;
+- automation identity: exact automation ID and view readback;
+- valid self wake:
+  `waking_thread_id == targetThreadId == automation_manager_thread_id == executor_thread_id`;
+- external tab/resource: handle created and recorded by this executor in the
+  current control session.
 
-`list_threads`, search, title, role text, preview, readable summary, and cached
-metadata discover candidates only. Even a successful `read_thread` proves that
-the index can describe that ID; it does not by itself prove the underlying
-rollout still exists or accepts a new turn. Continuation authority additionally
-requires the owner-liveness gate below.
+Independent executors never list/read one another, inspect same-account state,
+reuse titles as identity, or claim another resource/timer.
 
-Never derive identity or writability from a directory suffix, copied URL,
-remembered ID, focused Codex window, task ordering, matching title/summary,
-another coordinator's registry, or an automation prompt.
+## Owner failure before handoff
 
-## Persistent owner liveness gate
+`failed to resolve rollout path ... file does not exist` is
+`STALE_OWNER_TOMBSTONE`. Host unavailable, timeout, network, or tool transport
+fault is `LIVENESS_UNVERIFIED_TRANSIENT` and must not immediately create a
+duplicate.
 
-Before every dispatch, heartbeat retarget, or executor reuse, classify the exact
-registered executor:
+Before any external work, a launcher may create at most one clean replacement
+for a definitively failed new executor. Record old/new exact IDs and assignment
+ref. After accepted handoff the launcher is idle and does not monitor, revive,
+or replace the executor.
 
-- `CANDIDATE_ONLY`: found by list/search/title/summary but not yet proven writable.
-- `LIVE`: exact ID/host/project match, task is not retired/archived, and one
-  nonce-bound `OWNER_LIVENESS_PROBE` or the pending inert mission preamble is
-  accepted and acknowledged from that exact ID in the current management
-  session.
-- `ARCHIVED_RETIRED`: the domain marks an archived executor retired. TikTok uses
-  this default; never automatically unarchive it for reuse.
-- `STALE_OWNER_TOMBSTONE`: an exact continuation/read path reports
-  `failed to resolve rollout path` together with `file does not exist`, `ENOENT`,
-  or an equivalent explicit missing/deleted rollout result. Stop sending to that
-  ID after the first definitive result. This is orchestration state, never
-  platform/account risk.
-- `LIVENESS_UNVERIFIED_TRANSIENT`: host unavailable, unavailable-host inventory,
-  timeout, connection reset, temporary network/tool transport failure, or an
-  otherwise non-definitive read/send error. Keep the canonical owner, perform at
-  most one bounded transport recheck, and do not archive, unarchive, retire, or
-  create a replacement.
+Archived executors are retired and are never automatically unarchived.
 
-Do not convert silence, an old update time, `notLoaded`, or one transient tool
-failure into a tombstone. Do not repeatedly send after a definitive missing-
-rollout error.
+## Heartbeat ownership
 
-## Thread presentation contract
+In `self_owned_executor_tick`, the executor alone creates, views, updates,
+replaces, and retires its timer. Require repeat-on and finite cutoff. Immediately
+verify exact ID, target, repeat, next local/UTC run, and cutoff.
 
-The calling domain supplies final titles and lifecycle policy. Use these generic
-defaults only when no domain values exist:
+If already running, a wake does no overlap. Ordinary technical/lane failure
+keeps the timer active. Uncertain submission is never retried. For a bad timer,
+create/read back the replacement, switch stored binding, then retire the old
+timer. Stop/deadline/completion begins finalization; retire only after external
+resource release and ledger reconciliation.
 
-```text
-coordinator_title = 主控台
-bootstrap_title = NONE
-executor_title = 执行器
-coordinator_pinned = false
-executor_pinned = false
-```
-
-Final titles may collide and must never be used to discover identity. When the
-calling domain supplies `bootstrap_title`, apply it as the first available
-presentation action. For starter self-registration, temporarily rename the task
-to `<bootstrap_title>注册 · <run_nonce>` when a bootstrap title exists, otherwise
-`<coordinator_title>注册 · <run_nonce>`; resolve and verify the exact Thread ID,
-store that ID in the registry, then promote the same task in place and set
-`coordinator_title` plus its pin state. If rename is unavailable, record
-`DEGRADED_RENAME_UNAVAILABLE`, preserve the exact task, and retry at the next
-safe point; never create a duplicate coordinator to obtain the desired title.
-The executor identity is the exact ID returned by `create_thread`; set
-`executor_title` and its pin state only after recording that ID.
-
-Keep identity in the canonical registry, changing direction/authority/mission in
-versioned objects, and duration/status/automation state in mutable run state—not
-in the title. After final naming, do not rename either task for routine state
-changes. A matching final title is never identity or ownership proof.
-
-Pinning is presentation state, not ownership proof. Never archive an active task,
-a task with a managed heartbeat or tab, or a task with unresolved external-action
-certainty. A domain may keep registered idle workers unarchived for reuse and
-archive only completed temporary diagnostics or released, retired workers.
-For TikTok, any executor already archived is `ARCHIVED_RETIRED`; do not unarchive
-it merely to test or resume dispatch.
-
-## Pair state machine
-
-Use one state at a time:
-
-```text
-BOOTSTRAP_NO_ID
-  -> COORDINATOR_VERIFIED
-  -> EXECUTOR_CREATED
-  -> PAIR_READY
-  -> ROUND_RUNNING
-  -> ROUND_COMPLETE -> ROUND_RUNNING
-  -> STOPPING
-  -> EXECUTOR_RELEASED
-  -> RUN_COMPLETED -> IDLE
-  -> RETIRED
-
-Any identity or automation mismatch -> IDENTITY_BLOCKED
-Any domain blocker -> BLOCKED_OR_WAITING
-Missing final release proof -> RUN_FINALIZATION_BLOCKED
-```
-
-`ROUND_COMPLETE` means one bounded round ended; it is never whole-run
-completion. A heartbeat tick is only a time signal. Declare `RUN_COMPLETED` only
-after a terminal executor callback proves release, final evidence is reconciled,
-and the coordinator has retired its managed run heartbeat(s).
-
-Before every thread dispatch, callback reconciliation, heartbeat creation,
-heartbeat update, heartbeat execution, stop request, replacement, or archive:
-
-1. Re-read the accepted `registry_ref`, current direction/authority/mission
-   references, and mutable run state.
-2. Resolve the exact relevant task with `read_thread`; treat title/search results
-   only as candidates.
-3. Apply the owner-liveness gate when a new turn or target binding is required.
-4. Compare actual tool target/source with the registered ID.
-5. Continue only when canonical references/hashes and exact tool IDs match and
-   owner state is `LIVE`.
-
-Do not repair an identity mismatch by guessing another target or by reusing a
-similar task title.
-
-For an initial `registry_mismatch`, run the one
-`REGISTRY_RECONCILIATION` transaction in `canonical-registry.md`. A contaminated
-create/SELF snapshot may be replaced once before external work; this is distinct
-from stale-owner replacement and must not be retried by alternating prose.
-
-## Stale executor replacement transaction
-
-Use this only after definitive `STALE_OWNER_TOMBSTONE`, never for transient host,
-network, or tool unavailability. A verified coordinator may self-heal without a
-user confirmation because replacement preserves the same account, mission,
-authority envelope, deadline, and executor role.
-
-1. Freeze new dispatch, set `executor_owner_state=REPLACEMENT_IN_PROGRESS`, and
-   record the exact error plus `replacement_old_executor_thread_id`.
-2. View every automation recorded in this run and, when inventory is available,
-   search for the same run ID targeting the old executor. Record exact old
-   operation Heartbeat IDs, but do not pause/delete them yet; the replacement
-   transaction must not create a continuation gap. Never mutate another run's
-   automation.
-3. Append the old ID to `retired_executor_thread_ids` as
-   `STALE_OWNER_TOMBSTONE`; never mutate the accepted registry generation, send
-   to that old ID, or automatically unarchive it again.
-4. Call `create_thread` at most once. Record the returned exact ID as
-   `replacement_new_executor_thread_id`, increment `executor_generation`, and
-   create one new canonical identity-registry generation naming it as the sole
-   executor. Title/summary search is not identity proof.
-5. Copy the new generation's canonical bytes through `SELF_REGISTRY`, complete a
-   nonce-bound `OWNER_LIVENESS_ACK`, and send the pending mission references
-   against the exact new ID. Record
-   `replacement_mission_dispatch_id`; do not perform TikTok mutation until the
-   new executor acknowledges the registry and mission.
-6. Create a new operation Heartbeat targeting the exact new ID; verify ID,
-   target, run, repeat, next run, and cutoff by readback before changing the
-   canonical binding. Record `replacement_operation_heartbeat_id`. Re-verify the
-   coordinator-target supervisor Heartbeat without changing its target. Only
-   after the new Heartbeat is proven and the registry points to it, pause/delete
-   the exact old-target run Heartbeats.
-7. Require zero active automations targeting the old ID and exactly one canonical live
-   executor. Set `orphan_automation_check=CLEAR`,
-   `duplicate_canonical_owner_check=CLEAR`, and `executor_owner_state=REPLACED`;
-   retain old/new IDs and binding evidence in the registry/ledger.
-8. Treat successful replacement as internal recovery and continue the unchanged
-   mission without asking the user. If the single replacement, handshake,
-   mission dispatch, or automation binding fails, create no second replacement;
-   callback the coordinator with an orchestration blocker.
-
-## Automation manager invariant
-
-Every run heartbeat is created, updated, paused, and deleted only by the exact
-verified coordinator:
-
-```text
-automation_manager_thread_id == coordinator_thread_id
-```
-
-The target depends on the calling domain's declared topology:
-
-```text
-coordinator_tick:
-  heartbeat_target_thread_id == coordinator_thread_id
-
-coordinator_managed_worker_tick:
-  operation_heartbeat_target_thread_id == executor_thread_id
-  supervisor_heartbeat_target_thread_id == coordinator_thread_id
-```
-
-In the second topology the operation heartbeat may wake the executor, but this
-does not give the executor ownership. The executor never creates, updates,
-renews, pauses, deletes, inherits, or retargets an automation. A bootstrap,
-installer, Skill-development task, sibling coordinator, or external supervisor
-must not manage the operating coordinator's automations.
-
-## Heartbeat creation transaction
-
-Only create a heartbeat when the user requested proactive timed continuation,
-callbacks are unreliable, or a domain Skill explicitly authorizes an unattended
-time-bounded run.
-
-A domain may define every multi-round duration as timer-authorized. It must also
-declare one supported topology. `coordinator_tick` uses one durable coordinator-
-target timer. `coordinator_managed_worker_tick` uses one repeat-on operation
-heartbeat targeting the executor and one lower-frequency repeat-on supervisor
-heartbeat targeting the coordinator. Neither topology may use per-round
-automations or `COUNT=1` followed by worker self-renewal.
-
-1. Require `identity_state=VERIFIED` and `pair_state=PAIR_READY` or
-   `ROUND_COMPLETE`.
-2. Set `automation_manager_thread_id` to the exact coordinator ID.
-3. Inspect existing automations. Reuse only one whose stored
-   `target_thread_id`, `run_id`, purpose/lane, and manager all match. Never update
-   a similarly named automation attached to another Thread.
-4. Create the required heartbeat(s) with explicit target(s) from the declared
-   topology. For worker-tick operation require `targetThreadId=executor_thread_id`;
-   for supervisor require `targetThreadId=coordinator_thread_id`. Include `run_id`
-   and a short role nonce in each name/prompt.
-5. Record each returned automation ID, then immediately call automation view on
-   each exact ID.
-6. Require every readback to match kind, status, name, run ID, target, repeat-on
-   state when required, next run, local/UTC schedule, and finite cutoff. Store
-   IDs/targets only after this proof.
-7. If readback is missing or mismatched, mark `AUTOMATION_TARGET_MISMATCH` and
-   do not dispatch external work from that heartbeat. Preserve any previously
-   verified timer. Create and verify one correct replacement first; only then
-   atomically switch the registry binding and retire the invalid timer.
-
-If the current transaction itself created a misbound Heartbeat, create and read
-back one correctly bound replacement before deleting the misbound timer. If the
-replacement cannot be verified, keep any previously verified continuation
-timer active; isolate the misbound timer from external work and report the
-scheduler blocker. Never delete or retarget a pre-existing automation with a
-different manager; report it to the user or its verified manager.
-
-## Heartbeat update and deletion
-
-Before update or deletion, view the exact automation ID and verify:
-
-- `targetThreadId` equals the registered target for that automation role;
-- stored `run_id` and purpose match the registry;
-- the current Thread is the verified coordinator/manager;
-- no replacement automation transaction is in flight.
-
-If any check fails, do not mutate the automation. Return
-`AUTOMATION_OWNERSHIP_MISMATCH` with expected and actual IDs.
-
-When updating, preserve stable fields and change only cadence, active watchlist,
-notification policy, target replacement, or stop time authorized by the
-user/domain envelope. A page, action, network, Chrome, route/client-block,
-renderer, callback, or lane failure is never a reason to pause/delete a correctly
-bound run Heartbeat. When replacing an invalid timer, prove the new timer and
-switch the registry binding before retiring the old one. When the run retires
-after terminal release, the verified coordinator deletes or pauses only its
-registered Heartbeat and clears the automation fields from its registry.
-
-### Heartbeat survival decision table
-
-| Event | Timer action |
-|-|-|
-| Network timeout/reset/DNS change | Keep operation and supervisor Heartbeats repeat-on; later wake runs bounded recovery |
-| `ERR_BLOCKED_BY_CLIENT`, route fault, blank renderer, Chrome disconnect | Keep timers; preserve exact failure and auto-resume condition |
-| One action lane fails persistence | Keep all timers; suspend only that lane |
-| Mutation submission is uncertain | Keep timers; never retry that submission; other safe lanes may continue under domain policy |
-| CAPTCHA/login/rate limit/current warning | Keep timers; later wake may perform only the safe state recheck until cleared |
-| Heartbeat is misbound/duplicate/misconfigured | Create and verify correct replacement, switch binding, then retire old timer |
-| User stop, mission deadline, authorized objective complete | Keep timers until terminal external-resource release proof, then retire them |
-
-There is no generic `failure -> delete Heartbeat` transition. A technical
-failure may change work state, retry scope, or user reporting, but not timer
-liveness. Do not ask the user whether to retry an ordinary technical failure;
-retry automatically on the later valid wake within the original mission.
-
-## Heartbeat firing gate
-
-On every wakeup, the target Thread must verify its identity and automation role
-before reading or acting:
-
-1. For coordinator tick/supervisor wake, the waking Thread equals the registered
-   coordinator target. For operation wake, it equals the registered executor
-   target.
-2. The automation ID equals the registered ID for that role.
-3. The active executor ID, run ID, account/project, authority envelope, and stop
-   time match the registry.
-4. The executor is either idle/yielded with a valid resume checkpoint, or the
-   wake is supervisor-only. If already running, take no overlapping action.
-5. The stop time has not passed. A lane-local or recoverable technical circuit
-   may remain open; the wake may perform only its recorded safe recheck and then
-   resume unaffected work when the exact condition clears.
-
-If the wakeup lands in the wrong Thread, do not forward it, operate the external
-system, dispatch the executor, or adopt that automation. Report
-`MISBOUND_HEARTBEAT_NO_ACTION`. The verified coordinator then performs a no-gap
-replacement: create/read back the correct timer, switch the registry binding,
-and only afterward retire the misbound timer.
-
-## Heartbeat receipt transaction
-
-The calling domain selects `heartbeat_receipt_policy`. Keep
-`silent_unless_event` as the generic default; use `always_three_lines` only when
-the domain or user explicitly requires a visible receipt for every valid tick.
-
-For `always_three_lines`, after each valid coordinator/supervisor heartbeat:
-
-1. Reconcile work completed since the previous tick and choose at most one next
-   bounded action. If the executor is still running, the next action is to wait
-   for its callback; never overlap it.
-2. Compute the next relevant tick as the earlier of the useful cadence and
-   `operation_stop_at`. View all registered run heartbeat(s), and require their
-   readback schedule/target/ID/repeat/cutoff to match. Update only when the
-   calling domain's cadence or operation template actually changed.
-3. Only after successful readback, store `operation_timer_next_tick_at` and
-   `operation_timer_next_purpose`, then emit exactly three concise lines in the
-   coordinator Thread:
-
-```text
-本轮完成：<one sentence>
-下次心跳：<YYYY-MM-DD HH:mm timezone>
-下轮计划：<one bounded purpose>
-```
-
-Use the user's local timezone and include the date. Never display an inferred or
-unverified schedule. If update/readback fails, use
-`下次心跳：未建立（调度校验失败）` and set the plan to safe pause/repair.
-
-At the final tick use `下次心跳：无（进入终止结算）`; at `RUN_COMPLETED` use
-`下次心跳：无（任务已完成）`; while waiting for a user decision, report the
-verified next safety/deadline tick when one remains, otherwise use
-`无（等待你的决定）`. Heartbeat IDs, registry fields, and internal state names
-remain hidden.
-
-## Callback identity gate
-
-Accept a worker callback only when all of these match:
-
-- transport `source_thread_id == executor_thread_id`;
-- payload coordinator/executor IDs match the registry;
-- payload run ID and ledger match the registry;
-- callback target is the exact coordinator ID;
-- the reported block ID is the currently running block.
-
-A callback received by a Skill-development, bootstrap, sibling, or historical
-Thread is misrouted evidence, not permission for that Thread to coordinate the
-run.
-
-## Whole-run completion transaction
-
-When the deadline is reached, the user stops, or the authorized objective is
-complete:
-
-1. The verified coordinator sets `run_terminal_state=STOP_REQUESTED`, records one
-   completion reason, and dispatches no further ordinary work.
-2. Send one terminal `STOP_AND_RELEASE` or domain-equivalent message to the exact
-   executor ID, even when the executor appears idle. It must add no new external
-   action; it only resolves submission certainty, releases owned resources,
-   appends a final ledger checkpoint, and returns one terminal callback.
-3. Accept that callback only through the normal identity gate. Require
-   `terminal_event=EXECUTOR_RELEASED`, `release_state=STOPPED_AND_RELEASED`, final
-   cumulative evidence, and no unresolved external action.
-4. Set `run_terminal_state=EXECUTOR_RELEASED`, then verify and delete/pause only
-   every coordinator-managed run heartbeat. Mark `operation_timer_state=COMPLETE`.
-5. Reconcile the final ledger/counters and set `run_terminal_state=RUN_COMPLETED`.
-   The coordinator then emits one user-facing completion summary in its own
-   Thread. It never callbacks a bootstrap or Skill-development Thread.
-
-If the executor is missing, the callback identity fails, release is unverified,
-or submission certainty is unresolved, set `RUN_FINALIZATION_BLOCKED`. Do not
-claim completion or delete evidence merely because the deadline or a heartbeat
-arrived.
+Domains explicitly selecting coordinator-managed timers use their own contract;
+they do not override a self-owned executor domain.
