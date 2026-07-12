@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor to preflight, keep this task as pinned TikTok 主控台, create one unpinned Luna/High TikTok 执行台, prove the first block immediately, then let only the coordinator manage the executor-target operation heartbeat and coordinator-target supervisor heartbeat."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: finish preflight, make this task TikTok 主控台, create one TikTok 执行台, and enforce the role-and-stage contract so each executor wake completes one bounded block, releases Chrome, callbacks, and idles."

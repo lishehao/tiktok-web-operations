@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.12.7`
+Protocol version: `2026.07.12.8`
 
 ## 直接安装
 
@@ -139,29 +139,29 @@ TikTok 执行台  gpt-5.6-luna / high  [不置顶]
 统一命名格式为 `<平台> <职责>台`。只置顶 `TikTok 主控台`；注册中的
 `TikTok 执行台` 即使 idle 也保持未置顶、未归档，以保留历史和回调身份。
 
-完整状态机：
+两个稳态角色只有一个目标：
+
+| Thread | 唯一目标 | 不负责 |
+|-|-|-|
+| `TikTok 主控台` | 决定下一块做什么，或停止；统一承接用户、调度、风险和结算 | Chrome/TikTok、逐条视频判断、原始 ledger 写入 |
+| `TikTok 执行台` | 完成当前唯一 block，证明、释放 Chrome、回调、idle | 长期策略、用户决策、Heartbeat、创建 Thread、下一轮调度 |
+
+启动任务在用户第二条消息前只是临时 `BOOTSTRAP_STARTER`；它完成预检并释放临时 Chrome tab 后，才转换为 `TikTok 主控台`。Heartbeat 只是唤醒信号，不是第三个角色。
+
+阶段状态机：
 
 ```text
-HTTPS 安装/版本比较
-  -> 两个 Skills 原子安装或 NOOP
-  -> Chrome/TikTok/Thread/Automation 只读预检
-  -> 询问方向和时长，等待用户第二条消息
-  -> 当前任务自注册为唯一 coordinator
-  -> 保存 canonical inert bootstrap
-  -> 只创建一个 Luna/High executor
-  -> executor ID 返回后冻结 identity registry
-  -> SELF_REGISTRY bytes/hash + THREAD_READY ref 双向身份握手
-  -> executor 完成只读 stability smoke
-  -> 当前用户回合立即执行并验收首个真实 bounded block
-  -> coordinator 创建 repeat-on executor operation heartbeat
-  -> coordinator 创建低频、只读 supervisor heartbeat
-  -> executor 每次 wake 只完成一个 bounded slot；callback 回主控台
-  -> 到期/停止/风险 -> STOP_AND_RELEASE
-  -> executor 最终结算并回传 EXECUTOR_RELEASED
-  -> coordinator 验证释放/最终 ledger -> 清理两个 heartbeat
-  -> RUN_COMPLETED -> 向用户返回一条简短总结果 -> idle
-  -> 活跃主控/执行台保持未归档；临时诊断与已释放的退休执行台归档
+S0_PREFLIGHT
+  -> S1_MISSION
+  -> S2_PAIR_BOOTSTRAP
+  -> S3_RUNTIME_SMOKE
+  -> S4_FIRST_BLOCK
+  -> S5_SCHEDULED_RUN <-> S6_PAUSED
+  -> S7_FINALIZE
+  -> S8_IDLE_COMPLETE
 ```
+
+每个阶段都必须有上一阶段的真实 exit proof；Heartbeat 到点、block callback 或 deadline 本身都不能跳阶段或代表整场完成。详细职责、阶段入口/出口和局部判断边界以 `tiktok-web-operations/references/role-and-stage-contract.md` 为唯一权威。
 
 启动顺序：
 

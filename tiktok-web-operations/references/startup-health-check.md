@@ -5,6 +5,19 @@ ends with a guided user handoff, and creates no executor. Phase 2 begins only
 after the healthy user supplies direction/duration or accepts defaults. The
 starter task itself becomes the coordinator.
 
+Use `role-and-stage-contract.md` for the `BOOTSTRAP_STARTER` to
+`TIKTOK_COORDINATOR` transition and stage exit gates. This file owns preflight
+checks and handoff content only.
+
+## Contents
+
+- Phase 1 install and preflight
+- Healthy guided handoff
+- Resolve the second user message
+- Phase 2 pair creation handoff
+- Default action envelope
+- Healthy started response
+
 ## Phase 1 — install and preflight
 
 Record internally:
@@ -108,7 +121,9 @@ Run checks in order:
    executor's unresolved submission or the exact colliding target/action.
 11. Read local time and create a writable private ledger path. Initialize every
    mutation lane independently without modifying TikTok.
-12. Finalize only the disposable bootstrap tab and release its control session.
+12. Finalize only the disposable bootstrap tab, release its control session,
+    and record that browser authority is revoked before the starter can become
+    `TikTok 主控台`.
 
 If blocked, return only the first repairable issue and impact, ending with
 `完成后回复“继续”`. A blocked `继续` rechecks only that item and is not an
@@ -152,7 +167,8 @@ application advice, pure study motivation, and generic non-campus content.
 
 ## Phase 2 — keep this task and create one executor
 
-Follow `operating-model.md` exactly:
+Follow `role-and-stage-contract.md` for ownership/stages and
+`operating-model.md` for mechanics:
 
 1. Temporarily rename this task `TikTok 主控台注册 · <run_nonce>`, resolve and
    verify its exact Thread ID, persist one canonical inert bootstrap envelope,

@@ -90,6 +90,14 @@ reporting schema as inputs or constraints, not additional worker missions. If a
 prompt gives either role multiple independent goals, rewrite it into this role
 card plus a bounded input contract before dispatch.
 
+Require the calling domain to declare one authoritative role-and-stage contract:
+each role has one objective plus explicit `owns`, `reads`, `writes`, `outputs`,
+and `never` fields; each stage has one active owner, entry condition, exit proof,
+and next state. A bootstrap role may transition into the coordinator only after
+releasing any external resource the coordinator is forbidden to own. Heartbeats
+are wake signals, never extra roles or stage-completion proof. Thread Supervisor
+enforces that contract but does not restate or broaden it.
+
 - Keep the starter task as coordinator when it can prove its own exact Thread ID.
   Use the temporary nonce registration title in
   `references/identity-and-automation.md`, resolve the exact matching task with

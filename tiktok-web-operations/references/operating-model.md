@@ -13,48 +13,22 @@ the executor or an automation. The canonical reference owns serialization,
 versioned envelopes, and reconciliation; this reference owns the TikTok-specific
 authority split and evidence contract.
 
-## Topology
+Role ownership, the bootstrap-to-coordinator transition, decision boundaries,
+and stage exit gates live only in `role-and-stage-contract.md`. Read it before
+this reference. This file does not redefine either role; it implements the
+registry, scheduler, callback, and finalization mechanics required by that
+contract.
 
-```text
-Starter task
-  phase 1: install/upgrade -> read-only preflight -> ask direction/duration -> wait
-  phase 2: temporary nonce title -> prove own ID -> final title TikTok 主控台 [pinned]
-           -> create one executor -> final title TikTok 执行台 [unpinned]
-           -> handshake -> immediate first block and proof
-           -> repeat-on executor operation heartbeat + read-only coordinator supervisor heartbeat
-           -> bounded scheduled operating rounds
-```
+## Contents
 
-The starter task remains the user-facing coordinator and is never archived as
-part of successful bootstrap. The executor owns only this run's dedicated Chrome
-tabs and is this run's sole raw-ledger writer. Other independent runs may operate
-the same account in other tabs; record attribution contamination and pause only
-exact target/action submission conflicts.
-
-## Role cards
-
-```text
-TikTok 主控台
-objective: advance or stop the authorized run at the correct time and own every
-user decision.
-inputs: direction profile, authorization, capability matrix, callbacks, two
-heartbeat readbacks, slot ledger summary, current time, operation_stop_at.
-output: scheduler configuration/update, one consolidated user decision, or stop.
-never: Chrome/TikTok work, raw per-item analysis, Skill development, concurrent
-dispatches.
-
-TikTok 执行台
-objective: execute exactly the current bounded block, record evidence, release
-Chrome, callback, and idle.
-inputs: accepted canonical references plus one immediate dispatch or one operation-heartbeat slot.
-output: ledger checkpoints plus one structured callback.
-never: long-term strategy, user questions, self-recovery beyond the explicit
-budget, scheduling, another block, another Thread, Skill development.
-```
-
-Persona, target audience, search clusters, interaction policy, and validation
-rules are constraints carried in the dispatch. Do not restate them as parallel
-goals in either role prompt.
+- Starter self-registration and bootstrap creation
+- Stale-owner recovery
+- Hard tool and model requirements
+- Runtime responsibility handoff
+- Durable scheduler and first-install supervision
+- Execution envelope and default actions
+- Callback schema
+- Stop, release, and finalization
 
 ## Starter self-registration
 
@@ -180,91 +154,12 @@ Fast Mode is a separate runtime/service-tier capability. Record it only when the
 current task or runtime proves it; never claim that `create_thread` propagated
 Fast Mode unless the tool surface exposes and confirms that field.
 
-## Authority split
+## Runtime responsibility handoff
 
-| Concern | Starter coordinator | Execution Thread |
-|-|-|-|
-| User conversation and strategy | Owns | Never owns |
-| Direction and next block | Owns | Executes current envelope |
-| Authorization and lifecycle | Owns | Matches exact authority |
-| Heartbeat/automation | Creates/manages operation heartbeat targeting executor and supervisor heartbeat targeting itself | Receives operation wakes; never creates, updates, renews, pauses, or deletes |
-| Chrome and TikTok | Never touches | Dedicated tabs; this-run mutation writer |
-| Raw ledger | Read-only consumer | Sole writer |
-| Capability evidence | Interprets | Collects immediate/reopen/account proof |
-| Reporting | User-facing | Structured callback |
-
-## Coordinator loop
-
-1. Receive the executor callback and read at most the latest relevant 1-3 turns
-   when more evidence is necessary.
-2. Verify callback transport source, payload canonical references, both Thread
-   IDs, ledger, current block ID, executor generation, and owner-liveness state
-   against the accepted identity registry and current versioned envelopes.
-3. Reconcile search cards assessed, qualified search views, held-out For You
-   validation, query quality, capability changes, pending user work,
-   authorization, deadline, and risk. Never treat card relevance as consumed
-   training evidence.
-4. If status is `blocked`, `validation_failed`, `needs_decision`, or `key_risk`,
-   pause the affected scope and inspect `decision_required`. When true,
-   consolidate one user-facing decision in `TikTok 主控台`:
-   risk, exact error code, evidence-bounded `可能原因`, same-domain/neutral probe
-   evidence, recovery actions already attempted, affected lane/block/run, what
-   has already stopped, whether read-only work remains safe, one minimal user
-   action, and at most three options.
-   Do not tell the user to inspect or reply in `TikTok 执行台`.
-5. When `decision_required=false`, do not ask the user to reconfirm or choose a
-   recovery tier. Store the latest instruction plus `auto_resume_condition` and
-   update the same operation heartbeat to a bounded read-only recheck slot; the
-   supervisor heartbeat never touches Chrome or dispatches TikTok work. Resume the unchanged instruction automatically after a
-   verifiable external-state change clears the blocker. When
-   `decision_required=true`, resume only after the user decides in `TikTok 主控台`.
-   Never treat a worker-local reply or its final message as user authorization.
-6. Otherwise choose the next bounded block template or stop. The default is one
-   complete search-training block: three assessed five-card clusters and
-   normally 9–15 qualified opened/watched core posts. Run a separate 5–10 item
-   held-out For You validation only after two training blocks or roughly 20–30
-   qualified views.
-7. For a scheduled run, update the existing operation heartbeat's bounded block
-   template only when strategy/authorization changes; never dispatch a parallel
-   ad-hoc round. For a one-block/manual run, send one direct message to the exact
-   executor. In either case verify `registry_ref`, `direction_ref`,
-   `authority_ref`, `mission_ref`, block/slot identity, and callback target
-   before execution.
-8. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
-
-Routine per-video observations stay in the ledger. Callback only on completed
-block, `blocked`, `validation_failed`, `needs_decision`, `key_risk`, uncertain
-submission, authorization mismatch, or stop/release.
-
-A transient Chrome/network error that fully recovers inside the bounded budget
-does not create an event callback or standalone user message. Preserve it in the
-ledger and ordinary completed callback; the coordinator folds one short
-`<exact code> 已恢复；可能原因：...` clause into the next three-line receipt's
-`本轮完成` line. Never add a fourth recovery/risk line.
-
-A feed-validation transition failure may return `status=completed` with
-`feed_validation_status=partial|unavailable`, `decision_required=false`, and a
-search-training next block when account/login/warning/tab/search-playback safety
-remains healthy. It is not a `validation_failed` whole-run callback. After two
-consecutive lane failures, disable/defer only the feed-validation lane for the
-current runtime.
-
-Block completion is not whole-run completion. A Heartbeat tick is not a callback
-and never proves release.
-
-For every timed operation expected to exceed one bounded block, use two
-coordinator-managed recurring heartbeats after first-block proof:
-
-- the operation heartbeat wakes the exact executor and is the durable round
-  scheduler;
-- the lower-frequency supervisor heartbeat wakes the coordinator and is the
-  read-only continuation/proof watchdog.
-
-Callbacks remain the primary event signal. Neither heartbeat may overlap an
-active slot, bypass a circuit breaker, create tasks, or create descendant
-automations. Each wake must match the registered automation ID, run ID, role,
-target Thread, and stop guard. A mismatch returns
-`MISBOUND_HEARTBEAT_NO_ACTION` and performs no TikTok action.
+Follow `role-and-stage-contract.md` for the coordinator loop, executor
+discretion, risk routing, and mission-change boundary. This mechanics reference
+only enforces the accepted canonical references, one active block, callback
+identity, exact automation binding, and terminal release proof.
 
 ## Durable operation scheduler
 
@@ -365,33 +260,6 @@ credential, cookie, browser state, or content history.
 - If automation creation/readback is unavailable, persist `DEGRADED`, disclose
   callback-only supervision once in `TikTok 主控台`, then treat the one-time window as
   consumed rather than retrying on every future mission.
-
-## Executor loop
-
-For each direct message from the registered coordinator ID or verified operation
-heartbeat wake targeted to this executor:
-
-1. Verify the accepted identity/direction/authority/mission references, both
-   exact IDs, account, Luna/High profile, dedicated-tab isolation, this-run
-   writer authority, capability matrix, ledger tail, stop time, current block,
-   automation ID, and deterministic slot ID when heartbeat-triggered.
-2. Execute only that bounded block or exact authorized action.
-3. Append raw evidence at the checkpoints required by the active TikTok block.
-4. Release only the executor's Chrome control at completion or terminal failure.
-5. Callback once to the coordinator with Luna/High and the schema below.
-6. For a non-`completed` result, set `decision_required` from actual need. Use
-   `false` for a known current wait-and-recheck condition with an exact
-   `auto_resume_condition`; use `true` only when human action, missing/expanded
-   authorization, or a non-inferable safety decision is required. Do not ask the
-   user a question or propose continuation in the executor Thread. Its final
-   response may only say that the result was sent to `TikTok 主控台` and it is idle.
-7. Become idle. Never self-dispatch, create another Thread, spawn an agent, or
-   create/update/renew/pause/delete an automation. A completed slot never
-   schedules its successor.
-
-For an ordinary block use `callback_scope=block`, `terminal_event=NONE`, and
-`release_state=NONE`. For terminal `STOP_AND_RELEASE`, skip ordinary block work
-and follow the whole-run completion transaction exactly once.
 
 ## Execution envelope
 

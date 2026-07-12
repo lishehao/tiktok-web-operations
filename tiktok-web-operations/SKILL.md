@@ -47,7 +47,10 @@ pair unarchived, including while idle. An already archived TikTok executor is
 retired and is never automatically unarchived for reuse. Archive only completed temporary probes or
 a released, retired executor after removing its heartbeat/tab/mutation ownership.
 
-Use `references/operating-model.md` for the exact creation, handshake, callback, lifecycle, and recovery protocol.
+Use `references/role-and-stage-contract.md` for the authoritative role cards,
+decision boundary, stage machine, and phase exit gates. Use
+`references/operating-model.md` for creation, registry, callback, scheduler,
+finalization, and recovery mechanics.
 Before any persistent Thread or heartbeat action, also read
 `$thread-supervisor/references/canonical-registry.md` and
 `$thread-supervisor/references/identity-and-automation.md`.
@@ -61,7 +64,7 @@ Before any persistent Thread or heartbeat action, also read
 | Broad operating request | all relevant references below |
 | Research trends or choose content | `references/loci-content-system.md`, `references/platform-boundaries.md` |
 | Browse/scroll or leave short comments | `references/feed-browsing-and-comments.md`, `references/engagement-and-analytics.md`, `references/platform-boundaries.md` |
-| Persistently calibrate recommendations | `references/operating-model.md`, `references/stability-and-circuit-breakers.md`, `references/persistent-feed-operations.md`, `references/engagement-and-analytics.md`, `references/runtime-and-recovery.md` |
+| Persistently calibrate recommendations | `references/role-and-stage-contract.md`, `references/operating-model.md`, `references/stability-and-circuit-breakers.md`, `references/persistent-feed-operations.md`, `references/engagement-and-analytics.md`, `references/runtime-and-recovery.md` |
 | Upload, publish, or schedule | `references/publishing-and-scheduling.md`, `references/platform-boundaries.md` |
 | Review comments or analytics | `references/engagement-and-analytics.md`, `references/loci-content-system.md` |
 
@@ -135,18 +138,14 @@ topic such as `dogs` into a Chinese- or English-only audience.
 
 When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. Any later explicit direction, duration, intensity, or action change supersedes the corresponding old mission fields and updates the executor authority envelope before the next block without a second confirmation.
 
-## Execution Thread Loop
+## Operating Stage Gate
 
-1. Read the coordinator Thread ID and operating envelope: account, objective, audience, exclusions, authorizations, stop conditions, ledger path, and result schema.
-2. Confirm this exact Thread is this run's registered TikTok executor. Create or recover only its own dedicated Chrome tab, then verify TikTok account, time context, visible warnings, capabilities, and any exact target/action submission collision. Other same-account tasks are allowed.
-3. Read account health, current page state, recent relevant history, and ledger tail.
-4. For recommendation work, run the search-training block in `references/persistent-feed-operations.md`; label `core`, `adjacent`, `irrelevant`, and `harmful_to_direction`. Search cards only assess query quality. Count training only after opening a strong-core result from search/bridge, verifying direct post identity/playback, and watching through its premise/payoff.
-   Treat For You as a separate held-out validation block, normally 5–10 continuous items after two training blocks or 20–30 qualified search views. Preserve its native-feed invariants, but a lane-local transition failure must not erase completed search training or stop a healthy search-led run.
-5. Run Check A before drafting and Check B on the exact action. Never mechanically reuse a comment, caption, hook, or asset.
-6. Before any mutation, require exact action-time confirmation or a matching active standing action envelope.
-7. Execute one state-changing action at a time. Gate every action type independently and verify persisted state.
-8. Update this run's sole-writer ledger, including slot state and concurrent-account attribution fields.
-9. At block completion or a meaningful event, call `send_message_to_thread` to the registered coordinator ID with `model=gpt-5.6-luna`, `thinking=high`, and the structured result. Then become idle until a direct message or the next verified operation-heartbeat wake; never schedule that wake itself.
+Before either Thread acts, read `references/role-and-stage-contract.md`, record
+exactly one current stage, and require the previous stage's exit proof. The main
+console chooses the next bounded outcome; the executor makes only candidate-
+level judgments inside that accepted block. One executor wake means one block,
+one released Chrome session, one callback, then idle. A timer never changes a
+stage or proves completion by itself.
 
 ## Control Rules
 
