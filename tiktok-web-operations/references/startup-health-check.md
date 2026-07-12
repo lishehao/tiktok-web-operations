@@ -60,7 +60,8 @@ Apply explicit values first. Safe defaults:
 - direction: North American college/dorm life;
 - duration: 3 hours, standard intensity;
 - universal lifestyle region/language: `global English with North American bias`;
-- cultivation lanes: Favorite/Repost/Comment `pending_fresh_gate`; Like disabled;
+- cultivation lanes: Like/Favorite/Repost/Comment are four independent
+  `pending_fresh_gate` lanes with `parallel_engagement=true`;
 - browse-only lanes: all mutations disabled.
 
 Ask only when a missing value changes authorization or an irreversible action.

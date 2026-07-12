@@ -56,8 +56,9 @@ weight.
 4. **Qualified consumption** — From those results, open strong `core` posts individually from the search surface, verify the direct post identity/playback, and watch through the premise/payoff or completion when reasonably short. Returning without opening the post is not consumption.
 5. **Bridge consumption** — From a consumed core post, optionally open one relevant creator, hashtag, sound, or related-search path and consume another core post when it adds audience context.
 6. **Sparse explicit feedback** — For cultivation/growth/account-strength
-   missions, Favorite, TikTok Repost, and proactive comment are standing
-   `pending_fresh_gate` lanes unless the user narrows the run to read-only. Run
+   missions, post Like, Favorite, TikTok Repost, and proactive comment are four
+   standing `pending_fresh_gate` lanes with `parallel_engagement=true` unless the
+   user narrows the run to read-only. Run
    each fresh gate on a distinct strong-core post, then choose the smallest
    genuine verified signal. Every unit must evaluate opportunities; zero
    outward actions requires an explicit no-candidate/current-lane/repetition/
@@ -203,13 +204,17 @@ Keep these feedback lanes separate:
 - **Community feedback:** comment like is its own capability type. Use it only for a comment that genuinely represents the desired community voice; do not mass-like comment sections.
 - **Social participation:** proactive comments require either exact confirmation or a matching active autonomous-comment envelope; replies still require exact confirmation. Submit once and require post-reload visibility.
 
-Do not stack like + favorite + repost + comment on every good post. Use distinct
-posts for first capability gates, then the smallest justified signal. A natural
+Do not stack like + favorite + repost + comment on every good post. During each
+qualified view, evaluate all four lanes before leaving the post and execute the
+justified verified action(s) immediately. Normally Like may accompany at most one
+higher-intent action; use distinct posts for first capability gates, then the smallest justified signal. A natural
 operating profile includes many read-only decisions, a few strong candidates,
 and sparse verified mutations. For a cultivation/growth mission, an executor
-must not silently downgrade the whole run to read-only: it records candidate
-evaluation and uses at least one eligible verified lane when a genuine candidate
-exists, without converting this into a per-unit numerical quota.
+must not silently downgrade the whole run to read-only or postpone interaction
+until after viewing: it records all-lane candidate evaluation on every qualified
+video and uses each eligible verified lane at least once per operating round
+when a genuine candidate exists. Missing candidates require an exact logged
+reason, not a fabricated quota fill.
 
 An ended warning, rate limit, or failed gate from an older mission is historical
 evidence, not a continuing blocker. When the latest explicit instruction requests

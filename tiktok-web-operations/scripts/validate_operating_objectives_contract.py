@@ -28,7 +28,8 @@ def envelope(intent: str) -> dict[str, object]:
             "favorite": "pending_fresh_gate",
             "repost": "pending_fresh_gate",
             "comment": "pending_fresh_gate",
-            "like": "disabled",
+            "like": "pending_fresh_gate",
+            "parallel_engagement": True,
         }
     raise ValueError(intent)
 
@@ -51,7 +52,7 @@ def main() -> None:
         "Favorite",
         "TikTok Repost",
         "proactive comment",
-        "Like disabled",
+        "parallel_engagement=true",
         "mutation_allowed=false",
         "Zero outward actions is valid only when",
         "not proof of TikTok's private ranking weights",
@@ -81,7 +82,8 @@ def main() -> None:
     assert scenarios["cultivation"]["favorite"] == "pending_fresh_gate"
     assert scenarios["cultivation"]["repost"] == "pending_fresh_gate"
     assert scenarios["cultivation"]["comment"] == "pending_fresh_gate"
-    assert scenarios["cultivation"]["like"] == "disabled"
+    assert scenarios["cultivation"]["like"] == "pending_fresh_gate"
+    assert scenarios["cultivation"]["parallel_engagement"] is True
     assert scenarios["verified_candidate"] == "USE_SMALLEST_GENUINE_SIGNAL"
     assert scenarios["no_candidate"] == "ZERO_WITH_EXACT_REASON"
     assert scenarios["gate_unavailable"] == "ZERO_WITH_EXACT_REASON"

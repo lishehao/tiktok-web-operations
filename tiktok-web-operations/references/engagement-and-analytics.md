@@ -25,7 +25,7 @@ or off-direction viewing.
 4. Draft replies only where the account can add a concrete answer, clarification, acknowledgment, or useful follow-up.
 5. Treat proactive comments on other creators' posts as a separate authorized
    lane. A cultivation/growth/account-strength mission supplies a standing
-   `pending_fresh_gate` envelope unless narrowed to read-only; other requests
+   `pending_fresh_gate` envelope with `parallel_engagement=true` unless narrowed to read-only; other requests
    need explicit authorization. Once active, use
    `feed-browsing-and-comments.md`; do not turn it into an activity quota.
 
@@ -78,8 +78,9 @@ hard-blocker whitelist in `blocker-minimization.md`.
 Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
 
 In a cultivation/growth mission, candidate evaluation is mandatory even though
-action counts are not quotas. If a qualified, non-repetitive candidate exists
-and its lane is verified, use one fitting Favorite, Repost, or proactive comment
+action counts are not quotas. Evaluate Like, Favorite, Repost, and proactive
+comment immediately while each qualified post is open. If a qualified,
+non-repetitive candidate exists and its lane is verified, use the fitting action
 rather than defaulting the whole unit to read-only. When no action is taken,
 record the exact no-candidate, current-gate, repetition, safety, or rights reason.
 
