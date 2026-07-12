@@ -7,11 +7,12 @@ import json
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
-IDENTITY = ROOT / "thread-supervisor/references/identity-and-automation.md"
-OPERATING = ROOT / "tiktok-web-operations/references/operating-model.md"
-SKILL = ROOT / "tiktok-web-operations/SKILL.md"
-README = ROOT / "README.md"
+TIKTOK_SKILL = Path(__file__).resolve().parents[1]
+BUNDLE_CONTAINER = TIKTOK_SKILL.parent
+IDENTITY = BUNDLE_CONTAINER / "thread-supervisor/references/identity-and-automation.md"
+OPERATING = TIKTOK_SKILL / "references/operating-model.md"
+SKILL = TIKTOK_SKILL / "SKILL.md"
+README = BUNDLE_CONTAINER / "README.md"
 
 
 def classify_owner(*, archived: bool = False, error: str = "", ack: bool = False) -> str:
@@ -92,7 +93,7 @@ def main() -> None:
         "identity": IDENTITY.read_text(),
         "operating": OPERATING.read_text(),
         "skill": SKILL.read_text(),
-        "readme": README.read_text(),
+        "readme": README.read_text() if README.exists() else "",
     }
     joined = "\n".join(documents.values())
 

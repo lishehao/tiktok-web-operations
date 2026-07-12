@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.12.5`
+Protocol version: `2026.07.12.6`
 
 ## 直接安装
 
