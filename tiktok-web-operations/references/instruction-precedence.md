@@ -14,7 +14,7 @@ Latest instructions do not override:
 - submission certainty and never-repeat rules;
 - platform rights/disclosure requirements;
 - the 30-word proactive-comment ceiling;
-- independent tab/ledger/Heartbeat ownership.
+- independent tab/ledger/one-shot-wake ownership.
 
 ## Update behavior
 
@@ -26,7 +26,8 @@ latest user wording actually grants it.
 Historical warnings, expired rate limits, old failures, and previous recovery
 tiers remain evidence only. Pause a scope only from current page/tool evidence.
 Recoverable technical and lane-local failures auto-recover or suspend the exact
-scope while the mission and self Heartbeat remain active.
+scope. If a later retry requires yield, the executor creates one verified,
+run/sequence-unique self-target one-shot wake.
 
 Another task using Chrome, TikTok, or the same account is not an instruction
 conflict and is never inspected as part of mission operation. The executor uses

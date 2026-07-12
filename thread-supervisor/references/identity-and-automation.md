@@ -28,13 +28,15 @@ mission_ref:
 ledger_path:
 automation_topology: self_owned_executor_tick
 automation_manager_thread_id: exact executor id
-executor_heartbeat_id:
-executor_heartbeat_target_thread_id: exact executor id
-executor_heartbeat_repeat: ON | OFF
-executor_heartbeat_next_tick_at:
+pending_wake_id: NONE | tiktok-wake-<run_id>-round-<round_seq> | tiktok-recovery-<run_id>-<recovery_seq>
+pending_wake_target_thread_id: NONE | exact executor id
+pending_wake_occurrences: NONE | 1
+pending_wake_next_at: NONE | exact local/UTC timestamp
 operation_stop_at:
 cooldown_minutes: NONE | integer 10..20
 cooldown_until: NONE | exact local/UTC timestamp
+round_seq: non-negative integer
+recovery_seq: non-negative integer
 resume_cursor:
 run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 ```
@@ -85,20 +87,22 @@ TikTok launcher path.
 
 ## Heartbeat ownership
 
-In `self_owned_executor_tick`, the executor alone creates, views, updates,
-replaces, and retires its timer. Require repeat-on and finite cutoff. Immediately
-verify exact ID, target, repeat, next local/UTC run, and cutoff.
+In `self_owned_executor_tick`, the executor alone creates, views, consumes, and
+retires its one-shot timers. Create none at assignment acceptance. At a round
+checkpoint require one occurrence, a run/round-unique ID, exact self target,
+next local/UTC wake, and a wake earlier than mission cutoff. Verify readback
+before yield.
 
-If already running, a wake does no overlap. Ordinary technical/lane failure
-keeps the timer active. Uncertain submission is never retried. For a bad timer,
-create/read back the replacement, switch stored binding, then retire the old
-timer. Stop/deadline/completion begins finalization; retire only after external
-resource release and ledger reconciliation.
+If already running, a wake does no overlap. On a valid wake, record consumption,
+delete/retire the expired automation if still present, clear `pending_wake_id`,
+and resume. Uncertain submission is never retried. A misbound or uncertain wake
+does no external work and is not silently replaced in the same checkpoint.
 
-For an inter-round cooldown, retain the same Heartbeat. Early wakes before
-`cooldown_until` are no-op; the due wake clears cooldown state and resumes.
-Never create/delete a per-round one-shot timer or retire the recurring timer at
-cooldown expiry.
+For a recoverable failure that must retry later, use the same one-occurrence
+pattern with a unique recovery sequence. At most one pending wake exists. Stop,
+deadline, or completion deletes only that exact pending wake after resource and
+ledger reconciliation. Never use the distributor as timer owner and never use a
+global `executor-heartbeat` ID.
 
 Domains explicitly selecting coordinator-managed timers use their own contract;
 they do not override a self-owned executor domain.

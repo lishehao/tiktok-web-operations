@@ -1,4 +1,4 @@
 interface:
   display_name: "Thread Supervisor"
   short_description: "Assign and schedule persistent tasks safely"
-  default_prompt: "Use $thread-supervisor to enforce exact task identity, any same-task bootstrap-to-pinned-distributor transition, explicit pre-dispatch gates, and fresh-only one-way executor assignment with a self-owned recurring Heartbeat."
+  default_prompt: "Use $thread-supervisor to enforce exact task identity, same-task bootstrap-to-pinned-distributor transition, fresh-only one-way assignment, and executor-owned run/sequence-unique single-occurrence wakes with no callback to the distributor."

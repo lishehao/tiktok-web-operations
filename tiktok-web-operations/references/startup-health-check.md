@@ -22,7 +22,7 @@ fresh_create_attempts: 0 | 1
 fresh_executor_thread_id: NONE | exact newly returned id
 fresh_create_state: NOT_STARTED | CREATED | FAILED | UNKNOWN
 executor_profile_support: gpt-5.6-luna/high | UNAVAILABLE
-automation_support: AVAILABLE | UNAVAILABLE
+one_shot_wake_support: AVAILABLE | UNAVAILABLE
 canonical_store: WRITABLE | UNAVAILABLE
 dedicated_tab_creation: AVAILABLE | UNAVAILABLE
 local_time:
@@ -49,7 +49,8 @@ profile_confirmation_evidence: NONE | exact user turn/ref
 6. Prove a private canonical object store and writable ledger path. Read local
    time and calculate finite `operation_stop_at`.
 7. Prove a newly created executor can own a dedicated Chrome tab and create a
-   self-target repeat-on Heartbeat. Do not create the real timer in preflight.
+   self-target single-occurrence heartbeat-kind wake with unique caller-supplied
+   ID. Do not create the real timer in preflight.
 8. Finalize only the disposable launcher tab.
 9. After all required health checks pass, rename this exact task
    `TikTok 分发台`, attempt to pin it, and read back the exact task ID with
@@ -133,9 +134,10 @@ an old mission/registry/Heartbeat/tab/ledger. Old archived, completed, and live
 runs remain untouched. A create failure/unknown result ends this launch with one
 fresh-task error report and no fallback or replacement.
 
-The executor then performs the read-only smoke, creates/validates its own
-Heartbeat, and starts real mission work in its own task. Future user interaction
-goes directly to `TikTok 执行台`.
+The executor then performs the read-only smoke and starts real mission work with
+no standing timer. At its first completed round it creates/read-backs its own
+run/round-unique one-shot wake before cooldown. Future user interaction goes
+directly to `TikTok 执行台`.
 
 ## User-facing handoff
 

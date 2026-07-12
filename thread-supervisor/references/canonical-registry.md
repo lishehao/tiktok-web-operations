@@ -32,7 +32,8 @@ After `create_thread` returns exact ID, create `executor_assignment/v1` with:
 - assignment/run/executor IDs and structured role;
 - execution profile and exact account;
 - `direction_ref`, `authority_ref`, `mission_ref`;
-- ledger path, dedicated resource policy, self-owned automation policy;
+- ledger path, dedicated resource policy, and domain automation policy; TikTok
+  requires `EXECUTOR_SELF_OWNED_ONE_SHOT_CHAIN`;
 - `launcher_contact_policy=NO_CALLBACK_NO_SUPERVISION`.
 
 The executor validates bytes/hash/its exact ID and records

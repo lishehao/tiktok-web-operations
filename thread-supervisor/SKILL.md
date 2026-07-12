@@ -30,7 +30,7 @@ task:
 launcher bootstrap -> same task becomes pinned distributor
 distributor -> creates one executor -> sends one canonical assignment -> reusable idle
 executor -> owns user conversation, external resource, ledger, recovery,
-            self-target recurring Heartbeat, and finalization
+            self-target run/round-unique one-shot wakes, and finalization
 same launcher + later user command -> another fresh executor -> reusable idle
 ```
 
@@ -40,7 +40,7 @@ For this topology:
   risk-return role, or later dispatch loop;
 - executor never callbacks launcher and asks the user directly for a genuine
   human-only blocker;
-- executor creates/views/updates/replaces/retires its own recurring Heartbeat;
+- executor creates/views/consumes/retires its own unique one-shot wakes;
 - no coordinator or supervisor Heartbeat exists;
 - independent executors never list/read/control one another and never treat
   another task or browser owner as a blocker;
@@ -119,35 +119,42 @@ the exact fresh task cannot accept assignment, report
 `FRESH_TASK_ASSIGNMENT_FAILED` and stop without fallback. After handoff the
 launcher never monitors or replaces the executor.
 
-## Self-owned recurring Heartbeat
+## Self-owned one-shot wake chain
 
 For `launcher_self_owned_executor`, the executor is both manager and target:
 
 ```text
 automation_manager_thread_id == targetThreadId == executor_thread_id
-repeat=on
-finite UNTIL or operation_stop_at
+occurrences=1
+timer_id=tiktok-wake-<run_id>-round-<round_seq>
+next_wake_at < operation_stop_at
 ```
 
-The executor immediately reads back exact automation ID, target, role, repeat
-state, next local/UTC run, and cutoff. A valid wake requires exact task/run/timer
-binding. If already running, do no overlap; if idle before cutoff, resume the
-same mission from the last durable checkpoint.
+Do not create a timer during assignment acceptance or first-round startup. At a
+completed operating-round checkpoint, the executor creates exactly one
+heartbeat-kind, single-occurrence automation targeted to itself. Its ID and
+display name contain the full run ID and round sequence. Immediately read back
+exact automation ID, target, one-shot state, next local/UTC run, and cutoff.
+Only verified readback permits yield.
 
-Ordinary page/network/browser/route/render/candidate/lane failure never pauses
-or deletes the timer. An uncertain mutation freezes only its exact submission
-and is never retried. For a bad timer, create/read back the replacement, switch
-the stored binding, then retire the old timer. Retire only after explicit stop,
-deadline, objective completion, or terminal resource release.
+A valid wake requires exact task/run/round/timer binding. Record wake
+consumption, delete/retire the expired timer if still present, clear the pending
+binding, and resume. Duplicate, late, misbound, or overlapping wakes perform no
+external work. Never use a global timer ID or keep a repeat-on executor timer.
+
+If a recoverable failure requires a later retry, the executor may create one
+similarly unique single-occurrence recovery wake. At most one pending wake exists
+per executor. Uncertain mutation remains frozen and is never retried. Explicit
+stop, deadline, completion, or terminal release deletes only the exact pending
+wake, if any.
 
 Heartbeat prompts contain stable identity/resume instructions, not changing
 status or raw evidence. Dynamic progress belongs in the executor ledger/task.
 
-When the calling domain requires inter-round pacing, keep the same recurring
-Heartbeat active. Store `cooldown_until`, update that timer's next eligible wake
-when supported, and make early wakes no-op. At the due wake clear cooldown state
-and resume. Never create/delete a one-shot timer per round; timer retirement
-remains terminal-only.
+When the calling domain requires inter-round pacing, the round checkpoint stores
+`cooldown_until`, creates/read-backs the unique one-shot wake, then yields. At
+the due wake consume and clear that exact timer before resuming. The distributor
+never receives a callback and never creates the executor's timer.
 
 ## Coordinator-worker rules
 

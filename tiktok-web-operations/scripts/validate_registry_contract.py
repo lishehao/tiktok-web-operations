@@ -18,6 +18,7 @@ def main():
     required = ("executor_bootstrap/v1", "executor_assignment/v1", "canonical", "sort_keys=True",
                 "separators=(\",\", \":\")", "assignment_id", "executor_thread_id",
                 "direction_ref", "authority_ref", "mission_ref", "NO_CALLBACK_NO_SUPERVISION",
+                "EXECUTOR_SELF_OWNED_ONE_SHOT_CHAIN",
                 "fresh_only_dispatch", "exact ID newly returned", "newly generated for every launch",
                 "gpt-5.6-luna", "thinking\":\"high")
     missing = [x for x in required if x not in joined]
@@ -28,6 +29,7 @@ def main():
                   "direction_ref":{"id":"d","version":1,"sha256":"1"*64},
                   "authority_ref":{"id":"a","version":1,"sha256":"2"*64},
                   "mission_ref":{"id":"m","version":1,"sha256":"3"*64},
+                  "automation_policy":"EXECUTOR_SELF_OWNED_ONE_SHOT_CHAIN",
                   "launcher_contact_policy":"NO_CALLBACK_NO_SUPERVISION"}
     reordered = dict(reversed(list(assignment.items())))
     assert canonical(assignment) == canonical(reordered)

@@ -74,13 +74,13 @@ stop; never fall back to an old task or make a replacement create call.
 It has one objective: execute one accepted mission until user stop, deadline, or
 objective completion. It owns its dedicated Chrome tab, direction/authority/
 mission versions after assignment, raw ledger, checkpoints, capability matrix,
-recovery, user reports, and one self-targeted recurring Heartbeat. Future user
+recovery, user reports, and at most one pending self-targeted one-shot wake. Future user
 changes and hard-blocker repair happen directly in this task.
 
 The executor never calls back the launcher, never reads or supervises other
 TikTok tasks, never claims another task's tab, never creates descendants, and
 never treats another Chrome/TikTok owner as a blocker. Independent runs use
-independent task IDs, ledgers, Heartbeats, and Chrome tabs.
+independent task IDs, ledgers, run/round-unique wake IDs, and Chrome tabs.
 
 Read `references/role-and-stage-contract.md` and
 `references/operating-model.md` before creating an execution task or Heartbeat.
@@ -192,8 +192,13 @@ range of 25–45. This is a work-size boundary, not an exact quota:
    checkpoint and set `cooldown_until` 10–20 minutes ahead. Use 15 minutes by
    default, 10 for read-only/low-yield work, and 20 for mutation- or
    recovery-heavy work. This is workload pacing, never randomized stealth.
-   During cooldown perform no TikTok navigation, viewing, or mutation. Resume
-   only when `now >= cooldown_until`, clear that state, and begin the next round.
+   During cooldown perform no TikTok navigation, viewing, or mutation. Before
+   yielding, create and read back exactly one self-target, single-occurrence
+   Heartbeat with ID `tiktok-wake-<run_id>-round-<round_seq>`. Verify exact ID,
+   target task, run ID, round sequence, one-shot state, next local/UTC wake, and
+   mission cutoff. Resume only from that wake; record it consumed, delete or
+   retire the expired timer if it remains visible, clear the binding, and begin
+   the next round.
 7. Adjust search clusters from rolling evidence and repeat until
    `operation_stop_at` or user stop. Model/browser latency changes throughput;
    do not promise a fixed number of units per hour.
@@ -289,32 +294,42 @@ targeted harassment, protected-trait attacks, and sexualization of minors.
   switch browser, change proxy/TLS, or retry an uncertain mutation.
 
 Ordinary technical, candidate, route, evidence, and single-lane failures are
-local outcomes. Auto-recover, rotate, checkpoint, or wait for the next self
-Heartbeat without asking the user. Ask directly in the executor only when the
+local outcomes. Auto-recover, rotate, or checkpoint without asking the user. If
+a later retry requires yielding, create one run/sequence-unique self-target
+single-occurrence recovery wake and validate it before yield. Ask directly in the executor only when the
 user must fix a current persistent login/account mismatch, CAPTCHA/challenge,
 explicit account lock/ban, credential requirement, or unavailable sole allowed
 Chrome control.
 
-## Self-owned Heartbeat
+## Self-owned one-shot wake
 
-After assignment acceptance, the executor creates exactly one repeat-on
-`executor_heartbeat` targeted to its own exact task ID, with finite
-`operation_stop_at`/`UNTIL`. It immediately reads back and verifies automation
-ID, `targetThreadId`, repeat state, next local/UTC run, and cutoff.
+Do not create a timer at assignment acceptance. The first round starts
+immediately. At each completed round checkpoint, if `cooldown_until` is before
+`operation_stop_at`, create exactly one heartbeat-kind automation with one
+occurrence (`COUNT=1` or the tool's equivalent), targeted to this exact executor.
+Use a unique ID and display name containing full `run_id` plus `round_seq`; never
+use a global ID such as `executor-heartbeat`.
 
-The Heartbeat is the continuation/recovery carrier and the only timer used for
-inter-round cooldown. Do not create and delete a one-shot automation per round.
-After a round, update the existing timer's next eligible wake to
-`cooldown_until` when supported; otherwise keep it repeat-on and make early
-wakes no-op until the timestamp is due. At the due wake, clear only the cooldown
-state and resume. If the executor is already running, a wake does no overlapping
-work. Ordinary failure never deletes the Heartbeat. For a misbound or
-misconfigured timer, create and verify the correct replacement, switch the
-stored binding, then retire the old timer. Retire only after user stop, deadline,
-objective completion, or terminal release.
+Read back and verify automation ID, `targetThreadId`, run ID, round sequence,
+single-occurrence state, next local/UTC run, and cutoff before yielding. A
+misbound or uncertain timer is not continuation proof: delete it when identity
+is certain, create no duplicate in the same checkpoint, and report the
+continuation failure in this executor task.
 
-No launcher/coordinator/supervisor Heartbeat exists. The executor alone creates,
-views, updates, replaces, and retires its own automation. Every valid wake and
+On wake, require exact task/run/round/timer binding and a still-open mission.
+Record `ONE_SHOT_WAKE_CONSUMED`; if the expired automation remains visible,
+delete/retire it; clear `pending_wake_id`; then resume. A duplicate/late wake or
+an already-running executor performs no TikTok work. Never callback the
+distributor and never ask it to schedule a timer.
+
+For a recoverable fault that truly requires a later retry, use the same pattern
+with ID `tiktok-recovery-<run_id>-<recovery_seq>` and one occurrence. Never keep
+a standing repeat-on Heartbeat. At most one pending self-owned wake exists per
+executor. At user stop, deadline, completion, or terminal release, delete only
+the executor's exact pending wake if one exists.
+
+No launcher/coordinator/supervisor timer exists. The executor alone creates,
+views, consumes, and retires its own one-shot automation. Every valid wake and
 normal progress report uses exactly three lines:
 
 ```text
@@ -326,13 +341,13 @@ normal progress report uses exactly three lines:
 ## Evidence and completion
 
 Append and validate one JSONL record after every consumed search-origin post,
-each five-card assessment, mutation attempt, and For You checkpoint. Store raw
-evidence and resume cursor in the executor's ledger; never in the Heartbeat
-prompt.
+each five-card assessment, mutation attempt, For You checkpoint, one-shot create
+readback, and wake consumption. Store raw evidence and resume cursor in the
+executor's ledger; never in the wake prompt.
 
 At deadline, explicit stop, or objective completion: stop new external work,
 resolve no uncertain mutation by repetition, release only owned tabs, reconcile
-the final ledger, retire the exact self Heartbeat, and report in the executor
+the final ledger, delete the exact pending one-shot wake if present, and report in the executor
 task. The launcher remains idle and is not contacted.
 
 Use Chinese for user reports while preserving exact URLs, handles, hashtags,

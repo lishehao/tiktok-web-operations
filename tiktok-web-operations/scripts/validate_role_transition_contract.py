@@ -32,7 +32,7 @@ def main():
                 "fresh_only_dispatch", "exactly one fresh create attempt",
                 "reusable stateless", "later user", "another fresh executor",
                 "pinned=true", "presentation degradation", "never becomes `TikTok 主控台`",
-                "No callback", "No launcher/coordinator/supervisor Heartbeat")
+                "No callback", "No launcher/coordinator/supervisor timer")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     scenarios = {e: transition(e) for e in ("setup","hard_repair","healthy","pin_unavailable",

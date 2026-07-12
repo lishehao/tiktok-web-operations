@@ -6,7 +6,7 @@ Use two user-visible persistent Codex tasks for one run:
 TikTok 启动台 --healthy preflight, same task--> pinned TikTok 分发台
 TikTok 分发台 --one-way assignment--> TikTok 执行台
 TikTok 分发台 --after acceptance--> reusable stateless idle
-TikTok 执行台 --self Heartbeat--> same TikTok 执行台
+TikTok 执行台 --self-owned one-shot wake--> same TikTok 执行台
 same TikTok 分发台 --later new command--> another fresh TikTok 执行台
 ```
 
@@ -63,7 +63,7 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
   "mission_ref":{"id":"...","version":1,"sha256":"..."},
   "ledger_path":"<private run path>",
   "dedicated_tab_policy":"EXECUTOR_OWNED",
-  "automation_policy":"EXECUTOR_SELF_OWNED_REPEAT_ON",
+  "automation_policy":"EXECUTOR_SELF_OWNED_ONE_SHOT_CHAIN",
   "launcher_contact_policy":"NO_CALLBACK_NO_SUPERVISION"
 }
 ```
@@ -98,42 +98,43 @@ After acceptance, executor:
 
 1. creates its own ledger/checkpoint state;
 2. performs one read-only search-origin stability smoke;
-3. creates one recurring `executor_heartbeat` targeted to its own exact ID;
-4. validates repeat-on, next local/UTC time, and finite cutoff;
-5. starts real mission work immediately and continues across logical units.
+3. starts real mission work immediately with no standing timer;
+4. completes the first 25–45-view round and durable checkpoint;
+5. creates/read-backs one unique self-target single-occurrence wake before its
+   first inter-round yield.
 
-The timer is self-resume insurance and the single inter-round cooldown carrier.
 Training units inside one round continue without a timer pause. After each
 completed 25–45-view round, persist `cooldown_minutes` and `cooldown_until`,
-perform zero TikTok work for 10–20 minutes, then resume the next round. Do not
-create/delete one-shot timers; update the existing timer's next eligible wake
-when supported, or no-op early recurring wakes until due.
+create exactly one wake named by full run ID and round sequence, validate it,
+perform zero TikTok work for 10–20 minutes, then resume from that wake. Consume
+and retire the one-shot before starting the next round.
 
-## Self Heartbeat contract
+## Self one-shot wake contract
 
 The executor is simultaneously automation manager and target:
 
 ```text
-automation_role=executor_heartbeat
+automation_role=executor_one_shot_wake
 automation_manager_thread_id=executor_thread_id
 targetThreadId=executor_thread_id
-repeat=on
-operation_stop_at=<finite cutoff>
+timer_id=tiktok-wake-<run_id>-round-<round_seq>
+occurrences=1
+next_wake_at < operation_stop_at
 ```
 
-Read back every create/update. A valid wake requires
-`waking_thread_id == targetThreadId == executor_thread_id`, matching run ID and
-automation ID. A mismatch performs no TikTok action.
+Read back every create. Yield only after exact ID, self target, run ID, round
+sequence, single-occurrence state, next local/UTC wake, and cutoff validate. A
+valid wake requires `waking_thread_id == targetThreadId == executor_thread_id`
+plus matching run/round/timer ID. A mismatch, duplicate, late wake, or overlap
+performs no TikTok action.
 
-Normal failures never retire the timer. Network, Chrome, route, renderer, Feed
-transition, empty candidates, and lane failures remain recoverable. Uncertain
-mutation is never retried but does not stop independent work. For a timer error,
-create/read back the correct replacement first, switch the stored binding, then
-retire the old timer so no continuation gap exists.
-
-Cooldown completion clears only `cooldown_until`; it never retires the
-Heartbeat. Retire the Heartbeat only for explicit stop, finite deadline,
-objective completion, or terminal resource release.
+On valid wake, write `ONE_SHOT_WAKE_CONSUMED`, delete/retire the expired timer if
+still visible, clear the pending binding, and resume. Network, Chrome, route,
+renderer, Feed transition, empty candidates, and lane failures remain locally
+recoverable. If later retry requires yield, create one recovery-sequence-unique
+single-occurrence wake. Uncertain mutation is never retried. Never callback the
+distributor, never keep a repeat-on executor timer, and never use a global
+`executor-heartbeat` ID.
 
 ## Independent-run invariant
 
@@ -168,7 +169,7 @@ On user stop, cutoff, or objective completion:
 2. never retry an uncertain submission;
 3. release only the executor's tabs;
 4. reconcile final ledger/capability state;
-5. retire the exact self Heartbeat;
+5. delete the exact pending one-shot wake if one exists;
 6. write `RUN_RELEASED` and a compact result in the executor task.
 
 The executor never contacts the distributor, and no system polls, unarchives, or

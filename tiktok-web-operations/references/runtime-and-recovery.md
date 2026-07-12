@@ -1,6 +1,6 @@
 # Runtime And Recovery
 
-Recover inside the executor's own task, Chrome tab, ledger, and self Heartbeat.
+Recover inside the executor's own task, Chrome tab, ledger, and self-owned wake.
 Do not contact the launcher or another TikTok task.
 
 ## Error classes
@@ -28,8 +28,9 @@ only after exact code and same-domain/neutral probes.
 5. Probe TikTok home and one neutral HTTPS site in temporary owned tabs.
 6. Reconfirm exact account, target, warnings, and lane state before continuing.
 7. If recovered, continue and mention it only in the next normal three-line
-   receipt. If still transient, checkpoint `auto_resume_condition` and let the
-   self Heartbeat retry later.
+   receipt. If still transient and a later retry requires yielding, checkpoint
+   `auto_resume_condition`, create/read-back one unique self-target
+   single-occurrence recovery wake, then yield.
 
 Never switch browser, clear cookies, enter credentials/codes, change proxy/TLS,
 bypass login, or repeat an uncertain mutation.
@@ -44,12 +45,14 @@ bypass login, or repeat an uncertain mutation.
 - Timed 429/rate limit: preserve expiry and auto-recheck.
 - Current human-only blocker: release owned tab and ask directly in executor.
 
-No ordinary recovery deletes the Heartbeat, changes the launcher, creates a
-replacement task, or waits for user confirmation.
+No ordinary recovery changes the distributor, creates a replacement task, or
+waits for user confirmation. It does not alter an already verified pending wake.
 
 ## Executor wake
 
-Validate exact automation ID, run ID, executor ID, target, repeat state, next
-run, and cutoff. If already running, do no overlapping work. If idle before
-cutoff, resume from the last valid JSONL checkpoint. If the timer is wrong,
-replace it without a gap as specified in `stability-and-circuit-breakers.md`.
+Validate exact automation ID, run ID, round/recovery sequence, executor ID,
+target, single-occurrence state, next run, and cutoff. If already running, do no
+overlapping work. If idle before cutoff, record the wake consumed, retire the
+expired timer if still visible, clear the pending binding, and resume from the
+last valid JSONL checkpoint. A wrong, duplicate, or late timer does no external
+work and is handled as specified in `stability-and-circuit-breakers.md`.

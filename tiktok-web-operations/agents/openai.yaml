@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: after health, present the three-line novice handoff asking only direction and duration; a direct reply or 用默认设置开始 dispatches without another confirmation round. Keep the pinned distributor and self-owned executor lifecycle."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: keep the pinned stateless distributor and independent executor. The executor starts immediately with no standing timer, then creates one verified run/round-unique single-occurrence self-wake at each completed-round cooldown; never callback the distributor."

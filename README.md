@@ -1,13 +1,13 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.12.21`
+Protocol version: `2026.07.13.1`
 
 This repository distributes two version-locked Codex Skills:
 
 - `tiktok-web-operations/` — TikTok strategy, Chrome operation, evidence,
   engagement lanes, recovery, and lifecycle.
 - `thread-supervisor/` — persistent task identity, one-way assignment, and
-  self-owned Heartbeat mechanics.
+  self-owned one-shot wake mechanics.
 
 The system uses the user's existing logged-in Chrome. It does not create
 accounts, enter credentials, bypass challenges, imitate a human with random
@@ -57,16 +57,17 @@ TikTok 分发台
   -> reusable stateless idle -> later command creates another fresh executor
 
 TikTok 执行台
-  read-only smoke -> create self-target recurring Heartbeat
-  -> search-led operation -> held-out Feed checks -> verified interactions
-  -> 10–20 minute inter-round cooldown -> resume
+  read-only smoke -> search-led operation -> held-out Feed checks
+  -> verified interactions -> checkpoint
+  -> create/verify one unique self-target one-shot wake
+  -> 10–20 minute inter-round cooldown -> wake expires -> resume
   -> self-recovery/checkpoints -> final release
 ```
 
-There is no long-term `TikTok 主控台`, executor-to-launcher callback,
-coordinator/supervisor Heartbeat, centralized monitoring, or cross-run lock.
+There is no long-term `TikTok 主控台`, executor-to-distributor callback,
+coordinator/supervisor timer, centralized monitoring, or cross-run lock.
 Every execution task is independent and uses its own task ID, Chrome tab,
-ledger, and Heartbeat. Future user changes and true hard blockers are handled
+ledger, and per-round wake IDs. Future user changes and true hard blockers are handled
 directly in `TikTok 执行台`.
 
 Every setup/bootstrap/new operating start is fresh-only. The launcher generates
@@ -81,7 +82,7 @@ The same pinned `TikTok 分发台` may be used repeatedly. `TikTok 启动台` is
 the temporary setup/repair title before health proof. Every later operating
 command starts another independent fresh-only dispatch and then returns the
 distributor to idle. It retains installation capability but no old executor result,
-mission, registry, ledger, Heartbeat, tab, risk, or progress. Workers never
+mission, registry, ledger, wake timer, tab, risk, or progress. Workers never
 callback, return, or message the launcher.
 
 The launcher uses `gpt-5.6-luna`/high for the executor exactly as required by the
@@ -164,14 +165,16 @@ The primary training path is directed search, not Feed browsing:
 
 For You movement uses one continuous native feed without reload/reset between
 items. Feed failure disables only validation; healthy search training continues.
-Page/network/Chrome/lane failures are scoped, auto-recovered, and never delete
-the executor's valid Heartbeat.
+Page/network/Chrome/lane failures are scoped and auto-recovered. If a later retry
+requires yielding, the executor uses the same unique self-owned one-shot pattern.
 
-## Heartbeat receipt
+## Automatic resume receipt
 
-The executor owns one repeat-on, finite-cutoff Heartbeat targeted to itself.
-The same timer carries inter-round cooldown recovery; do not create/delete a
-one-shot timer per round. At the due wake, clear `cooldown_until` and resume.
+The executor creates no standing recurring Heartbeat. At each completed round it
+creates exactly one unique, self-targeted, single-occurrence Heartbeat named for
+the run and round, then verifies target, one-shot state, and next local/UTC wake
+before yielding. At wake, it records consumption, deletes/retires the expired
+timer if still present, clears the binding, and starts the next round.
 Every timed receipt has exactly three lines:
 
 ```text
@@ -203,12 +206,12 @@ scenario validators. Required scenarios include:
 - same distributor second command creates another fresh executor;
 - distributor remains reusable stateless idle after every dispatch;
 - no worker-to-launcher return/message/result path;
-- executor self-owned recurring Heartbeat;
+- executor self-owned unique one-shot wake per completed round;
 - no callback to launcher;
 - no coordinator/supervisor Heartbeat;
 - independent lanes and independent runs;
-- network/Chrome recovery and Heartbeat survival;
-- 10–20 minute inter-round cooldown with one persistent executor Heartbeat;
+- network/Chrome recovery without distributor callback;
+- 10–20 minute inter-round cooldown with one run/round-unique one-shot wake;
 - concurrent Like/Favorite/Repost/Comment attempt coverage during viewing, with
   `attempted|unavailable|hard_blocked` reporting and no persistence checks.
 - comment-priority 4–8 target range, selective Web meme research, and no-copy

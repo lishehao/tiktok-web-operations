@@ -51,7 +51,7 @@ confirmed profile version is run-local and never inherited by the next dispatch.
 objective: continuously execute one accepted mission until stop/completion.
 owns: user conversation after handoff; exact mission versions; dedicated Chrome
 tab; TikTok decisions inside the envelope; raw ledger; capability matrix;
-checkpoints; recovery; one self-target recurring Heartbeat; finalization.
+checkpoints; recovery; at most one pending self-target one-shot wake; finalization.
 reads: canonical assignment, its own ledger tail, current page/platform state.
 writes: its own assignment acceptance, evidence, checkpoint, report, timer state.
 outputs: ASSIGNMENT_ACCEPTED, progress, hard-repair request, or RUN_RELEASED.
@@ -78,9 +78,9 @@ Every launcher or executor records exactly one applicable stage.
 | `L2_IDLE` | pinned distributor | reusable stateless wait; no monitoring or operating work | a new explicit operating instruction plus quick health check | `L0_PROFILE_LOCK` for another fresh dispatch, otherwise remain idle |
 | `E0_SMOKE` | executor | one read-only search-origin smoke and ledger append | account/tab stability, parseable ledger, zero mutation | `E1_RUN` |
 | `E1_RUN` | executor | one 25–45-view search-led round, held-out validation, authorized lanes, self-heartbeat | durable round checkpoint | `E1_COOLDOWN` or `E2_HARD_REPAIR`/`E3_FINALIZE` |
-| `E1_COOLDOWN` | executor | 10–20 minutes with zero TikTok work; existing Heartbeat remains active | verified `cooldown_until` reached and state cleared | `E1_RUN` or `E3_FINALIZE` |
+| `E1_COOLDOWN` | executor | create/read-back unique run/round one-shot; 10–20 minutes with zero TikTok work | valid wake consumed, timer expired/retired, pending binding cleared | `E1_RUN` or `E3_FINALIZE` |
 | `E2_HARD_REPAIR` | executor + user | ask directly only for a human-only current blocker | verified clearance | `E1_RUN` or `E3_FINALIZE` |
-| `E3_FINALIZE` | executor | stop work, release owned tab, reconcile ledger, retire self timer | `RUN_RELEASED`, no repeated uncertain submission | `E4_COMPLETE` |
+| `E3_FINALIZE` | executor | stop work, release owned tab, reconcile ledger, delete exact pending wake if any | `RUN_RELEASED`, no repeated uncertain submission | `E4_COMPLETE` |
 | `E4_COMPLETE` | executor | one final result in its own task | delivered | terminal |
 
 A Heartbeat firing never proves a stage exit. Training units inside one round may
@@ -112,9 +112,10 @@ run back to back; completed operating rounds must pass through `E1_COOLDOWN`.
 - Old matching-title, archived, completed, and live executors were ignored and
   left unchanged.
 - No `TikTok 主控台`, callback target, coordinator timer, or supervisor timer.
-- Executor owns exactly one self-target recurring Heartbeat and dedicated tab.
-- Each completed 25–45-view round records a 10–20 minute cooldown; expiry clears
-  cooldown state, not the persistent Heartbeat automation.
+- Executor owns no standing timer and at most one pending run/round-unique
+  self-target one-shot wake plus its dedicated tab.
+- Each completed 25–45-view round records a 10–20 minute cooldown; a verified
+  one-shot wake is consumed/retired before the next round.
 - Runs never inspect, coordinate with, or block on other TikTok tasks.
 - Each executor has one mission, one ledger namespace, and one timer namespace.
 - In cultivation runs, Like/Favorite/Repost/Comment remain independently

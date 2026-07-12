@@ -61,7 +61,7 @@ def main() -> None:
         "freeze exact target/action",
         "asks the user directly",
         "never returns to the launcher",
-        "replacement first",
+        "single-occurrence recovery wake",
     )
     absent = [term for term in required if term.lower() not in joined.lower()]
     assert not absent, f"missing blocker-minimization assertions: {absent}"
