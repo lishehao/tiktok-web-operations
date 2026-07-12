@@ -39,7 +39,8 @@ bypass login, or repeat an uncertain mutation.
 - Candidate/page/route faults: skip or rotate.
 - Network/Chrome/render faults: bounded retry then self-resume checkpoint.
 - Feed movement failure: end only held-out validation.
-- Lane persistence failure: suspend only that lane.
+- Missing persistence/post-action proof: record attempted and continue; do not
+  run verification or suspend future new-post attempts.
 - Timed 429/rate limit: preserve expiry and auto-recheck.
 - Current human-only blocker: release owned tab and ask directly in executor.
 

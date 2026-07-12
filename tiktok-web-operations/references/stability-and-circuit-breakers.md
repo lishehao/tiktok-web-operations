@@ -10,7 +10,7 @@ valid executor Heartbeat repeat-on through network, Chrome, route, renderer,
 Feed transition, empty-candidate, lane, and uncertain-mutation failures.
 
 Each later wake rechecks the stored `auto_resume_condition`. An uncertain
-submission is never retried. Unaffected search/view and verified lanes continue.
+submission is never retried. Unaffected search/view and action lanes continue.
 
 For a misbound/duplicate/misconfigured timer: create and read back the correct
 replacement first, switch the executor's stored automation binding, then retire
@@ -23,7 +23,8 @@ or terminal executor release. No launcher/coordinator/supervisor timer exists.
 
 - Favorite, Repost, Like, proactive comment, comment Like, Not interested,
   follow, reply, publishing, and profile edit are separate lanes.
-- A gate failure disables only its lane for the current runtime.
+- Missing persistence or post-action proof never disables a lane. Record
+  `attempted`; only the exact uncertain target/action is not retried.
 - Two consecutive native For You transition failures disable only held-out Feed
   validation; qualified search training continues.
 - Empty candidates produce a completed no-action checkpoint and cluster

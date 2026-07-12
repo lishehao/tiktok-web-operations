@@ -7,8 +7,8 @@ Track two separate operational outcomes:
 - `profile_alignment`: qualified strong-core views, cluster coverage, viewing
   progression/premise-payoff evidence, creator/hashtag bridges, and rolling For
   You `core_share`/`directional_share`/`drift_share`.
-- `account_strength_proxy`: persisted Favorite, TikTok Repost, and proactive
-  comments; later organic likes/substantive replies on those comments; profile
+- `account_strength_proxy`: contextual Like, Favorite, TikTok Repost, and
+  proactive-comment attempts; later organic likes/substantive replies on those comments; profile
   visits/follows or own-post metrics only when those surfaces exist.
 
 Never collapse these into a claimed TikTok account weight. Report the proxy's
@@ -25,29 +25,21 @@ or off-direction viewing.
 4. Draft replies only where the account can add a concrete answer, clarification, acknowledgment, or useful follow-up.
 5. Treat proactive comments on other creators' posts as a separate authorized
    lane. A cultivation/growth/account-strength mission supplies a standing
-   `pending_fresh_gate` envelope with `parallel_engagement=true` unless narrowed to read-only; other requests
+   `best_effort_attempt` envelope with `parallel_engagement=true` unless narrowed to read-only; other requests
    need explicit authorization. Once active, use
    `feed-browsing-and-comments.md`; do not turn it into an activity quota.
 
 Do not set a reply quota. Do not copy-paste replies, use repetitive CTAs, insert irrelevant promotion, or reply merely to inflate activity.
 
-Before enabling any active engagement lane for a browser/account combination, run one bounded persistence test per action type. Treat at least these as distinct types: post like, favorite/save, post repost, generic share, proactive comment, own-post reply, comment like, `Not interested`, follow, publish, and profile edit. Require:
+For Like, Favorite, Repost, and proactive Comment in an authorized cultivation
+run, use best-effort action-attempt evidence. Treat the four types independently,
+issue each visible native action once on a fitting post, and record only
+`attempted|unavailable|hard_blocked`. Do not wait for settlement, reload/reopen,
+inspect account tabs, or gate future new-post attempts on persistence.
 
-1. Immediate UI state change.
-2. The same state after reload or reopening the post.
-3. Account-level evidence when TikTok exposes it.
-
-If any required signal fails, suspend only that action type for the current
-session and record a normal no-action capability checkpoint. Do not infer that a
-sibling type failed, stop the mission, or ask the user. In a later mission/
-runtime, a latest explicit instruction for that action may authorize one fresh
-gate without another confirmation; the old result remains historical evidence
-rather than a permanent blocker. Keep search/view, research, comment reading,
-drafting, Studio management, analytics, and independent verified lanes available.
-
-Comment drafting is not comment publication. Use either exact per-item confirmation or a currently active standing autonomous-comment envelope. Submit once, then reload the post and locate the account's comment before recording success.
-
-Gate active engagement per action type, not per account. A verified comment does not re-enable likes, favorites, reposts, follows, or any action whose own persistence test failed or remains inconclusive.
+Comment drafting is not comment publication. Use either exact per-item
+confirmation or a currently active standing autonomous-comment envelope. Submit
+once and record `attempted`; do not reload the post to verify.
 
 ## Directional feedback ladder
 
@@ -59,28 +51,26 @@ Treat feed signals as hypotheses rather than known algorithm weights:
 | Completed view / replay / creator or hashtag exploration | Stronger evidence of genuine relevance | Read-only when no outward control is changed |
 | Search, open, and meaningfully watch strong-core results | Primary directional training hypothesis; card inspection alone does not count | Read-only |
 | `Not interested` | Explicit negative feedback for clearly off-direction content | Exact post confirmation plus persistence check |
-| Post like | Lightweight positive feedback | Independent post-like persistence gate |
-| Favorite/save | Strong intent hypothesis; useful only if the account can prove persistence | Independent favorite persistence gate: selected immediately, still selected near +3s and +10s, then reload/reopen plus exact account-level Favorites evidence |
-| Post repost | Public redistribution hypothesis; use only when the post genuinely fits the account voice | Independent Repost persistence gate with `Repost`/`Undo repost` state; the Share sheet may be opened read-only to reach Repost, but no generic Share/copy/send target may be executed |
+| Post like | Lightweight positive feedback | Click native Like once; record attempted; no persistence check |
+| Favorite/save | Strong intent hypothesis | Click native Favorite once; no +3/+10 wait, reload, or account check |
+| Post repost | Public redistribution hypothesis; use only when the post genuinely fits the account voice | Click only explicit Repost once; Share sheet navigation is read-only; never generic Share/copy/send; no persistence check |
 | Comment like | Community-context feedback | Independent comment-like persistence gate |
-| Proactive comment or reply | Social participation and voice shaping | Exact text/post confirmation plus reload visibility |
+| Proactive comment or reply | Social participation and voice shaping | Submit once within authority; record attempted; no reload visibility check |
 
 For proactive comments, the gate may instead be an active `autonomous_comment_mode` envelope. This exception does not apply to replies, comment likes, follows, favorites, reposts, post likes, `Not interested`, publishing, profile edits, or DMs.
 
-Before enabling autonomous comments in a browser/runtime, require at least one
-proactive-comment persistence test that survives reload. After activation,
-verify every comment. Routine successes stay in the ledger. Persistence failure
-or removal suspends only autonomous comments; timed throttle auto-waits;
-submission uncertainty freezes only that exact comment. Report these in the next
-normal mission checkpoint. Ask the user directly in the executor only for the
-hard-blocker whitelist in `blocker-minimization.md`.
+Autonomous comments require the standing account/direction/language/voice
+envelope, not a reload persistence test. Submit once and record attempted.
+Submission uncertainty freezes only that exact comment; later new-post attempts
+remain allowed. Timed throttle auto-waits. Ask the user directly in the executor
+only for the hard-blocker whitelist in `blocker-minimization.md`.
 
 Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
 
 In a cultivation/growth mission, candidate evaluation is mandatory even though
 action counts are not quotas. Evaluate Like, Favorite, Repost, and proactive
 comment immediately while each qualified post is open. If a qualified,
-non-repetitive candidate exists and its lane is verified, use the fitting action
+non-repetitive candidate exists and its native control is available, use the fitting action
 rather than defaulting the whole unit to read-only. When no action is taken,
 record the exact no-candidate, current-gate, repetition, safety, or rights reason.
 

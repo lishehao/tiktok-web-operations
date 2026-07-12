@@ -57,10 +57,10 @@ weight.
 5. **Bridge consumption** — From a consumed core post, optionally open one relevant creator, hashtag, sound, or related-search path and consume another core post when it adds audience context.
 6. **Sparse explicit feedback** — For cultivation/growth/account-strength
    missions, post Like, Favorite, TikTok Repost, and proactive comment are four
-   standing `pending_fresh_gate` lanes with `parallel_engagement=true` unless the
-   user narrows the run to read-only. Run
-   each fresh gate on a distinct strong-core post, then choose the smallest
-   genuine verified signal. Every unit must evaluate opportunities; zero
+   standing `best_effort_attempt` lanes with `parallel_engagement=true` unless the
+   user narrows the run to read-only. Make the first attempt for each lane on a
+   distinct strong-core post, then choose the smallest genuine native action.
+   Every unit must evaluate opportunities; zero
    outward actions requires an explicit no-candidate/current-lane/repetition/
    safety reason, not a blanket `mutation_allowed=false` dispatch.
 7. **Held-out validation** — After the sample threshold, enter For You once and sample a small continuous sequence. Measure composition; do not claim causal attribution.
@@ -200,19 +200,19 @@ Keep these feedback lanes separate:
 
 - **Passive consumption:** view, completion, replay, early skip, opening creator/hashtag/sound. Observe directionally; do not claim a known ranking weight.
 - **Explicit negative:** `Not interested` only for clearly harmful-to-direction content. Require exact-post confirmation and a one-action capability test before using it as a lane.
-- **Explicit positive:** post like, favorite, or TikTok Repost only on strong-core content under exact or standing authorization. Use one separately authorized test per lane and enable continued use only after independent persistence proof. Favorite/save requires immediate, about +3-second, and +10-second stable-selected checks before reload/reopen and account-level proof; do not create a false failure by reloading immediately after the click. Repost is not generic Share, copy-link, or send-to-recipient. Opening the Share sheet is allowed read-only when needed to reveal an explicit Repost control; every other target in the sheet remains excluded.
+- **Explicit positive:** post like, favorite, or TikTok Repost only on strong-core content under exact or standing authorization. Click the visible native control once and record `attempted`; do not wait, reload/reopen, inspect profile tabs, or seek account-level proof. Repost is not generic Share, copy-link, or send-to-recipient. Opening the Share sheet is allowed read-only when needed to reveal an explicit Repost control; every other target in the sheet remains excluded.
 - **Community feedback:** comment like is its own capability type. Use it only for a comment that genuinely represents the desired community voice; do not mass-like comment sections.
-- **Social participation:** proactive comments require either exact confirmation or a matching active autonomous-comment envelope; replies still require exact confirmation. Submit once and require post-reload visibility.
+- **Social participation:** proactive comments require either exact confirmation or a matching active autonomous-comment envelope; replies still require exact confirmation. Submit once, record `attempted`, and do not reload/reopen to verify.
 
 Do not stack like + favorite + repost + comment on every good post. During each
 qualified view, evaluate all four lanes before leaving the post and execute the
-justified verified action(s) immediately. Normally Like may accompany at most one
-higher-intent action; use distinct posts for first capability gates, then the smallest justified signal. A natural
+justified native action(s) once. Normally Like may accompany at most one
+higher-intent action; use distinct posts for the first four attempts, then the smallest justified signal. A natural
 operating profile includes many read-only decisions, a few strong candidates,
 and sparse verified mutations. For a cultivation/growth mission, an executor
 must not silently downgrade the whole run to read-only or postpone interaction
 until after viewing: it records all-lane candidate evaluation on every qualified
-video and uses each eligible verified lane at least once per operating round
+video and attempts each eligible lane at least once per operating round
 when a genuine candidate exists. Missing candidates require an exact logged
 reason, not a fabricated quota fill.
 
@@ -225,12 +225,16 @@ asking for the same authorization again. Pause only from current evidence.
 
 For each viewed item record timestamp, source surface, ordered position when available, URL, freshness, creator, topic cluster, relevance label, premise/payoff understood, action candidate, and risk. For search-origin posts also record `opened_from_search=true`, stable post identity, playback progression evidence, and `qualified_search_view=true|false`. Keep `search_results_assessed`, `qualified_search_views`, and For You composition separate. Persist incrementally and validate each JSONL line immediately so a runtime failure or malformed append cannot erase/corrupt the block.
 
-Track each action type as `untested`, `verified`, `failed`, `unverified`, or `disabled`, with account, browser/runtime, test URL, timestamp, immediate state, reload state, account-level state, and stop reason. `not_executed` is a batch result, not a capability result.
-
-Never report success from a click, count animation, pressed control, toast, or network response alone. Require the action-specific persisted evidence defined in `engagement-and-analytics.md`.
+Track each operating action as `attempted`, `unavailable`, or `hard_blocked`, with
+account, browser/runtime, URL, timestamp, action issued, immediate visible
+response when readily available, and reason. Do not call `attempted` successful
+or persisted.
 
 ## Stop and handoff
 
-Stop mutation immediately for login mismatch, lost driver ownership, CAPTCHA, verification challenge, rate limit, warning/restriction, uncertain submission, or persistence failure. Keep read-only analysis available if the page and account remain safe to inspect.
+Stop the exact action for login mismatch, lost driver ownership, CAPTCHA,
+verification challenge, rate limit, warning/restriction, or uncertain submission.
+Non-persistence or missing post-action proof is not a lane stop; later new-post
+attempts remain allowed.
 
 At handoff report: account, driver owner, current surface/URL, sample composition, active seed cluster, candidate packet, capability matrix deltas, mutation count, ledger path, and exact next safe action.

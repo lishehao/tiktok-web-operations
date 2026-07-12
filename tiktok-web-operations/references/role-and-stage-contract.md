@@ -97,6 +97,7 @@ without waiting for a timer.
 - Executor owns exactly one self-target recurring Heartbeat and dedicated tab.
 - Runs never inspect, coordinate with, or block on other TikTok tasks.
 - Each executor has one mission, one ledger namespace, and one timer namespace.
-- In cultivation runs, Like/Favorite/Repost/Comment remain independently gated
-  but concurrently eligible; their decisions occur while each qualified video
-  is open, never in a later standalone interaction phase.
+- In cultivation runs, Like/Favorite/Repost/Comment remain independently
+  authorized but concurrently eligible; their best-effort attempts occur while
+  each qualified video is open, never in a later standalone interaction phase.
+  Missing persistence proof does not disable future new-post attempts.

@@ -25,10 +25,10 @@ def envelope(intent: str) -> dict[str, object]:
         return {"favorite": "disabled", "repost": "disabled", "comment": "disabled", "like": "disabled"}
     if intent == "cultivation":
         return {
-            "favorite": "pending_fresh_gate",
-            "repost": "pending_fresh_gate",
-            "comment": "pending_fresh_gate",
-            "like": "pending_fresh_gate",
+            "favorite": "best_effort_attempt",
+            "repost": "best_effort_attempt",
+            "comment": "best_effort_attempt",
+            "like": "best_effort_attempt",
             "parallel_engagement": True,
         }
     raise ValueError(intent)
@@ -48,7 +48,7 @@ def main() -> None:
     required = (
         "profile_alignment",
         "account_strength_proxy",
-        "pending_fresh_gate",
+        "best_effort_attempt",
         "Favorite",
         "TikTok Repost",
         "proactive comment",
@@ -79,10 +79,10 @@ def main() -> None:
     assert scenarios["browse_only"] == {
         "favorite": "disabled", "repost": "disabled", "comment": "disabled", "like": "disabled"
     }
-    assert scenarios["cultivation"]["favorite"] == "pending_fresh_gate"
-    assert scenarios["cultivation"]["repost"] == "pending_fresh_gate"
-    assert scenarios["cultivation"]["comment"] == "pending_fresh_gate"
-    assert scenarios["cultivation"]["like"] == "pending_fresh_gate"
+    assert scenarios["cultivation"]["favorite"] == "best_effort_attempt"
+    assert scenarios["cultivation"]["repost"] == "best_effort_attempt"
+    assert scenarios["cultivation"]["comment"] == "best_effort_attempt"
+    assert scenarios["cultivation"]["like"] == "best_effort_attempt"
     assert scenarios["cultivation"]["parallel_engagement"] is True
     assert scenarios["verified_candidate"] == "USE_SMALLEST_GENUINE_SIGNAL"
     assert scenarios["no_candidate"] == "ZERO_WITH_EXACT_REASON"

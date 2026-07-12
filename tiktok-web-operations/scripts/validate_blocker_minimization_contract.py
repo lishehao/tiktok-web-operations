@@ -32,7 +32,7 @@ def classify(event: str) -> dict[str, str | bool]:
         "chrome_disconnect": ("RECONNECT_SAME_CHROME", "chrome_activation", False),
         "empty_candidates": ("NO_ACTION_CHECKPOINT", "query", False),
         "route_client_block": ("ROTATE_ROUTE_OR_AUTO_RESUME", "route", False),
-        "single_lane_failure": ("SUSPEND_LANE_CONTINUE", "lane", False),
+        "single_lane_failure": ("RECORD_ATTEMPT_CONTINUE_FUTURE_POSTS", "lane", False),
         "uncertain_mutation": ("FREEZE_EXACT_NEVER_RETRY", "exact_mutation", False),
         "timed_rate_limit": ("WAIT_AND_AUTO_RECHECK", "affected_lane", False),
         "prohibited_action": ("SKIP_EXACT_SCOPE", "action", False),

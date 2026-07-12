@@ -16,7 +16,7 @@ Treat `刷视频` as read-only browsing unless the user separately authorizes an
    irrelevant, or the route/action is prohibited. Do not ask to bypass a rule.
 5. Label the post `core`, `adjacent`, `irrelevant`, or `harmful_to_direction`; keep the post URL and a one-line reason. Stop when the sample is sufficient for the objective or the user-supplied time limit ends.
 6. When the feed drifts, run two search-training blocks (normally 20–30 qualified opened/watched core posts) before another 5–10 item For You validation. Treat any change as observed correlation, not proof of TikTok's ranking mechanism.
-7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Each action type keeps its own confirmation and persistence gate; TikTok Repost is distinct from generic Share.
+7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Under an authorized cultivation envelope, Like/Favorite/Repost/Comment use independent best-effort attempts while the qualified post is open; TikTok Repost remains distinct from generic Share.
 
 Do not manufacture human-like pauses or scrolling patterns to evade detection.
 Treat timed rate limits as automatic waits; treat feature restrictions as exact-
@@ -82,13 +82,11 @@ For each candidate, prepare up to three materially different short options only 
 In `per_item_confirmation`, present the exact creator/post URL and exact final text and confirm the bounded batch at action time. In `autonomous_comment_mode`, verify that every standing-envelope field matches; do not request per-comment confirmation. Then:
 
 1. Submit one comment once.
-2. Verify the immediate posted state and author identity.
-3. Reload or reopen the post and locate the exact comment again.
-4. Record success, failure, removal, warning, or uncertainty before moving on.
+2. Record `attempted` plus an immediate visible response when readily available.
+3. Do not wait, reload/reopen, or inspect account-level state.
 
-A successful comment does not prove that likes, favorites, reposts, follows, or
-later comments will persist. Verify every send after reload even in autonomous
-mode. Freeze only the exact comment submission when uncertain; suspend the
-comment lane on persistence failure/removal; use automatic timed waits for
-throttling. Continue search/view and independent lanes. Do not retry the same
-submission or substitute another candidate to fill a quota.
+An attempted comment does not prove persistence. Freeze only the exact comment
+submission when uncertain; later new-post comment attempts remain allowed. Use
+automatic timed waits for throttling. Continue search/view and independent
+lanes. Do not retry the same submission or substitute another candidate merely
+to claim success.

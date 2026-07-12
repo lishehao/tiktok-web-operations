@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.12.16`
+Protocol version: `2026.07.12.17`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -89,7 +89,7 @@ If the user has not supplied values:
 - duration: 3 hours, standard intensity;
 - universal lifestyle language/region: global English with North American bias;
 - cultivation lanes: post Like, Favorite, TikTok Repost, and proactive comment
-  are four independent `pending_fresh_gate` lanes with
+  are four independent `best_effort_attempt` lanes with
   `parallel_engagement=true`;
 
 `继续` accepts defaults. Explicit direction, duration, intensity, and action
@@ -106,9 +106,9 @@ The primary training path is directed search, not Feed browsing:
    For You failure may be replaced by search views. Duplicates, drift, failed
    loads, and thumbnails do not count.
 4. While every qualified video is still open, evaluate Like, Favorite, Repost,
-   and Comment together and immediately execute justified actions through their
-   independently verified persistence lanes. Do not postpone interaction until
-   after the viewing round; comments never exceed 30 words.
+   and Comment together and immediately issue justified native actions once. Do
+   not postpone interaction until after the viewing round and do not wait/reload/
+   reopen/account-check afterward; comments never exceed 30 words.
 5. After two units or roughly 20–30 qualified views, 5–10 continuous For You
    items are sampled as held-out validation.
 6. Search clusters are adjusted from rolling evidence and the loop continues
@@ -151,8 +151,8 @@ scenario validators. Required scenarios include:
 - no coordinator/supervisor Heartbeat;
 - independent lanes and independent runs;
 - network/Chrome recovery and Heartbeat survival;
-- separate Like/Favorite/Repost/Comment gates with concurrent eligibility during
-  viewing and lane-local failure isolation.
+- concurrent Like/Favorite/Repost/Comment attempt coverage during viewing, with
+  `attempted|unavailable|hard_blocked` reporting and no persistence checks.
 
 The release is complete only when local source, GitHub main/codeload, and the ZIP
 artifact are byte-identical for managed files.

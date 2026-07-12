@@ -12,7 +12,7 @@ Apply the smallest possible failure scope. Ordinary friction stays in
 | Network/DNS/proxy/TLS/render/client block | bounded recovery, then self-Heartbeat recheck |
 | Chrome disconnect/stale tab | reconnect same Chrome or create a new owned tab |
 | Feed transition failure | mark held-out validation `partial|unavailable`; continue search |
-| Single lane persistence failure | suspend only that lane; continue independent work |
+| Missing persistence/post-action proof | record attempted; do not check; later new-post attempts remain allowed |
 | Uncertain mutation | freeze exact target/action; never retry; continue independent work |
 | Explicit timed rate limit | preserve retry time and auto-recheck; no confirmation |
 | Malformed ledger append | bounded local repair, then checkpoint/self-resume |

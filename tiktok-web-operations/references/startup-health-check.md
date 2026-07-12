@@ -61,7 +61,7 @@ Apply explicit values first. Safe defaults:
 - duration: 3 hours, standard intensity;
 - universal lifestyle region/language: `global English with North American bias`;
 - cultivation lanes: Like/Favorite/Repost/Comment are four independent
-  `pending_fresh_gate` lanes with `parallel_engagement=true`;
+  `best_effort_attempt` lanes with `parallel_engagement=true`;
 - browse-only lanes: all mutations disabled.
 
 Ask only when a missing value changes authorization or an irreversible action.

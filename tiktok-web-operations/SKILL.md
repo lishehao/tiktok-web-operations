@@ -20,13 +20,13 @@ Cultivation missions optimize two observable proxies:
 
 1. `profile_alignment`: qualified search-origin viewing and held-out For You
    samples increasingly match the chosen audience/persona.
-2. `account_strength_proxy`: durable, contextual Favorites, TikTok Reposts and
-   proactive comments demonstrate genuine community participation.
+2. `account_strength_proxy`: contextual Like, Favorite, TikTok Repost, and
+   proactive-comment attempts demonstrate active community participation.
 
 These are operating proxies, not proof of TikTok's private ranking weights or a
 promise of reach. For `运营`, `培养`, `养号`, `增长`, or `增加权重`, default post
 Like, Favorite, Repost, and proactive comment to four independent
-`pending_fresh_gate` lanes with `parallel_engagement=true`. Browse-only requests stay
+`best_effort_attempt` lanes with `parallel_engagement=true`. Browse-only requests stay
 read-only. Zero outward actions is valid only when no qualified candidate
 exists, a lane is unavailable, or the action would be repetitive or unsafe;
 record the exact reason.
@@ -88,7 +88,7 @@ Read `references/role-and-stage-contract.md` and
 | Direction only | Use that direction and default duration to 3 hours. |
 | Duration only | Use the packaged college/dorm direction and that duration. |
 | Browse-only wording | Search/view only; do not infer mutation authority. |
-| Cultivation/growth wording | Enable post Like, Favorite, Repost, and Comment as four independent `pending_fresh_gate` lanes with parallel engagement during viewing. |
+| Cultivation/growth wording | Enable post Like, Favorite, Repost, and Comment as four independent `best_effort_attempt` lanes with parallel engagement during viewing. |
 | `自动发短评论` | Within the accepted audience/language/voice envelope, comments are contextual, preferably 2–12 words, and never over 30 words. |
 
 Do not pause merely to announce an available upgrade or ask again for a value
@@ -134,7 +134,7 @@ range of 25–45. This is a work-size boundary, not an exact quota:
    training views.
 4. Immediately after each qualified view is understood and before navigating
    away, evaluate all four eligible Like/Favorite/Repost/Comment lanes. Execute
-   justified verified actions in that same browsing flow; do not defer
+   justified native actions once in that same browsing flow; do not defer
    engagement to a separate post-view phase.
 5. After two units or roughly 20–30 new qualified views, sample 5–10 sequential
    For You items as held-out validation.
@@ -152,33 +152,38 @@ delays, cursor jitter, or fake human behavior.
 
 Keep Like, Favorite, Repost, proactive comment, comment Like, Not interested,
 follow, reply, generic Share, publishing, and profile changes separate. Each
-authorized lane must pass its own one-action persistence gate in the current
-account/runtime.
+authorized lane uses attempt evidence rather than a persistence gate.
 
-- Favorite: selected immediately, stable near +3 seconds and +10 seconds, then
-  reload/reopen and account-level evidence when available.
+- Favorite: click the visible native Favorite control once. Do not wait +3/+10
+  seconds, reload/reopen, or seek account-level proof.
 - Repost: only TikTok's explicit `Repost`/`Undo repost`; opening Share is
   read-only navigation and generic Share/copy/send are never substitutes.
-- Proactive comment: submit once, never exceed 30 words, and require post-reload
-  visibility. Never duplicate an uncertain send.
-- Like: cultivation default is `pending_fresh_gate`; require its own persistence
-  proof before continued use, even if another lane is verified.
+- Proactive comment: submit once and never exceed 30 words. Do not reload/reopen
+  to verify it. Never duplicate an uncertain send.
+- Like: click the visible native Like control once on a fitting post. Do not
+  reload/reopen or seek account-level proof.
 
 `parallel_engagement=true` means all four lanes stay concurrently eligible
 throughout the viewing round. It does not mean mechanically applying all four to
 every video. Normally Like may accompany at most one higher-intent action on a
 strong candidate, while Favorite, Repost, and Comment are distributed across
 the most fitting posts. Every round evaluates every qualified video for all
-verified lanes and uses each verified lane at least once when a genuine,
-non-repetitive candidate exists; otherwise log the exact no-action reason.
+lanes and attempts each lane at least once when its native control is available
+on a genuine, non-repetitive candidate; otherwise log unavailable/hard-blocked.
 
-Run first gates on distinct strong-core posts as those posts are encountered in
-the normal viewing flow. Do not stop browsing to create a separate interaction
-block, and do not finish all viewing before beginning interaction.
+Use distinct strong-core posts for the four first attempts as those posts are
+encountered in the normal viewing flow. Do not stop browsing to create a separate
+interaction block, and do not finish all viewing before beginning interaction.
 
-A lane failure suspends only that lane. An uncertain mutation freezes only that
-exact target/action and is never retried; search/view and independent safe lanes
-continue.
+A non-persistent or unverified result does not suspend a lane or prevent future
+attempts on new posts. An uncertain mutation freezes only that exact
+target/action and is never retried; search/view and independent lanes continue.
+
+Record interaction results only as `attempted | unavailable | hard_blocked`.
+`attempted` means the visible native click/send was issued once; it is not a
+claim of server persistence or success. Do not perform post-action waiting,
+reload/reopen, profile-tab checks, or account-level verification for these four
+operating lanes.
 
 ## Chrome and recovery
 
