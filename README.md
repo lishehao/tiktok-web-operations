@@ -2,7 +2,9 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.12.11`
+Protocol version: `2026.07.12.12`
+
+持续培养/增长任务采用双目标：一是通过定向搜索、有效观看和 For You 留出样本确定账号画像；二是通过持久化 Favorite、TikTok Repost、短评论及其后续自然回应建立 `account_strength_proxy`。后者是可观测运营代理，不代表 TikTok 公开或保证的内部“账号权重”。用户只要求浏览时保持只读；用户要求运营、培养、养号、增长或增加权重时，Favorite、Repost 和主动评论默认进入各自 fresh gate，Like 仍默认关闭。
 
 ## 直接安装
 
@@ -77,7 +79,7 @@ Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 
 
 ```text
 状态健康。当前账号：@handle。
-你想把这个账号运营成什么方向或人设，以及运行多久？地区、语言和细分偏好可以一起给出；不填时不会阻塞启动，我会使用可逆默认值并在开始回执中说明。比如“爱犬/宠物，运行 10 小时”会默认采用全球英语、偏北美内容，并根据合格视频语言调整评论。不能保证具体推荐结果。
+你想把这个账号运营成什么方向或人设，以及运行多久？持续运营会同时做画像对齐，并通过经验证的 Favorite、Repost、短评论建立账号活跃度代理；地区、语言和细分偏好不填时使用可逆默认值。不能保证 TikTok 内部权重或具体推荐结果。
 ```
 
 健康交接后立即停止本 turn，等待用户后续方向/时长。不要创建执行台，不要搜索 TikTok，不要点击 Favorite/Repost，不要评论，也不要声称运营已启动。若 Skill 已安装且用户首条消息已是明确运营指令，可快速复用健康检查，直接原地晋升为 `TikTok 主控台` 并在同 turn 启动，不重复完整 setup handoff。
@@ -124,7 +126,7 @@ operation_stop_at:
 - Voice: 英文、简短、具体、玩梗；评论优先 2–12 个词，绝不超过 30 个词。
 - Duration: `3 hours`，standard intensity。
 - Post like: 未明确请求时默认 disabled；用户最新明确请求时进入一次 `pending_fresh_gate`，历史失败不要求二次确认。
-- Favorite、TikTok Repost、proactive top-level comment: 仅在 strong-core 内容上、各自通过独立持久化 gate 后选择性使用；不设互动配额。
+- Favorite、TikTok Repost、proactive top-level comment: 对运营/培养/养号/增长任务默认进入独立 `pending_fresh_gate`；首次使用不同 strong-core 帖子。通过后每个训练单元都评估真实候选并选择性使用；不设互动配额，零互动必须有无候选、当前 gate、重复或安全原因。
 
 ### 6. 用户开始运营后
 
@@ -238,7 +240,7 @@ S0_PREFLIGHT
 - Repost 只指实际 `Repost`/`Undo repost` 状态。允许只读打开 Share sheet 寻找明确 Repost；禁止执行 generic Share、Copy link、Send 或其他分享目标。
 - 主动顶层评论必须理解视频 setup/payoff，使用视频语言，优先 2–12 个英文词，硬上限 30 个词，并逐条刷新验证。
 - 不在同一视频机械堆叠 Favorite + Repost + Comment；选择最小、真实、合适的信号。没有合格候选时零互动完全合法。
-- 不宣称某种互动一定增加账号权重，也不承诺推荐或曝光结果。
+- 对运营/培养/养号/增长任务不得持续把 dispatch 固定为 `mutation_allowed=false`。画像对齐和账号活跃度代理必须分开记录；不宣称某种互动一定增加内部账号权重，也不承诺推荐或曝光结果。
 
 ### 停止条件
 
@@ -247,7 +249,7 @@ S0_PREFLIGHT
 用户侧最终输出保持简单：
 
 ```text
-运营完成。运行：<duration>；浏览：<count>；收藏：<count>；Repost：<count>；评论：<count>。风险：无｜<一句话风险>。
+运营完成。运行：<duration>；画像：<alignment summary>；活跃度代理：收藏 <count>、Repost <count>、评论 <count>、自然回应 <count|未复查>。风险：无｜<一句话风险>。
 ```
 
 不要向用户展示 Heartbeat ID、callback ID、registry、内部状态名或释放协议；只有 finalization 被阻塞时才给一项简短修复或决策。

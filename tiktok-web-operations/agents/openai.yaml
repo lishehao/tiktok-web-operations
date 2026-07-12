@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: immediately name this setup task TikTok 启动台, finish read-only preflight, promote the same task to TikTok 主控台, create one TikTok 执行台 only after mission resolution, continue by immediate callbacks, and use one coordinator Heartbeat only as an hourly recovery watchdog."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: immediately name setup TikTok 启动台, promote the same task to TikTok 主控台 after preflight, then run one executor toward both profile alignment and an observable account-strength proxy; cultivation missions gate and selectively use Favorite, TikTok Repost, and short proactive comments while Like stays off by default."

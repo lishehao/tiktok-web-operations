@@ -4,8 +4,9 @@ description: >-
   Run authorized TikTok web operations through the user's logged-in Chrome
   session, including account audits, TikTok Studio analytics, persistent feed
   calibration, search-first vertical browsing, native feed scrolling,
-  search/hashtag seeding, short meme-aware comments with optional standing
-  authorization, publishing, comment follow-up, verification, and a
+  search/hashtag seeding, profile alignment, an observable account-strength
+  proxy through verified Favorites/Reposts/short comments, publishing, comment
+  follow-up, verification, and a
   starter-as-coordinator plus one persistent executor system. Use when the user asks to
   browse or scroll TikTok, train recommendations, search communities or
   keywords, like/favorite/repost/comment, operate, grow, audit, publish,
@@ -16,6 +17,30 @@ description: >-
 # TikTok Web Operations
 
 Use TikTok's web surfaces as an evidence-led operating system. Keep strategy, Chrome execution, publishing, engagement, and analytics separate.
+
+## Operating Objective
+
+Persistent cultivation/growth missions optimize two observable objectives:
+
+1. `profile_alignment` — search, meaningful strong-core viewing, creator/
+   hashtag bridges, and held-out For You samples move toward the chosen persona
+   and audience hypothesis.
+2. `account_strength_proxy` — durable, context-appropriate Favorite, TikTok
+   Repost, and proactive-comment participation plus later organic comment
+   likes/replies show that the account is an active community participant.
+
+`account_strength_proxy` is an operating proxy, never a claim that TikTok exposes
+an internal account weight or guarantees reach. For a persistent mission whose
+intent is `运营`, `培养`, `养号`, `增长`, or `增加权重`, enable Favorite, Repost,
+  and proactive comment as `pending_fresh_gate` by default unless the user narrows
+  the mission to read-only. Keep post Like disabled unless explicitly requested.
+After the proactive-comment gate passes, activate `autonomous_comment_mode` only
+for the exact account/direction/language/voice envelope. After a lane passes,
+every training unit evaluates genuine candidates and uses
+eligible verified lanes selectively. Zero outward actions is valid only when no
+qualified candidate exists, the relevant lane is currently unavailable, or an
+action would be repetitive/unsafe; record that reason. Never manufacture a quota
+or stack every action on one post.
 
 ## System Topology
 
@@ -82,7 +107,8 @@ Before starting, changing, resuming, or recovering any operating mission, read
 | Healthy handoff followed by `继续`, `开始`, a direction, duration, intensity, or action list | Resolve the latest explicit fields, keep this task as coordinator, create one persistent executor, obtain first operation proof, and begin without reconfirming supplied values. |
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
 | `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, reposts, follows, or comments. |
-| `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Keep this task as coordinator and run one continuous, resumable, deadline-bounded mission in its persistent execution Thread. |
+| `持续刷`, `定向刷`, `垂直刷`, `养推荐流` | Keep this task as coordinator and run one continuous, resumable, deadline-bounded profile-alignment mission. Do not infer mutation authority from browse-only wording. |
+| `运营`, `培养`, `养号`, `增长`, `增加权重`, `两个 Thread 运营` | Run the same continuous mission with dual objectives: profile alignment plus account-strength proxy. Default Favorite, TikTok Repost, and proactive comment to independent `pending_fresh_gate`; keep Like disabled unless requested. |
 | `刷视频并互动`, `点赞收藏评论`, `收藏并 repost`, `去发几个评论` | Find strong core candidates and use only independently verified like, favorite, repost, or proactive-comment lanes covered by the exact standing envelope. Treat Repost as distinct from generic Share. |
 | `评论不用问我`, `自动发短评论` | Activate `autonomous_comment_mode` only for the exact account/audience/voice envelope; enforce the 30-word hard limit and every persistence stop rule. |
 | `发视频`, `上传`, `排期` | Validate the exact asset/settings, confirm, execute one item, and verify. |
@@ -287,10 +313,26 @@ or proves completion by itself.
   bounded local repair, and otherwise yields an automatic-resume checkpoint. It
   is not a user decision or whole-mission blocker.
 - Keep post likes, favorites, reposts, generic shares, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
-- A standing vertical-feed envelope may authorize selective post likes, favorites, reposts, and proactive comments, but each lane must first pass its own one-action persistence gate in the current account/runtime. For Favorite/save, verify the selected state immediately, again after roughly 3 seconds, and again after a 10-second total server-settlement window before reloading; only then run reload/reopen and account-level Favorites evidence. This is a consistency wait, not simulated-human behavior. A current failure pauses only that lane for the current runtime; a later explicit mission may run one fresh gate without another authorization prompt. Do not cancel unrelated authorized lanes unless a current platform warning, challenge, or uncertain submission makes all mutation unsafe.
+- A persistent cultivation/growth envelope defaults Favorite, TikTok Repost,
+  and proactive comments to `pending_fresh_gate`; browse-only requests remain
+  read-only. Each lane must pass its own one-action persistence gate in the
+  current account/runtime before continued use. For Favorite/save, verify the
+  selected state immediately, again after roughly 3 seconds, and again after a
+  10-second total server-settlement window before reloading; only then run
+  reload/reopen and account-level Favorites evidence. This is a consistency
+  wait, not simulated-human behavior. A current failure pauses only that lane;
+  continue search/view and the other verified lanes.
 - Repost means TikTok's actual `Repost`/`Undo repost` state. Opening the visible Share action sheet is allowed as a read-only navigation step when TikTok nests Repost there; opening the sheet is not itself a successful Repost. Inside it, click only an explicit `Repost` control. Never click or substitute generic Share, copy-link, send-to-recipient, or another share target, and never infer persistence from the sheet merely opening.
+- A cultivation/growth mission's proactive-comment gate creates standing
+  `autonomous_comment_mode` only for the resolved account, direction, language,
+  and voice. Every comment remains contextual, preferably 2–12 words, never
+  over 30 words, and must survive reload verification.
 - Use distinct strong-core posts for first like, favorite, repost, and comment gates so one action does not contaminate another lane's evidence. After verification, choose the smallest genuine signal rather than stacking multiple actions on each post.
-- Do not set engagement quotas. Zero outward actions is valid when quality, audience fit, rights, or persistence gates fail.
+- Do not set engagement quotas. In a cultivation/growth mission, evaluate
+  Favorite/Repost/Comment opportunities in every unit and do not keep issuing
+  `mutation_allowed=false` after the standing envelope exists. Zero outward
+  actions is valid only when quality, audience fit, rights, repetition risk, or
+  a current persistence gate prevents a genuine action; record the reason.
 - Never automate account creation, operate accounts in bulk, manipulate engagement, evade enforcement, or distribute high-volume repetitive content.
 - Optimize comments for contextual wit and organic community response, not a claimed ranking formula. Record later comment likes/replies when visible, but never promise that they increase account weight and never use engagement bait.
 - Record content rights, disclosures, and AIGC labeling before publishing.

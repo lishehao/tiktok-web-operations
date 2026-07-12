@@ -55,7 +55,11 @@ If the joke depends on insulting a real person rather than the situation, rewrit
 Use one mode:
 
 - `per_item_confirmation` — default. Present the exact URL and text before every proactive comment.
-- `autonomous_comment_mode` — use only after the user explicitly grants standing authorization for the exact account and operating envelope. Do not ask about each eligible comment.
+- `autonomous_comment_mode` — use only after the user explicitly grants standing
+  authorization, or after the accepted top-level mission intent is
+  cultivation/growth/account-strength and the Skill has disclosed its default
+  standing envelope, for the exact account/direction/language/voice. Do not ask
+  about each eligible comment.
 
 The standing envelope must record:
 

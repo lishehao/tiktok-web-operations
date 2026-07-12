@@ -55,7 +55,13 @@ weight.
 3. **Search assessment** — Search one approved cluster and classify the first five result cards in order. This measures query quality only.
 4. **Qualified consumption** — From those results, open strong `core` posts individually from the search surface, verify the direct post identity/playback, and watch through the premise/payoff or completion when reasonably short. Returning without opening the post is not consumption.
 5. **Bridge consumption** — From a consumed core post, optionally open one relevant creator, hashtag, sound, or related-search path and consume another core post when it adds audience context.
-6. **Sparse explicit feedback** — Only when separately authorized and independently persistence-verified, choose the smallest genuine Favorite, TikTok Repost, or proactive-comment signal on distinct strong-core posts. Do not require an outward action for a training unit to pass.
+6. **Sparse explicit feedback** — For cultivation/growth/account-strength
+   missions, Favorite, TikTok Repost, and proactive comment are standing
+   `pending_fresh_gate` lanes unless the user narrows the run to read-only. Run
+   each fresh gate on a distinct strong-core post, then choose the smallest
+   genuine verified signal. Every unit must evaluate opportunities; zero
+   outward actions requires an explicit no-candidate/current-lane/repetition/
+   safety reason, not a blanket `mutation_allowed=false` dispatch.
 7. **Held-out validation** — After the sample threshold, enter For You once and sample a small continuous sequence. Measure composition; do not claim causal attribution.
 8. **Reconcile and continue** — Update qualified-consumption counts, feed-validation state, capability matrix, cluster weights, and exclusions, then immediately start the next approved unit while before the cutoff.
 
@@ -78,7 +84,10 @@ unit and do not yield merely because one unit completed.
 4. Open and consume every suitable strong-core result among those five, normally three to five per cluster. Verify the exact post page, observe playback progression, and watch enough to understand the premise/payoff. Record observed/total time when exposed, without inventing a universal dwell rule.
 5. Return through normal page navigation to the same search context; do not substitute a direct URL list or merely inspect thumbnails/captions.
 6. Record two separate denominators: all assessed result cards and the number of qualified consumed core posts. A complete unit normally contains 9–15 qualified search views; if fewer or zero exist, write an honest completed/no-action unit and rotate weak clusters rather than opening irrelevant posts to fill a quota or escalating.
-7. When `autonomous_comment_mode` is active, comment only on a strong core post after it has become a qualified view. Zero comments remains valid.
+7. When `autonomous_comment_mode` is active, comment only on a strong core post
+   after it has become a qualified view. Zero comments remains valid only when
+   no contextually strong, non-repetitive candidate exists or the lane is
+   currently unavailable; record the reason.
 8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line suspends further browsing until the ledger is repaired; it does not retire either Heartbeat.
 9. Run held-out For You validation only after two distinct training units or roughly 20–30 qualified search views, unless the coordinator explicitly requests an earlier diagnostic.
 
@@ -179,7 +188,13 @@ Keep these feedback lanes separate:
 - **Community feedback:** comment like is its own capability type. Use it only for a comment that genuinely represents the desired community voice; do not mass-like comment sections.
 - **Social participation:** proactive comments require either exact confirmation or a matching active autonomous-comment envelope; replies still require exact confirmation. Submit once and require post-reload visibility.
 
-Do not stack like + favorite + repost + comment on every good post. Use distinct posts for first capability gates, then the smallest justified signal. A natural operating profile includes many read-only decisions, a few strong candidates, and sparse verified mutations.
+Do not stack like + favorite + repost + comment on every good post. Use distinct
+posts for first capability gates, then the smallest justified signal. A natural
+operating profile includes many read-only decisions, a few strong candidates,
+and sparse verified mutations. For a cultivation/growth mission, an executor
+must not silently downgrade the whole run to read-only: it records candidate
+evaluation and uses at least one eligible verified lane when a genuine candidate
+exists, without converting this into a per-unit numerical quota.
 
 An ended warning, rate limit, or failed gate from an older mission is historical
 evidence, not a continuing blocker. When the latest explicit instruction requests

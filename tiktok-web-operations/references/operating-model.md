@@ -322,15 +322,25 @@ a Skill-development/bootstrap task as callback target.
 - Post like is disabled by default when not requested. When the latest instruction
   explicitly authorizes it, set it to `pending_fresh_gate`; historical failures
   stay in the ledger and do not require another confirmation.
-- Favorite, TikTok Repost, and proactive top-level comments may be used only on
-  strong-core posts after each lane passes its independent persistence gate.
+- Persistent cultivation/growth/account-strength missions default Favorite,
+  TikTok Repost, and proactive top-level comments to independent
+  `pending_fresh_gate` lanes unless the user narrows the mission to read-only.
+  Run the first gates on distinct strong-core posts. After each lane passes,
+  evaluate it in every training unit and use it selectively when a genuine,
+  non-repetitive candidate exists.
+- A successful proactive-comment gate activates standing
+  `autonomous_comment_mode` only for the exact account/direction/language/voice
+  envelope; it does not authorize replies, comment likes, follows, or DMs.
 - Favorite requires immediate, near +3 seconds, total +10 seconds, reload/reopen,
   and account-level evidence when exposed.
 - Repost permits opening Share sheet read-only, then only the explicit TikTok
   Repost control; generic Share, copy-link, send, and other targets are excluded.
 - Comments are contextual, preferably 2-12 words, never over 30 words, and must
   survive reload verification.
-- Never set engagement quotas or infer ranking effects.
+- Never set engagement quotas or infer ranking effects. Do not silently keep a
+  cultivation mission at `mutation_allowed=false`; a zero-action unit must log
+  the no-candidate/current-gate/repetition/safety reason. Report these actions as
+  `account_strength_proxy`, not a proven internal TikTok weight.
 
 ## Callback schema
 
@@ -453,7 +463,7 @@ retired executor so it does not remain in the active task list.
 Use one line when finalization succeeds:
 
 ```text
-运营完成。运行：<duration>；浏览：<count>；收藏：<count>；Repost：<count>；评论：<count>。风险：无｜<one short risk>。
+运营完成。运行：<duration>；画像：<alignment summary>；活跃度代理：收藏 <count>、Repost <count>、评论 <count>、自然回应 <count|未复查>。风险：无｜<one short risk>。
 ```
 
 If the user stopped early, start with `已安全停止。` instead. Do not show

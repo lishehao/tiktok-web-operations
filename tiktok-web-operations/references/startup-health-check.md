@@ -149,7 +149,7 @@ When Phase 1 is healthy, first promote the same task in place to
 
 ```text
 状态健康。当前账号：@handle。
-你想把这个账号运营成什么方向或人设？方向会决定后续搜索、浏览、收藏、Repost、评论，以及未来内容的主题与语气，帮助形成更一致的受众信号；但不能保证具体推荐或分发结果。
+你想把这个账号运营成什么方向或人设？持续运营会同时做画像对齐，以及通过经验证的收藏、Repost、短评论建立账号活跃度代理；它们是可观测运营信号，不保证 TikTok 内部权重、推荐或分发结果。
 也请告诉我希望运行多久。你可以回复“北美大学生 / dorm life，运行 3 小时”；如果暂时没想法，直接回复“继续”，我会按默认方向和默认 3 小时开始。
 ```
 
@@ -167,7 +167,8 @@ rename-tool failure remains non-blocking presentation degradation.
 
 Build `persona_name`, `target_audience`, `region_language`, `content_pillars`,
 `excluded_topics`, `voice_and_comment_style`, `search_seed_clusters`,
-`future_post_alignment`, `duration`, and `operation_stop_at`.
+`future_post_alignment`, `profile_alignment_goal`, `account_strength_proxy_goal`,
+`duration`, and `operation_stop_at`.
 
 - Explicit fields override defaults.
 - Missing direction defaults to North American college/dorm life.
@@ -251,13 +252,22 @@ Host/network/tool transients never authorize replacement.
 - Defaults fill only fields absent from the latest explicit user instruction.
 - Post like is disabled when not requested. An explicit latest request moves it
   to `pending_fresh_gate`; an old mission failure is historical evidence only.
-- Favorite, TikTok Repost, and proactive comments may be selectively used on
-  strong-core posts only after their own persistence gates pass.
+- For persistent cultivation/growth/account-strength missions, Favorite,
+  TikTok Repost, and proactive comments default to `pending_fresh_gate` unless
+  the user narrows the mission to read-only. Browse-only wording does not grant
+  mutation authority.
+- Run the three gates on distinct strong-core posts. After a lane passes, every
+  unit evaluates candidates and uses eligible verified lanes selectively. Do
+  not keep issuing `mutation_allowed=false`; zero interaction requires a logged
+  no-candidate/current-gate/repetition/safety reason.
+- A successful proactive-comment gate activates `autonomous_comment_mode` only
+  for the exact resolved account/direction/language/voice envelope.
 - Favorite requires immediate, +3 second, +10 second, reopen, and account proof.
 - Repost means only TikTok's explicit Repost control, never generic Share.
 - Comments are contextual, preferably 2-12 words, never over 30 words, and each
   must survive reload verification.
-- Never set engagement quotas or infer ranking effects.
+- Never set engagement quotas or infer ranking effects. Report persisted actions
+  as `account_strength_proxy`, not a proven TikTok account weight.
 
 ## Healthy started response
 
@@ -269,7 +279,8 @@ Only after first proof, report:
 时长：duration；预计结束：local date and time。
 搜索训练：已验证从搜索实际点开并观看 strong-core 视频。
 For You 验证：verified | degraded | unavailable（仅作为留出验证）。
-互动：当前已启用的独立 lanes；未通过持久化 gate 的仍关闭。
+画像对齐：当前搜索簇与首批 qualified evidence。
+账号活跃度代理：Favorite/Repost/Comment 各 lane 的 gate/verified 状态与已持久化计数。
 ```
 
 Do not say only `已启动` when the primary search-origin consumption proof is

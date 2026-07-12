@@ -1,12 +1,33 @@
 # Engagement And Analytics
 
+## Dual-objective scorecard
+
+Track two separate operational outcomes:
+
+- `profile_alignment`: qualified strong-core views, cluster coverage, viewing
+  progression/premise-payoff evidence, creator/hashtag bridges, and rolling For
+  You `core_share`/`directional_share`/`drift_share`.
+- `account_strength_proxy`: persisted Favorite, TikTok Repost, and proactive
+  comments; later organic likes/substantive replies on those comments; profile
+  visits/follows or own-post metrics only when those surfaces exist.
+
+Never collapse these into a claimed TikTok account weight. Report the proxy's
+components and evidence. Search/view can improve the profile-alignment
+hypothesis, but does not substitute indefinitely for active participation in a
+cultivation/growth mission. Conversely, mutations do not compensate for shallow
+or off-direction viewing.
+
 ## Engagement order
 
 1. Read account warnings and creator/account notifications.
 2. Read comments on the account's own recent posts.
 3. Use comment insights when available to find recurring topics, questions, suggestions, and confusion.
 4. Draft replies only where the account can add a concrete answer, clarification, acknowledgment, or useful follow-up.
-5. Treat proactive comments on other creators' posts as a separate explicitly requested lane. Once requested, use `feed-browsing-and-comments.md`; do not turn it into an activity quota.
+5. Treat proactive comments on other creators' posts as a separate authorized
+   lane. A cultivation/growth/account-strength mission supplies a standing
+   `pending_fresh_gate` envelope unless narrowed to read-only; other requests
+   need explicit authorization. Once active, use
+   `feed-browsing-and-comments.md`; do not turn it into an activity quota.
 
 Do not set a reply quota. Do not copy-paste replies, use repetitive CTAs, insert irrelevant promotion, or reply merely to inflate activity.
 
@@ -55,6 +76,12 @@ normal mission checkpoint. Use an immediate hard-blocker callback only for the
 whitelist in `blocker-minimization.md`.
 
 Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
+
+In a cultivation/growth mission, candidate evaluation is mandatory even though
+action counts are not quotas. If a qualified, non-repetitive candidate exists
+and its lane is verified, use one fitting Favorite, Repost, or proactive comment
+rather than defaulting the whole unit to read-only. When no action is taken,
+record the exact no-candidate, current-gate, repetition, safety, or rights reason.
 
 For proactive comments, record later organic likes and substantive replies when visible at normal review checkpoints. Use them to compare joke specificity, audience language, and community fit. Do not treat raw comment-like count as proof of recommendation weight, and do not rewrite comments into engagement bait merely to chase reactions.
 

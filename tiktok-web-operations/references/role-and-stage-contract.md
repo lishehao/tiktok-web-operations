@@ -110,9 +110,12 @@ Use this boundary instead of letting both Threads “do strategy”:
 | Current page recovery inside the bounded budget | 执行台 |
 | User decision after a true blocker | 主控台 only |
 
-Local executor discretion is narrow. It may skip irrelevant/unsafe candidates,
-use another query already listed in the block, and choose zero interactions. It
-may not invent a new audience, pillar, action type, quota, or recovery method.
+Local executor discretion is narrow. It may skip irrelevant/unsafe candidates
+and use another query already listed in the block. In a cultivation/growth
+mission it evaluates Favorite/Repost/Comment candidates and may choose zero only
+when no genuine candidate exists or the exact lane is currently unavailable,
+repetitive, or unsafe; it records that reason. It may not invent a new audience,
+pillar, action type, quota, or recovery method.
 
 ## Stage machine
 
