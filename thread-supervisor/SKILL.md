@@ -32,6 +32,10 @@ Before relying on a target thread for callbacks, run a short callback capability
 check unless that exact thread has already proven it can call back in the
 current management session.
 
+Before reusing any persistent worker, apply the owner-liveness gate in
+`references/identity-and-automation.md`. List/search/title/summary/readability
+only discovers a candidate; it does not prove a writable rollout.
+
 Include these fields in the dispatch prompt:
 
 - the coordinator thread id

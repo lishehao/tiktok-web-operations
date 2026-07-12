@@ -94,7 +94,7 @@ accepts defaults:
 4. Select the same saved project for the executor when clearly available;
    otherwise create it as a projectless local Thread.
 5. Call `create_thread(model="gpt-5.6-luna", thinking="high")` exactly once for
-   the executor. Its initial prompt includes the coordinator ID,
+   the initial executor. Its initial prompt includes the coordinator ID,
    account, envelope, ledger, dedicated-tab rule, this-run writer role, and
    callback schema, and says to wait for `SELF_REGISTRY` without touching Chrome.
 6. Record the returned executor ID, set its final title to `TikTok 执行台`, and
@@ -119,8 +119,33 @@ accepts defaults:
     unpinned. Navigate the app to the coordinator when useful.
 
 If self-registration, creation, handshake, or smoke fails, do not claim stable
-operation. Do not create a second executor or another coordinator. Archive an
-empty executor only when the user requests cleanup; otherwise preserve evidence.
+operation. Do not create a second executor or another coordinator merely as a
+retry. The only automatic replacement is the single stale-owner transaction
+below after definitive tombstone evidence. Archive an empty executor only when
+the user requests cleanup; otherwise preserve evidence.
+
+## TikTok stale-owner recovery
+
+Apply `$thread-supervisor/references/identity-and-automation.md` before reusing
+or dispatching any registered executor:
+
+- title, role, search result, preview, readable summary, and `read_thread` cache
+  are candidate evidence only; require current-session owner-liveness proof;
+- an archived TikTok executor is retired and must not be automatically
+  unarchived for reuse;
+- `failed to resolve rollout path` plus `file does not exist`/`ENOENT` is
+  `STALE_OWNER_TOMBSTONE`, not a TikTok account/platform risk;
+- host unavailable, timeout, network, or tool transport errors are
+  `LIVENESS_UNVERIFIED_TRANSIENT`; retain the owner and do not replace it from
+  that evidence;
+- for a tombstone, run the generic stale executor replacement transaction once:
+  remove old-target automations, retire the old ID, create one replacement,
+  verify exact new ID and mission acknowledgement, bind/read back the new
+  operation heartbeat, and prove no orphan automation or duplicate canonical
+  owner remains;
+- successful same-envelope replacement is internal self-healing. Only a failed
+  replacement/handshake/dispatch/binding becomes an orchestration blocker in
+  `TikTok 主控台`.
 
 ## Hard tool and model requirements
 
@@ -163,7 +188,8 @@ Fast Mode unless the tool surface exposes and confirms that field.
 1. Receive the executor callback and read at most the latest relevant 1-3 turns
    when more evidence is necessary.
 2. Verify callback transport source, payload run ID, both Thread IDs, ledger,
-   and current block ID against the immutable registry.
+   current block ID, executor generation, and owner-liveness state against the
+   immutable registry.
 3. Reconcile search cards assessed, qualified search views, held-out For You
    validation, query quality, capability changes, pending user work,
    authorization, deadline, and risk. Never treat card relevance as consumed
@@ -395,6 +421,12 @@ run_id:
 instruction_version:
 coordinator_thread_id:
 executor_thread_id:
+executor_generation:
+executor_owner_state:
+replacement_old_executor_thread_id:
+replacement_new_executor_thread_id:
+orphan_automation_check: NOT_RUN | CLEAR | FAILED
+duplicate_canonical_owner_check: NOT_RUN | CLEAR | FAILED
 block_id:
 trigger: direct_first_block | direct_manual | operation_heartbeat
 slot_id:
@@ -498,8 +530,10 @@ Use one line when finalization succeeds:
 If the user stopped early, start with `已安全停止。` instead. Do not show
 Heartbeat/callback/registry/release identifiers unless finalization is blocked.
 
-If the executor disappears, first resolve uncertain submissions and incumbent
-mutation authority. Create a replacement only with explicit user authorization,
-then replace the executor registry and repeat the full handshake. If the
-coordinator disappears, the executor stops mutation, releases Chrome, and waits;
-it never guesses a new callback destination.
+If the executor becomes unreachable, first classify it with the owner-liveness
+gate and resolve uncertain submissions. A definitive stale tombstone uses the
+single internal replacement transaction without user confirmation. A transient
+host/network/tool failure never creates a replacement. If replacement fails,
+report an orchestration blocker and stop. If the coordinator disappears, the
+executor stops mutation, releases Chrome, and waits; it never guesses a new
+callback destination.

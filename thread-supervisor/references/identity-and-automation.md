@@ -18,6 +18,18 @@ coordinator_project_or_cwd:
 executor_thread_id:
 executor_title:
 executor_host_id:
+executor_owner_state: NONE | CANDIDATE_ONLY | LIVE | ARCHIVED_RETIRED | LIVENESS_UNVERIFIED_TRANSIENT | STALE_OWNER_TOMBSTONE | REPLACEMENT_IN_PROGRESS | REPLACED
+executor_generation:
+owner_liveness_probe_id: NONE | exact id
+owner_liveness_ack_id: NONE | exact id
+retired_executor_thread_ids: []
+stale_owner_error: NONE | exact error
+replacement_old_executor_thread_id: NONE | exact id
+replacement_new_executor_thread_id: NONE | exact id
+replacement_mission_dispatch_id: NONE | exact id
+replacement_operation_heartbeat_id: NONE | exact id
+orphan_automation_check: NOT_RUN | CLEAR | FAILED
+duplicate_canonical_owner_check: NOT_RUN | CLEAR | FAILED
 coordinator_pinned: true | false
 executor_pinned: true | false
 archive_temporary_on_complete: true | false
@@ -67,9 +79,42 @@ The only authoritative identity sources are:
   `targetThreadId`, repeat state, next run, and cutoff returned by an
   `automation_update` view of each exact automation ID.
 
-Never derive identity from a directory suffix, copied URL, remembered ID,
-focused Codex window, task ordering, matching title alone, another coordinator's
-registry, or an automation prompt.
+`list_threads`, search, title, role text, preview, readable summary, and cached
+metadata discover candidates only. Even a successful `read_thread` proves that
+the index can describe that ID; it does not by itself prove the underlying
+rollout still exists or accepts a new turn. Continuation authority additionally
+requires the owner-liveness gate below.
+
+Never derive identity or writability from a directory suffix, copied URL,
+remembered ID, focused Codex window, task ordering, matching title/summary,
+another coordinator's registry, or an automation prompt.
+
+## Persistent owner liveness gate
+
+Before every dispatch, heartbeat retarget, or executor reuse, classify the exact
+registered executor:
+
+- `CANDIDATE_ONLY`: found by list/search/title/summary but not yet proven writable.
+- `LIVE`: exact ID/host/project match, task is not retired/archived, and one
+  nonce-bound `OWNER_LIVENESS_PROBE` or the pending inert mission preamble is
+  accepted and acknowledged from that exact ID in the current management
+  session.
+- `ARCHIVED_RETIRED`: the domain marks an archived executor retired. TikTok uses
+  this default; never automatically unarchive it for reuse.
+- `STALE_OWNER_TOMBSTONE`: an exact continuation/read path reports
+  `failed to resolve rollout path` together with `file does not exist`, `ENOENT`,
+  or an equivalent explicit missing/deleted rollout result. Stop sending to that
+  ID after the first definitive result. This is orchestration state, never
+  platform/account risk.
+- `LIVENESS_UNVERIFIED_TRANSIENT`: host unavailable, unavailable-host inventory,
+  timeout, connection reset, temporary network/tool transport failure, or an
+  otherwise non-definitive read/send error. Keep the canonical owner, perform at
+  most one bounded transport recheck, and do not archive, unarchive, retire, or
+  create a replacement.
+
+Do not convert silence, an old update time, `notLoaded`, or one transient tool
+failure into a tombstone. Do not repeatedly send after a definitive missing-
+rollout error.
 
 ## Thread presentation contract
 
@@ -96,9 +141,11 @@ rename either task for routine state changes. A matching final title is never
 identity or ownership proof.
 
 Pinning is presentation state, not ownership proof. Never archive an active task,
-a task with an owned heartbeat or tab, or a task with unresolved external-action
+a task with a managed heartbeat or tab, or a task with unresolved external-action
 certainty. A domain may keep registered idle workers unarchived for reuse and
 archive only completed temporary diagnostics or released, retired workers.
+For TikTok, any executor already archived is `ARCHIVED_RETIRED`; do not unarchive
+it merely to test or resume dispatch.
 
 ## Pair state machine
 
@@ -130,12 +177,51 @@ Before every thread dispatch, callback reconciliation, heartbeat creation,
 heartbeat update, heartbeat execution, stop request, replacement, or archive:
 
 1. Re-read the immutable registry.
-2. Resolve the exact relevant task with `read_thread`.
-3. Compare actual tool target/source with the registered ID.
-4. Continue only when the values match byte-for-byte.
+2. Resolve the exact relevant task with `read_thread`; treat title/search results
+   only as candidates.
+3. Apply the owner-liveness gate when a new turn or target binding is required.
+4. Compare actual tool target/source with the registered ID.
+5. Continue only when the values match byte-for-byte and owner state is `LIVE`.
 
 Do not repair an identity mismatch by guessing another target or by reusing a
 similar task title.
+
+## Stale executor replacement transaction
+
+Use this only after definitive `STALE_OWNER_TOMBSTONE`, never for transient host,
+network, or tool unavailability. A verified coordinator may self-heal without a
+user confirmation because replacement preserves the same account, mission,
+authority envelope, deadline, and executor role.
+
+1. Freeze new dispatch, set `executor_owner_state=REPLACEMENT_IN_PROGRESS`, and
+   record the exact error plus `replacement_old_executor_thread_id`.
+2. View every automation recorded in this run and, when inventory is available,
+   search for the same run ID targeting the old executor. Pause/delete only
+   exact matching automations before replacement. Require
+   `orphan_automation_check=CLEAR`; never mutate another run's automation.
+3. Remove the old ID from the canonical executor field, append it to
+   `retired_executor_thread_ids` as `STALE_OWNER_TOMBSTONE`, and never send to or
+   automatically unarchive it again.
+4. Call `create_thread` at most once. Record the returned exact ID as
+   `replacement_new_executor_thread_id`, increment `executor_generation`, and set
+   it as the sole canonical `executor_thread_id`. Title/summary search is not
+   identity proof.
+5. Complete `SELF_REGISTRY`, a nonce-bound `OWNER_LIVENESS_ACK`, and the pending
+   mission dispatch against the exact new ID. Record
+   `replacement_mission_dispatch_id`; do not perform TikTok mutation until the
+   new executor acknowledges the registry and mission.
+6. Recreate/update the run's operation heartbeat to target the exact new ID;
+   verify ID, target, run, repeat, next run, and cutoff by readback. Record
+   `replacement_operation_heartbeat_id`. Re-verify coordinator-target supervisor
+   heartbeat without changing its target.
+7. Require zero automations targeting the old ID and exactly one canonical live
+   executor. Set `orphan_automation_check=CLEAR`,
+   `duplicate_canonical_owner_check=CLEAR`, and `executor_owner_state=REPLACED`;
+   retain old/new IDs and binding evidence in the registry/ledger.
+8. Treat successful replacement as internal recovery and continue the unchanged
+   mission without asking the user. If the single replacement, handshake,
+   mission dispatch, or automation binding fails, create no second replacement;
+   callback the coordinator with an orchestration blocker.
 
 ## Automation manager invariant
 

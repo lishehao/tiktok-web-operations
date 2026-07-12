@@ -22,6 +22,10 @@ account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_support: READY | UNAVAILABLE
 coordinator_self_registration: PROVABLE | UNAVAILABLE
 run_registry: WRITABLE | UNAVAILABLE
+executor_owner_state: NONE | CANDIDATE_ONLY | LIVE | ARCHIVED_RETIRED | LIVENESS_UNVERIFIED_TRANSIENT | STALE_OWNER_TOMBSTONE | REPLACED
+executor_generation:
+orphan_automation_check: NOT_RUN | CLEAR | FAILED
+duplicate_canonical_owner_check: NOT_RUN | CLEAR | FAILED
 model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
 fast_mode: ACTIVE | INACTIVE | UNVERIFIED
 automation_support: AVAILABLE | UNAVAILABLE | NOT_REQUESTED
@@ -81,8 +85,9 @@ Run checks in order:
 6. Prove the current starter task can self-rename and can later resolve its exact
    ID through unique-title `list_threads` plus `read_thread`. Phase 1 may use a
    temporary nonce/title and then restore a user-friendly bootstrap title.
-7. Prove a writable private run registry can store exact task identity,
-   automation management/targets, authority, ledger, slot state, and stop fields.
+7. Prove a writable private run registry can store exact task identity, owner
+   liveness/generation/retirement/replacement state, automation management/
+   targets, authority, ledger, slot state, and stop fields.
 8. Prove executor creation and operational dispatch support
    `model=gpt-5.6-luna` with `thinking=high`. This TikTok profile is mandatory.
    Record Fast Mode only when independently visible; it is not a creation gate.
@@ -150,7 +155,8 @@ Follow `operating-model.md` exactly:
    final title to `TikTok 执行台`, keep it unpinned, and include the
    coordinator ID and require it to wait for `SELF_REGISTRY`.
 3. Send the exact returned executor ID through `SELF_REGISTRY`, then require a
-   `THREAD_READY` callback to the coordinator.
+   nonce-bound `THREAD_READY`/owner-liveness callback to the coordinator. A
+   title, summary, list/search result, or readable cached turn is not equivalent.
 4. Dispatch one Luna/High read-only `stability_smoke_01`: assess three cards from
    one direction query, open one strong-core result from search, verify direct
    post identity/playback and premise/payoff, then separately attempt up to five
@@ -180,7 +186,10 @@ Follow `operating-model.md` exactly:
    `SCHEDULER_CONTINUATION_FAILURE`, not successful persistence.
 
 If creation, registry, callback, or smoke fails, do not create another task or
-claim stable operation.
+claim stable operation unless the exact failure proves
+`STALE_OWNER_TOMBSTONE`; that case uses the one-attempt replacement transaction
+in `operating-model.md`. A host/network/tool transient never authorizes
+replacement.
 
 ## Default action envelope
 

@@ -69,6 +69,14 @@ its executor. Historical, completed, archived, `notLoaded`, or otherwise idle
 tasks with released Chrome and no uncertain submission do not trigger the
 fence. Do not turn stale task history into an upgrade prompt.
 
+A definitive `STALE_OWNER_TOMBSTONE` is not an active runtime after all exact
+run automations targeting the missing ID are paused/removed and no uncertain
+submission evidence remains. A title/summary/search hit alone never triggers the
+fence. Conversely, host unavailable, timeout, network, or tool transport failure
+is only `LIVENESS_UNVERIFIED_TRANSIENT`; do not infer stale/released state from it.
+If replacement would otherwise proceed while liveness remains unverified, use
+`BLOCKED_RUNTIME_UNVERIFIED`.
+
 Publishing from an isolated release directory while an older installed runtime
 is active is allowed. Do not imply the installed version changed.
 

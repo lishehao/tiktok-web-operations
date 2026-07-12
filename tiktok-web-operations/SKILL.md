@@ -19,8 +19,8 @@ Use TikTok's web surfaces as an evidence-led operating system. Keep strategy, Ch
 
 ## System Topology
 
-For persistent operation, use exactly two user-owned Codex Threads. The starter
-task remains the coordinator and creates only one executor. Both operational
+For persistent operation, use exactly two live canonical user-owned Codex Threads. The starter
+task remains the coordinator and keeps only one canonical executor at a time. Both operational
 roles use `model=gpt-5.6-luna` and `thinking=high`. Use `$thread-supervisor` for
 generic registry, callback, heartbeat, and lifecycle mechanics.
 
@@ -43,7 +43,8 @@ or agent-path callback for this system.
 
 Naming follows `<platform> <responsibility>台`. After exact identity proof, pin
 `TikTok 主控台` and explicitly keep `TikTok 执行台` unpinned. Keep the registered
-pair unarchived, including while idle. Archive only completed temporary probes or
+pair unarchived, including while idle. An already archived TikTok executor is
+retired and is never automatically unarchived for reuse. Archive only completed temporary probes or
 a released, retired executor after removing its heartbeat/tab/mutation ownership.
 
 Use `references/operating-model.md` for the exact creation, handshake, callback, lifecycle, and recovery protocol.
@@ -156,7 +157,7 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   analyst/driver descendants.
 - Pin only `TikTok 主控台`. Keep the registered `TikTok 执行台` unpinned and
   unarchived, including while idle between blocks.
-- Do not use Goal Mode for persistence. Neither operating Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create replacement workers.
+- Do not use Goal Mode for persistence. Neither operating Thread may call `create_goal`, `update_goal`, or `spawn_agent`. The executor never creates a replacement. The coordinator may create at most one replacement only through the definitive `STALE_OWNER_TOMBSTONE` transaction in `references/operating-model.md`.
 - Before executor creation or any mutation, inspect active TikTok Threads only for tab ownership, concurrent-account attribution, and exact target/action submission conflicts. Another task using Chrome, TikTok, or the same account is never by itself a blocker and must not be interrupted or archived. Create this run's own tab and continue. Record `concurrent_same_account_activity=true` plus `recommendation_attribution_contaminated=true`, and make no causal feed claims. Pause only the exact target/action whose same-type submission is concurrently in flight or uncertain; other browsing and different-target authorized actions continue.
 - Use only registered cross-thread IDs. The executor reports solely to this
   starter task after it becomes `TikTok 主控台`; never callback to a
@@ -173,8 +174,9 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   the shortest `auto_resume_condition` and resumes the unchanged latest user
   instruction after a verified external-state change.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
-- Include `run_id`, coordinator/executor IDs, host/project identity, automation
-  manager, both heartbeat IDs/targets/repeat states, slot state, authority version, ledger, stop time, exact titles,
+- Include `run_id`, coordinator/executor IDs, executor generation/owner state,
+  retired/replacement IDs, host/project identity, automation manager, both
+  heartbeat IDs/targets/repeat states, orphan/duplicate-owner checks, slot state, authority version, ledger, stop time, exact titles,
   and pin policy in the immutable run registry. Re-read it before every dispatch,
   callback, heartbeat, stop, replacement, or archive. Titles and pin state remain
   presentation fields; IDs remain authoritative identity.
