@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.12.9`
+Protocol version: `2026.07.12.10`
 
 ## 直接安装
 
@@ -61,7 +61,7 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 2. 在这个新标签页里只读打开 TikTok，确认它继承同一 Chrome profile 的登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码，也不要 claim 其他任务的标签页。
 3. 当前页面没有阻塞性的 CAPTCHA、验证挑战、rate limit、warning、restriction 或账号错配。
 4. Codex App 能创建、列出、读取、命名、置顶/取消置顶、归档和跨任务发送消息；当前启动任务能通过唯一标题 nonce 自注册准确 Thread ID；`create_thread` 与 `send_message_to_thread` 支持 `gpt-5.6-luna` + `high`。标题/摘要/readability 只发现候选，续写前还要通过 owner-liveness gate。若只缺少置顶工具，记录为非阻塞展示限制。
-5. 能写入 canonical object store：先保存 inert bootstrap，再在 executor ID 返回后冻结 identity registry；direction、authority、mission 独立版本化并按 SHA-256 引用，owner/heartbeat/slot 状态另存为 mutable runtime state。自然语言摘要不能作为 registry。
+5. 能写入 canonical object store：先保存 inert bootstrap，再在 executor ID 返回后冻结 identity registry；direction、authority、mission 独立版本化并按 SHA-256 引用，owner/heartbeat/progress/resume 状态另存为 mutable runtime state。自然语言摘要不能作为 registry。
 6. 若用户要求无人值守持续运行，`automation_update` 必须支持显式 `targetThreadId`、`repeat=on`、有限 `UNTIL` 或等价截止保护，以及 view readback。真实 heartbeat 只能由已验证的主控台创建和管理，执行台不得自建或续排。
 7. 用 `list_threads`/`read_thread` 检查 active TikTok 任务，只用于保护标签页、标记推荐流归因污染和识别精确 mutation 冲突。同账号、同 Chrome 或另一个 TikTok executor 本身都不是 blocker；新 run 创建自己的 tab 并继续。只有同一 target/action 的提交正在进行或状态不确定时，才暂停那个精确 mutation，其他浏览与不同目标动作继续。
 8. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
@@ -77,7 +77,7 @@ Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 
 
 ```text
 状态健康。当前账号：@handle。
-你想把这个账号运营成什么方向或人设？也请给出目标地区/主要语言和运行多久；这些字段会决定后续搜索、实际观看、收藏、Repost、评论及未来内容语气，但不能保证具体推荐结果。你可以回复“北美大学生 / dorm life，英语，运行 3 小时”；如果暂时没想法，直接回复“继续”，我会使用默认方向、北美英语和 3 小时。
+你想把这个账号运营成什么方向或人设，以及运行多久？地区、语言和细分偏好可以一起给出；不填时不会阻塞启动，我会使用可逆默认值并在开始回执中说明。比如“爱犬/宠物，运行 10 小时”会默认采用全球英语、偏北美内容，并根据合格视频语言调整评论。不能保证具体推荐结果。
 ```
 
 健康交接后立即停止本 turn，等待用户第二条消息。不要创建 Threads，不要搜索 TikTok，不要点击 Favorite/Repost，不要评论，也不要声称运营已启动。
@@ -92,10 +92,11 @@ Chrome Browser control 是 TikTok 写操作的硬依赖。Computer Use、内置 
 - 只给方向：时长使用默认 `3 hours`。
 - 只给时长：方向使用默认 `北美大学生 / dorm life`。
 - 回复 `继续`、`开始` 或同义表达且预检已健康：使用全部默认值并立即启动。
-- 自定义方向缺少地区/语言且无法安全推断时只提一个必要问题；不能把“喜欢狗”等广泛方向静默收敛成中文或英语语境。其余缺省字段直接补默认值。
+- 自定义方向缺少地区/语言时不得阻塞。狗、宠物、食物、旅行、幽默等全球性方向默认 `global English with North American bias`，评论匹配合格视频语言；在启动回执中说明可逆假设，用户之后可直接覆盖。
+- 缺少强度、子主题比例、语气细节或未来内容格式时直接补安全默认值。只有会改变不可逆动作、扩大授权、选择不同账号/受众或需要用户亲自处理的平台状态才提问。
 - 最新明确用户指令覆盖冲突的默认强度、启发式、恢复建议、历史风险权重和旧 mission 字段；不要要求用户重复确认已经给出的方向、时长、强度或动作。
 - 已结束的旧 warning、rate limit 或失败只留在 ledger，不阻止新 mission。只有当前页面/工具明确显示 active CAPTCHA/challenge/rate limit/lock/login mismatch、动作不可用、明确失败或提交不确定时，才暂停受影响动作。
-- 当前阻塞清除后，在授权和时限仍有效时自动恢复用户原指令；不要求改用“恢复档”，不把建议变成授权门槛，也不扩大用户未授权的动作。
+- 当前受影响 scope 清除后，在授权和时限仍有效时自动恢复用户原指令；不要求改用“恢复档”，不把建议变成授权门槛，也不扩大用户未授权的动作。候选、页面、route、网络、Chrome 重连、证据暂缺、空结果和单 lane 失败均不得升级为全局阻塞。
 
 把用户描述整理成一个可执行 `direction_profile`：
 
@@ -161,7 +162,7 @@ S0_PREFLIGHT
   -> S8_IDLE_COMPLETE
 ```
 
-每个阶段都必须有上一阶段的真实 exit proof；Heartbeat 到点、block callback 或 deadline 本身都不能跳阶段或代表整场完成。详细职责、阶段入口/出口和局部判断边界以 `tiktok-web-operations/references/role-and-stage-contract.md` 为唯一权威。
+每个阶段都必须有上一阶段的真实 exit proof；Heartbeat 到点、mission checkpoint 或 deadline 本身都不能跳阶段或代表整场完成。详细职责、阶段入口/出口和局部判断边界以 `tiktok-web-operations/references/role-and-stage-contract.md` 为唯一权威。
 
 启动顺序：
 
@@ -184,7 +185,7 @@ S0_PREFLIGHT
 下轮计划：<一个有边界的目标>
 ```
 
-执行台仍在运行时，下轮计划只能是等待 callback，不能重叠派发；`decision_required=true` 时写等待用户决定且不执行新 TikTok 操作，`false` 时写下一次只读恢复条件检查并保留原授权；最终 Heartbeat 写 `下次心跳：无（进入终止结算）`，整体完成后写 `无（任务已完成）`。
+执行台仍在运行时，下轮计划说明持续 mission 正在推进，不能重叠派发；`decision_required=true` 只暂停必须人工处理的 scope，其他安全工作继续；`false` 时写下一次自动恢复条件并保留原授权。最终 Heartbeat 写 `下次心跳：无（进入终止结算）`，整体完成后写 `无（任务已完成）`。
 
 如果主任务无法自注册、executor 创建/握手失败、首轮没有 proof、独立标签页创建失败或 scheduler binding 不明确，不得声称长期运营已启动。同账号另一个任务存在本身不构成失败。
 
@@ -206,7 +207,9 @@ S0_PREFLIGHT
 - Executor 每次 activation 持续执行同一 mission，可完成多个训练单元/Feed checkpoint；只在自然 runtime 边界、当前阻塞或截止时释放 Chrome、写 checkpoint、callback并变成可恢复状态。它不创建或续排 Heartbeat。
 - TikTok 主控台是唯一用户决策入口。Executor 遇到真正需要集中处理的风险时，释放自己的 Chrome、写 ledger，再只向注册的 TikTok 主控台回调；不得在执行台询问用户。普通技术故障记录 `auto_resume_condition`，后续 Heartbeat 自动复核并继续，不要求用户确认重试。
 - TikTok 主控台收到非成功状态后只暂停受影响 scope，把风险、当前已停止内容、仍可继续的 lane、恢复条件和真正需要的用户动作合并处理；安全的搜索训练或其他独立 lane 继续。只有 `decision_required=true` 才等待用户，普通技术故障由后续 Heartbeat 自动复核恢复。用户无需查看或回复 TikTok 执行台。
-- `decision_required=false` 的当前平台等待不得被改写成用户确认：主控台保存原指令和最短可观察恢复条件，状态清除后自动恢复。只有人工登录/挑战、提交不确定、授权缺失或扩大、版权披露等真正需要用户选择的情况才询问用户。
+- `decision_required=false` 的当前平台等待不得被改写成用户确认：主控台保存原指令和最短可观察恢复条件，状态清除后自动恢复。缺少 mutation 授权只跳过该动作；提交不确定只冻结 exact mutation；版权/披露缺失只暂停对应发布。只有硬阻塞白名单或用户明确请求的不可逆选择才询问用户。
+- 空搜索/无合格候选记为 `no_action_checkpoint`，下轮换批准的 query；候选、社区、route 或动作被规则禁止时只跳过 exact scope。不得为了继续而询问是否绕过规则。
+- 真正允许停止整个 mission 并要求用户处理的当前状态只有：无法自动恢复的登录/账号错配、凭据/OTP/passkey需求、持续人工 CAPTCHA/挑战、明确账号锁定/封禁、以及 bounded reconnect 后唯一允许的 Chrome control 仍不可用。Timed 429 按显示时间自动等待；uncertain mutation 只冻结 exact target/action。
 - 每个计时型 run 在首批 proof 后由 coordinator 管理两个长期 repeat-on Heartbeat：operation 精确绑定 executor并承载续跑/恢复，supervisor 精确绑定 coordinator并只读核验持续性。两个都必须有截止保护并禁止一次性自续链。
 - 逻辑训练单元、Feed checkpoint、普通 mission checkpoint 或 Heartbeat 到点都不代表整场完成。整场完成必须经过 `STOP_REQUESTED -> EXECUTOR_RELEASED -> RUN_COMPLETED`，并由 TikTok 主控台给用户一条最终汇总。
 - TikTok supervisor Heartbeat 不静默：每次都固定报告“本轮完成 / 下次心跳 / 下轮计划”三行。下次时间必须来自两个 automation 的 readback，使用用户本地日期、时间和时区；不展示 automation ID。

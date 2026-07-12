@@ -395,11 +395,13 @@ question addressed to the executor Thread. A current platform wait with an exact
 convert it into a confirmation prompt and resumes the latest authorized
 instruction after verified clearance. `completed` may also set
 `decision_required=false` when it
-records non-actionable observations in `risks`, including a fully recovered
-transient Chrome/network event. A persistent infrastructure failure returns one
-coordinator-ready `blocked`/`key_risk` callback with exact class, code, scope,
-attempts, `likely_cause`, probe basis, attempted actions, minimal user action,
-and ledger evidence; it is not mislabeled as account enforcement.
+  records non-actionable observations in `risks`, including a fully recovered
+  transient Chrome/network event. A persistent infrastructure failure becomes a
+  normal technical checkpoint with exact class, code, scope, attempts,
+  `likely_cause`, probe basis, automatic resume condition, and ledger evidence;
+  it does not prompt the user or masquerade as account enforcement. Only a live
+  hard blocker in `blocker-minimization.md` may return coordinator-ready
+  `blocked|needs_decision`.
 
 Only a terminal callback may use `callback_scope=run_terminal` or
 `terminal_event=EXECUTOR_RELEASED`; a normal `completed` callback must not use

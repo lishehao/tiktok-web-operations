@@ -37,6 +37,13 @@ starting a held-out checkpoint, and after recovery, compare current time with
 `operation_stop_at`. At/after cutoff, start no new action and enter the terminal
 release transaction.
 
+If a query or full unit produces zero qualified candidates, record
+`no_action_checkpoint` with the assessed denominator and rejection reasons,
+rotate to another approved cluster on the next cycle, and continue. Empty
+discovery is not `blocked`, `validation_failed`, or a reason to ask the user. A
+rule-prohibited candidate, community, route, or action is simply skipped; do not
+request permission to bypass the rule.
+
 ## Search-training state machine
 
 Treat search-led consumption as the default training surface and For You as a
@@ -70,7 +77,7 @@ unit and do not yield merely because one unit completed.
 3. For each cluster, classify the first five result cards in order. Count product/storefront, stale, adjacent, and irrelevant results in the assessment denominator.
 4. Open and consume every suitable strong-core result among those five, normally three to five per cluster. Verify the exact post page, observe playback progression, and watch enough to understand the premise/payoff. Record observed/total time when exposed, without inventing a universal dwell rule.
 5. Return through normal page navigation to the same search context; do not substitute a direct URL list or merely inspect thumbnails/captions.
-6. Record two separate denominators: all assessed result cards and the number of qualified consumed core posts. A complete unit normally contains 9–15 qualified search views; if fewer exist, finish honestly and rotate weak clusters rather than opening irrelevant posts to fill a quota.
+6. Record two separate denominators: all assessed result cards and the number of qualified consumed core posts. A complete unit normally contains 9–15 qualified search views; if fewer or zero exist, write an honest completed/no-action unit and rotate weak clusters rather than opening irrelevant posts to fill a quota or escalating.
 7. When `autonomous_comment_mode` is active, comment only on a strong core post after it has become a qualified view. Zero comments remains valid.
 8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line suspends further browsing until the ledger is repaired; it does not retire either Heartbeat.
 9. Run held-out For You validation only after two distinct training units or roughly 20–30 qualified search views, unless the coordinator explicitly requests an earlier diagnostic.
@@ -86,7 +93,10 @@ Use For You to measure whether the recommendation mix is moving, not as the main
 3. Record exact before/after identities and composition. A five-item sample is directional only; compare rolling checkpoints rather than one small sample.
 4. If native transition fails after at least five reliable identities, mark `feed_validation_status=partial` and finish the checkpoint normally. This does not invalidate completed search training.
 5. If fewer than five reliable identities are available, mark `feed_validation_status=unavailable`. When account/login/warning/Chrome ownership remain healthy, disable or defer only the feed-validation lane and continue future search-training blocks.
-6. Two consecutive feed-transition failures may disable the validation lane for the current runtime. They do not open the whole-run circuit unless the failure also affects dedicated-tab control, account certainty, platform risk, or search-origin video consumption.
+6. Two consecutive feed-transition failures may disable the validation lane for
+   the current runtime. They never open the whole-run circuit. Search-origin
+   failures rotate route/query or yield an automatic-resume checkpoint; only the
+   hard-blocker whitelist can stop the mission.
 
 Never use For You validation failure as permission for scroll/keyboard/wheel/reload fallback. It remains a lane-local evidence result.
 
@@ -126,7 +136,14 @@ Prefer recent posts from roughly the last 30 days when suitable current results 
 
 Prefer the visible native next/down control when it preserves playback, ordered feed context, and visible watch state. Before position 1, record a direction-specific exact signature through accessible name/title/test id/data-e2e or the verified live down-chevron SVG. Never use all enabled buttons as the locator: after position 1, both up and down may be enabled. Re-resolve the exact down signature after each DOM movement, click it exactly once per transition, and verify the before/after identity packet before continuing.
 
-Incremental scroll/wheel gestures are not an automatic fallback. Under the packaged default, failure of the visible native next/down control stops only the current feed-validation sample, records `partial|unavailable`, and callbacks once. A scroll-only checkpoint requires a new explicit user decision after the stopped validation block. Never mix button, keyboard, wheel, script scroll, reload, or reset transitions in one checkpoint or recovery sequence. Direct URLs remain appropriate for exact verification and revisiting candidates, but they are not a replacement for feed sampling.
+Incremental scroll/wheel gestures are not an automatic fallback. Under the
+packaged default, failure of the visible native next/down control ends only the
+current feed-validation sample and records `partial|unavailable`; do not callback
+or ask the user. If scroll was not already authorized/configured, abandon that
+method for the runtime and continue search-led training. Never mix button,
+keyboard, wheel, script scroll, reload, or reset transitions in one checkpoint
+or recovery sequence. Direct URLs remain appropriate for exact verification and
+revisiting candidates, but they are not a replacement for feed sampling.
 
 For You sampling is one continuous-session invariant. Initial entry before position 1 may use the normal TikTok navigation link. After position 1, remain on the same page and preserve feed order. Do not use reload, `goto`, Home reopening, direct-post navigation, or a second For You entry as an ordinary transition. A reset is permitted only after the current block is explicitly stopped and reported as a separate hard recovery; recovered items belong to a new checkpoint, never the old denominator.
 

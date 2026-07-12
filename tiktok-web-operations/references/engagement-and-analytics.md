@@ -16,7 +16,13 @@ Before enabling any active engagement lane for a browser/account combination, ru
 2. The same state after reload or reopening the post.
 3. Account-level evidence when TikTok exposes it.
 
-If any required signal fails, pause that action type for the current session. Do not infer that a sibling type failed. In a later mission/runtime, a latest explicit instruction for that action may authorize one fresh gate without another confirmation; the old result remains historical evidence rather than a permanent blocker. Keep research, comment reading, drafting, Studio management, and analytics available.
+If any required signal fails, suspend only that action type for the current
+session and record a normal no-action capability checkpoint. Do not infer that a
+sibling type failed, stop the mission, or ask the user. In a later mission/
+runtime, a latest explicit instruction for that action may authorize one fresh
+gate without another confirmation; the old result remains historical evidence
+rather than a permanent blocker. Keep search/view, research, comment reading,
+drafting, Studio management, analytics, and independent verified lanes available.
 
 Comment drafting is not comment publication. Use either exact per-item confirmation or a currently active standing autonomous-comment envelope. Submit once, then reload the post and locate the account's comment before recording success.
 
@@ -40,7 +46,13 @@ Treat feed signals as hypotheses rather than known algorithm weights:
 
 For proactive comments, the gate may instead be an active `autonomous_comment_mode` envelope. This exception does not apply to replies, comment likes, follows, favorites, reposts, post likes, `Not interested`, publishing, profile edits, or DMs.
 
-Before enabling autonomous comments in a browser/runtime, require at least one proactive-comment persistence test that survives reload. After activation, verify every comment; routine successes stay in the ledger, while the first new persistence failure, removal, warning, throttle, CAPTCHA, or submission uncertainty disables autonomous comments and triggers an event callback.
+Before enabling autonomous comments in a browser/runtime, require at least one
+proactive-comment persistence test that survives reload. After activation,
+verify every comment. Routine successes stay in the ledger. Persistence failure
+or removal suspends only autonomous comments; timed throttle auto-waits;
+submission uncertainty freezes only that exact comment. Report these in the next
+normal mission checkpoint. Use an immediate hard-blocker callback only for the
+whitelist in `blocker-minimization.md`.
 
 Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
 

@@ -92,8 +92,9 @@ Run checks in order:
    exact-code/likely-cause and bounded same-session recovery contract in
    `runtime-and-recovery.md`; retry a dropped control connection at most twice
    and never claim another task's tab. A recovered transient remains internal
-   preflight evidence; persistent failure reports exact code, `可能原因`, attempted
-   actions, and one user repair without clearing cookies or switching browsers.
+   preflight evidence. A temporary failure remains `auto_retry_pending` and does
+   not ask the user. Only failure of the sole allowed Chrome control path after
+   bounded reconnect enters the hard-blocker whitelist.
 4. Open TikTok read-only in that tab, prove the logged-in `@handle`, and inspect
    explicit platform warnings/challenges. Never enter credentials or codes.
 5. Prove `list_projects`, `create_thread`, `list_threads`, `read_thread`,
@@ -125,10 +126,14 @@ Run checks in order:
     and record that browser authority is revoked before the starter can become
     `TikTok 主控台`.
 
-If blocked, return only the first repairable issue and impact, ending with
-`完成后回复“继续”`. A blocked `继续` rechecks only that item and is not an
-operation start command. Never use this blocked handoff merely because a valid
-newer bundle was found; that case must have been upgraded automatically above.
+Do not use `blocked` for missing preferences, temporary tool transport, another
+Chrome owner, route/page failure, or a capability lane. Retry/degrade internally
+and keep the handoff moving. If a required orchestration capability remains
+unavailable, report `auto_retry_pending` or one concrete capability limitation,
+not a confirmation request. Ask the user and end with `完成后回复“继续”` only for
+the live hard-blocker whitelist in `blocker-minimization.md`. Never use this
+handoff merely because a valid newer bundle was found; that case must have been
+upgraded automatically above.
 
 ## Healthy guided handoff
 
@@ -151,12 +156,18 @@ Build `persona_name`, `target_audience`, `region_language`, `content_pillars`,
 
 - Explicit fields override defaults.
 - Missing direction defaults to North American college/dorm life.
-- Default direction uses North America / English. For a custom direction with
-  missing region/language, ask one necessary question when the fields cannot be
-  safely inferred; never silently choose Chinese or English for a broad topic.
+- Default direction uses North America / English. A supplied universal direction
+  with missing region/language defaults to `global English with North American
+  bias`; record this reversible assumption and start. Match proactive comments
+  to the qualified video's language.
 - Missing duration defaults to 3 hours at standard intensity.
+- Missing intensity, sub-pillar mix, tone detail, or future format uses safe
+  documented defaults and never blocks pair creation.
 - `继续` or `开始` after healthy handoff accepts all defaults.
-- Ask one question only for a material choice that cannot be safely inferred.
+- Ask one question only when the missing value changes an irreversible action,
+  expands authorization, selects a materially different account/audience, or
+  requires human-only platform work. Otherwise disclose the assumption once and
+  start.
 - Describe direction as a coherent audience-signal hypothesis, not guaranteed
   reach.
 

@@ -170,10 +170,16 @@ After a callback:
 
 - read the callback first
 - optionally read the target thread's latest 1-3 turns
+- apply the calling domain's scope-minimization policy before accepting a
+  worker's status label. Reclassify empty candidates, prohibited/local routes,
+  recovered technical faults, missing optional evidence, and single-action/lane
+  failures as normal local outcomes when the domain says safe work continues;
+  do not manufacture a global block or user decision from an over-elevated
+  worker callback
 - for `completed` with no user decision, report or dispatch the next authorized
   step normally
 - for `blocked`, `validation_failed`, `needs_decision`, or `key_risk`, pause the
-  affected scope and respect the calling domain's `decision_required` field. If
+  smallest affected scope and respect the calling domain's `decision_required` field. If
   true, consolidate the risk, affected scope, safe stopped state,
   recommendation, and at most three choices into one coordinator message. If
   false, keep the original authorization and exact external resume condition;

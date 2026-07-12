@@ -130,7 +130,10 @@ Only `completed` with three assessed search cards, at least one qualified search
 
 Classify platform risk from explicit system UI: CAPTCHA/challenge surfaces, login state, rate-limit or restriction dialogs, alerts/status regions, TikTok system banners/toasts, or account-level warnings. Never scan the entire page text with a broad regex and treat words inside captions, hashtags, comments, creator names, or search results as platform warnings.
 
-If a risk locator or diagnostic API fails, mark the system-warning state `unverified`, stop the current block, release Chrome, and callback once. Do not run broader DOM scans to prove absence.
+If a risk locator or diagnostic API fails, mark only that diagnostic route
+`unverified`, use its one bounded recovery, then continue another safe scope or
+leave an automatic-resume checkpoint. Do not infer platform risk, run broader
+DOM scans, or send a standalone callback.
 
 ## Browser-control rules
 
@@ -143,7 +146,7 @@ If a risk locator or diagnostic API fails, mark the system-warning state `unveri
 
 ## Recovery budget
 
-One operation block may have at most one narrowly scoped read-only recovery
+One executor activation may have at most one narrowly scoped read-only recovery
 sequence for each distinct failure class. For Chrome/page-load failures, use the
 classification table and exact two-attempt ceiling in
 `runtime-and-recovery.md`: retry the same URL once, then, only when needed, use a
@@ -151,40 +154,48 @@ fresh dedicated tab from the same Chrome binding plus a diagnostic tab. Record
 every attempt. The recovery must test one falsifiable scope hypothesis and may
 not change browser/profile, authentication, proxy, TLS policy, or authorization.
 
-Do not hop among native button, PageDown, ArrowDown, wheel, script scroll, reload, and page reset. Under the packaged default, a failed native next/down smoke stops feed sampling. A scroll-only fallback requires a new explicit user decision; the coordinator cannot self-authorize it.
+Do not hop among native button, PageDown, ArrowDown, wheel, script scroll, reload,
+and page reset. Under the packaged default, a failed native next/down smoke ends
+only that Feed checkpoint and degrades the validation lane. If scroll was not
+already authorized/configured, do not ask for it as a fallback; continue search-
+led training. A separately authorized future scroll-only checkpoint remains a
+new validation method, not recovery for the failed sample.
 
 Persistent `tab_binding_stale`, `browser_disconnected`, `dns_network`,
 `proxy_tls`, `blocked_by_client`, or `ambiguous_render` after its bounded
-sequence stops the current block and callbacks the coordinator; it does not
-masquerade as TikTok/account enforcement. HTTP 429, explicit platform challenge,
-account mismatch, or uncertain submission returns immediately. Two consecutive
-failures with the same dedicated-tab, exact-target mutation-collision, search-origin
-open/playback, rendering, or diagnostic failure class open the whole-run circuit
-breaker. Feed-native transition failures are lane-local when search training
-and account/browser safety remain healthy; after two consecutive failures
-disable/defer only `feed_validation_lane` for the current runtime.
+sequence yields a durable technical checkpoint and exact auto-resume condition;
+it does not masquerade as TikTok/account enforcement, ask the user, delete a
+Heartbeat, or open a whole-run circuit. Continue another approved native route
+when available. A displayed timed HTTP 429 becomes an automatic wait until its
+retry time. Account mismatch, persistent human CAPTCHA/challenge, explicit
+account lock/ban, or loss of the only allowed Chrome control path follows the
+hard-blocker whitelist in `blocker-minimization.md`. Uncertain submission freezes
+only that exact target/action. Feed-native transition failures remain lane-local;
+after two consecutive failures disable/defer only `feed_validation_lane` for the
+current runtime.
 
-The callback must preserve the exact code and phrase the inferred explanation
-as `可能原因`, derived from that code plus same-domain/neutral probes. Include
-bounded actions already attempted and the smallest user action. A fully
-recovered transient stays in the ledger/ordinary completed callback and is
-mentioned only in the next receipt's `本轮完成` line; it does not page the user or
-add a fourth receipt line.
+The ledger checkpoint must preserve the exact code and phrase the inferred
+explanation as `可能原因`, derived from that code plus same-domain/neutral probes.
+Include bounded actions already attempted and the exact automatic resume
+condition. A recovered or waiting technical transient stays in the ledger and
+next normal `本轮完成` line; it does not page the user, send a standalone risk
+callback, or add a fourth receipt line.
 
-1. stop the executor block;
-2. release Chrome;
-3. callback `blocked` or `key_risk` once;
-4. keep both persistent Threads idle;
-5. wait for a user decision only when `decision_required=true`; otherwise keep
-   the latest instruction and let the coordinator schedule one bounded read-only
-   recheck of the exact external-state condition.
+At a natural runtime yield, release owned Chrome and checkpoint normally. Keep
+both persistent Threads and Heartbeats active. The next operation wake rechecks
+the exact external-state condition. Only a live hard blocker sends one
+`blocked|needs_decision` callback to the coordinator.
 
 Changing query wording, removing a hashtag, renaming a probe, rebuilding a subagent, or declaring a “fresh blocked audit” is not an external-state change and does not reset the circuit breaker.
 An ended historical warning/failure is not an active circuit state. Once the
 recorded current blocker visibly clears, close the affected circuit and resume
 the still-authorized latest instruction without another confirmation.
 
-Handle expected UI gate failures as data, not exceptions. Compute `count/visible/enabled/identity_changed`; when a required boolean fails, write the terminal block result, release Chrome, and callback. Do not `throw` an expected ambiguity back into the reasoning loop, and do not run another locator diagnostic after the terminal condition is known.
+Handle expected UI gate failures as data, not exceptions. Compute
+`count/visible/enabled/identity_changed`; when a required boolean fails, skip or
+degrade that exact candidate/route/action/lane and continue independent safe
+work. Do not `throw` expected ambiguity back into reasoning, run another locator
+diagnostic after the outcome is known, or callback merely for that local result.
 
 ## Stop acknowledgement
 

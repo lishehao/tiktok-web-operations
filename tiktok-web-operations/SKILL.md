@@ -59,17 +59,17 @@ Before any persistent Thread or heartbeat action, also read
 
 | Request | Read |
 |-|-|
-| Install from GitHub, run dependency checks, or bootstrap | `references/version-management.md`, `references/startup-health-check.md`, `references/stability-and-circuit-breakers.md`, `references/runtime-and-recovery.md`, `references/operating-model.md` |
+| Install from GitHub, run dependency checks, or bootstrap | `references/version-management.md`, `references/startup-health-check.md`, `references/blocker-minimization.md`, `references/stability-and-circuit-breakers.md`, `references/runtime-and-recovery.md`, `references/operating-model.md` |
 | Package, publish, upgrade, overwrite, downgrade, or distribute | `references/version-management.md`, `references/distribution-and-upgrades.md` |
 | Broad operating request | all relevant references below |
 | Research trends or choose content | `references/loci-content-system.md`, `references/platform-boundaries.md` |
 | Browse/scroll or leave short comments | `references/feed-browsing-and-comments.md`, `references/engagement-and-analytics.md`, `references/platform-boundaries.md` |
-| Persistently calibrate recommendations | `references/role-and-stage-contract.md`, `references/operating-model.md`, `references/stability-and-circuit-breakers.md`, `references/persistent-feed-operations.md`, `references/engagement-and-analytics.md`, `references/runtime-and-recovery.md` |
+| Persistently calibrate recommendations | `references/role-and-stage-contract.md`, `references/operating-model.md`, `references/blocker-minimization.md`, `references/stability-and-circuit-breakers.md`, `references/persistent-feed-operations.md`, `references/engagement-and-analytics.md`, `references/runtime-and-recovery.md` |
 | Upload, publish, or schedule | `references/publishing-and-scheduling.md`, `references/platform-boundaries.md` |
 | Review comments or analytics | `references/engagement-and-analytics.md`, `references/loci-content-system.md` |
 
 Before starting, changing, resuming, or recovering any operating mission, read
-`references/instruction-precedence.md` and apply its latest-instruction contract.
+`references/instruction-precedence.md` and `references/blocker-minimization.md`.
 
 ## Entrypoint Contract
 
@@ -131,10 +131,20 @@ A failed hard dependency stops phase 2 and returns one concrete repair action. D
 
 Treat direction as a product and audience decision, not merely a keyword list. Resolve `persona_name`, `target_audience`, `region_language`, `content_pillars`, `excluded_topics`, `voice_and_comment_style`, `search_seed_clusters`, `future_post_alignment`, `duration`, and `operation_stop_at`. This profile keeps searches, consumption, engagement, comment voice, and future publishing coherent. Describe it as a consistent audience signal hypothesis; never promise a particular recommendation or distribution outcome.
 
-Region and language are required direction fields because they change queries,
-consumption, and comment voice. For a custom direction, ask one necessary
-question when they cannot be safely inferred; do not silently collapse a broad
-topic such as `dogs` into a Chinese- or English-only audience.
+`region_language` must have a mission value, but it is not normally a user-input
+gate. Apply explicit values first; otherwise infer from intended future content
+when clear. For a universal consumer/lifestyle direction such as dogs, pets,
+food, travel, or humor, default non-blockingly to `global English with North
+American bias`, let comments match the qualified video's language, record the
+assumption, and start. The user may override it at the next safe item boundary.
+Ask only when location/language changes an irreversible or materially different
+authorized action, such as local services/regulations, a location-specific
+publication, or an ambiguous reply. Never stop generic search-led calibration
+merely to ask for region or language.
+
+Apply the same low-blocking rule to optional intensity, sub-pillar mix, comment
+tone detail, and future-post format. Fill safe defaults, disclose them once, and
+start. Preferences are not authorization boundaries.
 
 When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. Any later explicit direction, duration, intensity, or action change supersedes the corresponding old mission fields and updates the executor authority envelope at the next safe item boundary without a second confirmation.
 
@@ -152,7 +162,9 @@ or proves completion by itself.
 ## Control Rules
 
 - Use the user's existing Chrome profile and TikTok login. Never enter or store credentials.
-- If TikTok is logged out, leave the page as a handoff and ask the user to log in manually.
+- If TikTok still proves logged out or account-mismatched after the bounded
+  same-Chrome account recheck, leave the page as a handoff and ask the user to
+  restore the expected login manually.
 - Each Chrome-control session owns only its own tabs. The executor normally creates a dedicated tab with `chrome.tabs.new()` and must never claim, navigate, close, or reuse a tab owned by another task. The coordinator never touches Chrome; bootstrap may use one disposable read-only tab and must finalize only that tab.
 - Keep exactly two persistent operating Threads: this coordinator plus one
   executor. Do not create a second coordinator, use subagents, or create
@@ -164,17 +176,18 @@ or proves completion by itself.
 - Use only registered cross-thread IDs. The executor reports solely to this
   starter task after it becomes `TikTok 主控台`; never callback to a
   Skill-development task or any other bootstrap task.
-- Treat `TikTok 主控台` as the only user decision surface. On `blocked`,
-  `validation_failed`, `needs_decision`, `key_risk`, uncertain submission, or a
-  platform risk, the executor stops the block, releases its own Chrome, writes
-  evidence, callbacks only the registered coordinator, and becomes idle. It
-  never asks the user to continue inside `TikTok 执行台`, attempts recovery after
-  a terminal callback/circuit opening, or dispatches another block. Before a
-  terminal callback, it must still complete the explicit bounded recovery in
-  `references/runtime-and-recovery.md`. The coordinator pauses the affected
-  scope. It asks the user only when `decision_required=true`; otherwise it stores
-  the shortest `auto_resume_condition` and resumes the unchanged latest user
-  instruction after a verified external-state change.
+- Treat `TikTok 主控台` as the only user decision surface, but do not elevate
+  routine operating friction into a decision. Empty candidates, prohibited or
+  ambiguous candidates/routes, page faults, recovered network/Chrome faults,
+  missing evidence, and single-action/lane failures are ledger outcomes; skip or
+  suspend only that exact scope while other safe work continues. Ordinary
+  recovery does not callback or wait for the user. At a natural yield or hard
+  blocker, release owned Chrome, checkpoint, and callback only the registered
+  coordinator. Ask the user only for the live hard-blocker whitelist in
+  `references/blocker-minimization.md`; otherwise store the shortest
+  `auto_resume_condition` and let a later Heartbeat continue the unchanged
+  mission. Uncertain mutation freezes only its exact target/action and is never
+  resubmitted.
 - Use the canonical two-phase registry contract. The create prompt carries one
   inert canonical bootstrap envelope; after `create_thread` returns its exact ID,
   `SELF_REGISTRY` carries one stored canonical identity object. Dispatches,
@@ -237,7 +250,11 @@ or proves completion by itself.
   `waking_thread_id == targetThreadId == coordinator_thread_id`. A mismatch
   returns `MISBOUND_HEARTBEAT_NO_ACTION`; it must not inspect TikTok or dispatch
   work.
-- A current `blocked` or `key_risk` callback opens the recovery circuit in `stability-and-circuit-breakers.md`. Do not self-declare a fresh audit, rebuild a worker, or hop across transition methods. After the bounded recovery budget, wait for the recorded user decision when one is truly required or for the exact verified external-state change; the latter automatically resumes the still-authorized latest instruction. Historical ended events never keep this circuit open.
+- Only a live hard blocker from `blocker-minimization.md` may open the whole-run
+  recovery circuit. Candidate, route, page, technical, evidence, action, and lane
+  failures never do. After bounded recovery, continue another safe scope or wait
+  for the exact automatic resume condition. Historical ended events never keep a
+  circuit open.
 - Scope circuit breakers by lane. A For You next/down failure with healthy
   account, dedicated-tab control, and search-origin playback marks the held-out
   validation `partial|unavailable`; after two consecutive occurrences, disable
@@ -247,13 +264,22 @@ or proves completion by itself.
 - Treat an expected gate failure as a terminal data branch, not an exception that returns to reasoning. Once `count/visible/enabled/identity` fails, write the result, release Chrome, and callback without another diagnostic.
 - Prefer TikTok's visible native next/down control for feed fidelity. Use incremental scrolling only when the control is unavailable and the coordinator explicitly dispatches a scroll-only fallback block. Never switch transition methods inside one checkpoint. Do not add random delays, cursor jitter, or fake human behavior.
 - Identify next/down with a direction-specific exact live signature; never use a broad enabled-button locator, because the up control normally becomes enabled after the first advance. Re-resolve the same exact down signature after every DOM movement.
-- Never reuse a Chrome tab ID from a prior turn, prompt, ledger, or memory. At normal block start, use `chrome.tabs.new()` to create the executor's dedicated tab and navigate it to TikTok; use an existing current-session tab only when this executor created or already controls it. Use `user.openTabs()` plus `user.claimTab()` only for an explicit user-requested handoff or continuation of a known unclaimed tab. If an existing tab reports another browser session, leave it untouched and create a new tab; that message is not a global Chrome blocker. Stop only when new-tab creation/control fails or the dedicated tab cannot prove the expected TikTok account.
+- Never reuse a Chrome tab ID from a prior turn, prompt, ledger, or memory. At
+  normal activation/resume, use `chrome.tabs.new()` to create the executor's
+  dedicated tab and navigate it to TikTok; use an existing current-session tab
+  only when this executor created or already controls it. Use `user.openTabs()`
+  plus `user.claimTab()` only for an explicit user-requested handoff or
+  continuation of a known unclaimed tab. If an existing tab reports another
+  browser session, leave it untouched and create a new tab. Stop the mission only
+  when the sole allowed Chrome control remains unavailable after bounded
+  reconnect/rebind or the expected account requires user restoration.
 - Classify Chrome/page failures before declaring platform risk. Keep stale tab/browser disconnect, DNS/network `ERR_*`, proxy/TLS, HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render failures distinct. In the original logged-in Chrome only: log error+URL, retry the same URL once after a short wait, use a fresh dedicated tab from the same browser binding when needed, test same-domain home and a neutral HTTPS site in a temporary diagnostic tab, then re-confirm account/target/warnings before resuming. Generate `likely_cause` only from the exact code plus those probes and present it as `可能原因`, never a confirmed root cause. Never switch browser, clear cookies, change proxy/TLS, bypass login, or retry an uncertain mutation. Persistent failure callbacks `TikTok 主控台`; a recovered transient does not end the long run, disable mutation lanes, or create a standalone user interruption.
 - A For You checkpoint is invalid if page resets are used to obtain later samples. Record exact before/after card identity for every transition. If native movement does not advance, repeats a card, loses identity, or would require a reset, record `transition_failure` or `duplicate` and stop the checkpoint; never reset to manufacture another item. Reset is allowed only for the initial entry before position 1 or a separately declared hard recovery after the block has stopped.
 - Append raw evidence after every consumed search-origin post, after each
   five-card assessment, and at For You validation checkpoints. Validate each
-  JSONL line immediately; a malformed append stops the block before more
-  browsing.
+  JSONL line immediately; a malformed append suspends further mutation, runs one
+  bounded local repair, and otherwise yields an automatic-resume checkpoint. It
+  is not a user decision or whole-mission blocker.
 - Keep post likes, favorites, reposts, generic shares, proactive comments, comment likes, `Not interested`, follows, replies, publishing, and profile changes as separate capability lanes.
 - A standing vertical-feed envelope may authorize selective post likes, favorites, reposts, and proactive comments, but each lane must first pass its own one-action persistence gate in the current account/runtime. For Favorite/save, verify the selected state immediately, again after roughly 3 seconds, and again after a 10-second total server-settlement window before reloading; only then run reload/reopen and account-level Favorites evidence. This is a consistency wait, not simulated-human behavior. A current failure pauses only that lane for the current runtime; a later explicit mission may run one fresh gate without another authorization prompt. Do not cancel unrelated authorized lanes unless a current platform warning, challenge, or uncertain submission makes all mutation unsafe.
 - Repost means TikTok's actual `Repost`/`Undo repost` state. Opening the visible Share action sheet is allowed as a read-only navigation step when TikTok nests Repost there; opening the sheet is not itself a successful Repost. Inside it, click only an explicit `Repost` control. Never click or substitute generic Share, copy-link, send-to-recipient, or another share target, and never infer persistence from the sheet merely opening.
@@ -284,7 +310,14 @@ After acting, verify persisted state. Never duplicate an uncertain send.
 
 ## Stop Conditions
 
-Stop the affected mutation for a current login mismatch, CAPTCHA, verification challenge, rate limit, warning/restriction, copyright failure, missing rights/disclosure, lost executor ownership, uncertain submission, or current persistence failure. Read-only inspection may continue only when safe. Detect system warnings from explicit current system UI, never from ordinary caption/hashtag/comment text or historical ledger entries. Preserve the latest authorized mission and auto-resume after the exact blocker clears unless a human decision is genuinely required.
+Stop only the exact affected mutation/lane for a current login mismatch,
+CAPTCHA, verification challenge, rate limit, warning/restriction, copyright
+failure, missing rights/disclosure, lost executor ownership, uncertain
+submission, or persistence failure. Timed waits auto-resume; uncertain
+submission is never retried; search/view and independent safe lanes continue.
+Detect system warnings from explicit current system UI, never from ordinary
+caption/hashtag/comment text or historical ledger entries. Stop the whole mission
+and ask the user only for `references/blocker-minimization.md`'s hard whitelist.
 
 ## Thread Reporting Contract
 

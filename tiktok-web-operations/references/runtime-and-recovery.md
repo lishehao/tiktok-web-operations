@@ -16,7 +16,8 @@ Do not require TikTok API keys, passwords, Playwright outside the Chrome skill, 
 
 Open `https://www.tiktok.com/` and verify an actual profile identity. A visible `Log in` button together with an empty `/@` profile route means the session is not ready.
 
-When login is missing:
+When login is still missing or mismatched after one bounded same-Chrome account
+recheck:
 
 1. Keep the TikTok page open as a handoff.
 2. Ask the user to log in manually.
@@ -38,7 +39,7 @@ Use, another browser, a clean context, or a login bypass.
 | `browser_disconnected` | explicit browser-disconnected or Chrome-extension communication error | browser binding is invalid; ordinary empty tab results do not prove this | reconnect the same running Chrome/profile through the supported Chrome extension, then create a fresh dedicated tab |
 | `dns_network` | `ERR_NAME_NOT_RESOLVED`, `ERR_INTERNET_DISCONNECTED`, `ERR_NETWORK_CHANGED`, `ERR_CONNECTION_TIMED_OUT`, `ERR_CONNECTION_RESET`, `ERR_CONNECTION_CLOSED` | DNS, interface, or transport failure; not TikTok risk | bounded wait/retry, then same-Chrome diagnostic tab to distinguish global network, TikTok domain, and target-page scope |
 | `proxy_tls` | `ERR_PROXY_CONNECTION_FAILED`, `ERR_TUNNEL_CONNECTION_FAILED`, any `ERR_CERT_*` | proxy, tunnel, certificate, clock, or TLS path failure | bounded diagnostic only; never disable certificate checks, replace the user's proxy, or bypass the warning |
-| `http_status` | HTTP `429`, `403`, or `5xx` | `429` is a platform-rate-limit signal; `403` may be auth, WAF, or policy and needs visible-page evidence; `5xx` is normally server-side | preserve status/body evidence; do not retry mutations; bounded retry only for `5xx`; escalate `429` immediately and persistent/explicitly challenged `403` |
+| `http_status` | HTTP `429`, `403`, or `5xx` | `429` is a platform-rate-limit signal; `403` may be auth, WAF, or policy and needs visible-page evidence; `5xx` is normally server-side | preserve status/body evidence; do not retry mutations; bounded retry only for `5xx`; for `429`, record displayed retry/cooldown and let Heartbeat recheck automatically; persistent explicit account lock/ban follows the hard-blocker whitelist |
 | `blocked_by_client` | `ERR_BLOCKED_BY_CLIENT` | local extension/content policy or request blocking; not account risk by itself | retry once in a fresh dedicated tab in the same Chrome; do not disable the user's extensions automatically |
 | `ambiguous_render` | blank page, perpetual loading shell, script error, missing content, or navigation timeout with no explicit code | renderer/page ambiguity | allow the normal 1–3 second staged-render wait, inspect final URL/title/DOM, then use the same bounded recovery sequence |
 
@@ -91,8 +92,10 @@ code/message, classification, expected account, tab/browser binding state,
 whether a mutation was in flight, submission certainty, `likely_cause`,
 `likely_cause_basis`, and `user_action_required`. Then:
 
-1. If a mutation may have been submitted, do not retry or navigate as ordinary
-   recovery. Enter the uncertain-submission procedure below and callback.
+1. If a mutation may have been submitted, do not retry it as ordinary recovery.
+   Freeze that exact target/action, record the uncertainty, and continue only
+   independent safe search/view/action scopes. Resolve it later through the
+   normal evidence check; do not ask the user merely to authorize a retry.
 2. Wait briefly, then retry the exact current URL once. A staged-render wait is
    normally 1–3 seconds; a transport retry may use one additional short backoff
    no longer than about 10 seconds.
@@ -121,21 +124,23 @@ Do not add a fourth line.
 The sequence permits at most two page attempts after the first failure: one
 same-URL retry and, when necessary, one fresh-tab retry/diagnostic sequence.
 Never loop, reload repeatedly, alter proxy/TLS settings, or use another browser.
-If the same failure remains after this sequence, yield the current mission,
-release owned tabs, preserve the ledger and exact auto-resume condition, and
-callback the coordinator. Keep both correctly bound run Heartbeats repeat-on so
-a later wake can retry automatically. CAPTCHA, login or
-account mismatch, explicit warning/restriction, HTTP 429, or uncertain
-submission bypasses ordinary retry and returns immediately as platform risk.
+If the same failure remains after this sequence, yield only when the current
+runtime turn must end, release owned tabs, and preserve the ledger plus exact
+auto-resume condition. Do not send a standalone risk callback or ask the user.
+Keep both correctly bound run Heartbeats repeat-on so a later wake can retry
+automatically. Continue another approved route/scope when possible. A timed HTTP
+429 waits and rechecks automatically. Persistent human CAPTCHA/challenge,
+unrecoverable login/account mismatch, explicit account lock/ban, or unavailable
+sole allowed Chrome control follows `blocker-minimization.md`. Uncertain
+submission freezes only that exact mutation.
 
-A persistent-failure callback must include the exact code, `likely_cause` as a
-possibility, probe evidence, every attempted recovery action, and one minimal
-`user_action`. The coordinator owns the user message. Suggested actions remain
-non-destructive: confirm that connectivity is back; inspect whether VPN/proxy or
-security software just changed; wait for a `5xx`/`429` cooldown; inspect an
-extension/filter rule for `ERR_BLOCKED_BY_CLIENT`; or manually resolve visible
-login/challenge UI. The executor never clears cookies, changes proxy/DNS/TLS,
-disables extensions, switches browsers, or repeats an uncertain mutation.
+A persistent technical checkpoint includes the exact code, `likely_cause` as a
+possibility, probe evidence, every attempted recovery action, and the automatic
+resume condition. Do not ask the user to diagnose ordinary connectivity, VPN,
+proxy, extension, route, renderer, `5xx`, or timed `429` states. Only the hard-
+blocker whitelist produces a user action. The executor never clears cookies,
+changes proxy/DNS/TLS, disables extensions, switches browsers, or repeats an
+uncertain mutation.
 
 Never carry a tab ID across turns. At normal executor activation/resume, create a tab with `chrome.tabs.new()` and use that returned object. Reuse a tab only when it is already part of this executor's current control session. `user.openTabs()` plus `user.claimTab()` is allowed only for an explicit user-requested handoff or continuation of a known unclaimed tab; never guess or touch another app task's tab.
 
@@ -150,7 +155,13 @@ Classify runtime continuity before changing authorization state:
 
 A soft reconnect may be logged as a runtime event, but it is not a new `key_risk` unless account continuity, warning state, or submission certainty cannot be established. A recovered `dns_network`, `proxy_tls`, `blocked_by_client`, `ambiguous_render`, or tab-binding event is likewise infrastructure evidence, not a TikTok warning.
 
-Classify warnings only from explicit system UI such as CAPTCHA/challenge, login, rate-limit/restriction dialogs, alerts/status regions, TikTok banners/toasts, or account warnings. Caption, hashtag, comment, creator, and search-result text containing words such as `warning` or `verify` is content, not a platform warning. If the diagnostic locator/API fails, stop with warning state `unverified`; do not broaden the scan or repeatedly probe.
+Classify warnings only from explicit system UI such as CAPTCHA/challenge, login,
+rate-limit/restriction dialogs, alerts/status regions, TikTok banners/toasts, or
+account warnings. Caption, hashtag, comment, creator, and search-result text
+containing words such as `warning` or `verify` is content, not a platform
+warning. If the diagnostic locator/API fails, mark that diagnostic route
+`unverified`, use the bounded native recovery once, and continue another safe
+scope or later Heartbeat recheck; do not infer platform risk or broaden the scan.
 
 If interruption happens near submit:
 
@@ -182,7 +193,14 @@ Every live account and browser/runtime combination starts with its own capabilit
 | `Not interested` | `untested` / `disabled` | Separate exact-post gate and user authorization |
 | Follow | `untested` / `disabled` | Separate exact-creator gate and user authorization |
 
-A current failed lane does not prove that another lane fails. A stopped batch makes later unattempted actions `not_executed`, not failed. Pause only the failed lane for the current account/runtime unless a current warning, throttle, challenge, uncertain submission, account mismatch, or hard runtime change makes every mutation unsafe. When a later explicit mission requests that lane and no current blocker is visible, move it to `pending_fresh_gate` and test once without asking the user to reconfirm; keep the earlier failure as historical ledger evidence.
+A current failed lane does not prove that another lane fails. A stopped batch
+makes later unattempted actions `not_executed`, not failed. Suspend only the
+failed lane. A timed throttle auto-waits; uncertain submission freezes its exact
+target/action; warning/challenge/account ambiguity may suspend all mutations but
+not safe search/view. Stop the mission only for `blocker-minimization.md`'s hard
+whitelist. When a later explicit mission requests that lane and no current
+blocker is visible, move it to `pending_fresh_gate` and test once without asking
+the user to reconfirm; keep the earlier failure as historical ledger evidence.
 
 Store account handles, test URLs, timestamps, and raw persistence evidence only in that run's private ledger. Do not publish account-specific evidence in the reusable Skill or its public README.
 

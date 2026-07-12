@@ -20,9 +20,25 @@ the same values again.
 
 Defaults fill missing fields only. A conservative suggestion, recovery profile,
 old capability result, or prior mission must never become a hidden authorization
-gate. Ask one question only when an essential field was never supplied and
-cannot be safely inferred, or when the requested action would materially expand
-the user's authorization.
+gate. Do not elevate an optional preference into `needs_decision`. Ask one
+question only when a missing value would change an irreversible action, expand
+external authority, select a materially different account/audience, or require
+human-only platform work.
+
+Use this escalation ladder:
+
+| State | Action |
+|-|-|
+| Missing region/language for a universal topic | Apply `global English with North American bias`, record assumption, start |
+| Missing intensity, sub-pillar mix, tone detail, or future format | Apply the documented default and start |
+| Low-confidence query quality or Feed drift | Adjust within the accepted direction; do not ask |
+| Recoverable technical fault or lane-local failure | Auto-recover or suspend only that lane; keep mission/Heartbeats active |
+| Missing mutation authorization | Skip that action; continue authorized work |
+| Uncertain submission | Freeze exact target/action, never retry, continue independent safe work |
+| Human login/challenge or materially different irreversible choice | `decision_required=true` and ask once in 主控台 |
+
+An assumption is reversible mission state, not a risk event. Report it in the
+normal start receipt and allow later user correction without restarting.
 
 Thread IDs, account identity, ledger ownership, callback destination, and
 submission certainty remain registry/safety facts. A user instruction may
@@ -64,17 +80,20 @@ When a current blocker exists:
    the shortest observable `auto_resume_condition`.
 3. Do not reinterpret the mission as a lower-intensity or recovery mission.
 4. Do not ask the user to repeat or reconfirm the original instruction.
-5. Recheck only through the bounded recovery or one bounded read-only executor
-   probe dispatched by the verified coordinator/heartbeat. The heartbeat itself
-   never touches Chrome.
+5. Recheck only through bounded recovery or the next authorized operation wake.
+   The supervisor Heartbeat never touches Chrome; the operation Heartbeat may
+   resume the executor under the unchanged mission.
 6. When the condition visibly clears, account/submission certainty is restored,
    authorization is still active, and time remains, automatically resume the
    original instruction at the next safe mission boundary.
 
 Set `decision_required=true` only when a human action/choice is actually needed:
-manual login/challenge resolution, unresolved submission certainty, ambiguous or
-expanded authorization, missing rights/disclosure, or another non-inferable
-choice. A known wait-and-recheck condition uses `decision_required=false` and
+manual login/challenge resolution, unrecoverable account mismatch, explicit
+account lock/ban, unavailable sole Chrome control, or a materially different
+irreversible action the user requested. Missing rights/disclosure may require a
+decision for that publication only. Uncertain mutation, missing mutation
+permission, region/language, and other reversible preferences do not qualify; freeze
+or skip only that scope. A known wait-and-recheck condition uses `decision_required=false` and
 must not be converted into a user confirmation prompt.
 
 The user's instruction never overrides an active platform restriction, an

@@ -29,6 +29,13 @@ Use current official TikTok pages as the authority and recheck them when rules m
 
 ## Enforcement signals
 
-Treat these as hard stops for mutation: CAPTCHA, SMS/email/device verification, rate limit, copyright check failure, content/account warning, feature restriction, login mismatch, or a post/comment that may already have submitted but cannot be verified.
+Treat these as exact-scope mutation stops, not automatic mission blockers:
+CAPTCHA, SMS/email/device verification, rate limit, copyright check failure,
+content/account warning, feature restriction, login mismatch, or a post/comment
+that may already have submitted but cannot be verified. Timed rate limits auto-
+wait; copyright/feature restrictions abandon only that publication/action;
+uncertain submission freezes only that exact mutation. Stop the whole mission
+and ask the user only for the hard-blocker whitelist in
+`blocker-minimization.md`.
 
 Warnings and removals override planned cadence. Do not recover by opening or switching to another account.

@@ -181,13 +181,15 @@ work quotas, or time-slicing rules:
 | Recoverable page/network transient | Recover inside budget; record; continue mission | Keep Heartbeats active; mention only in normal receipt if recovered |
 | Persistent technical transient | Release/yield with exact resume condition | Keep Heartbeats active; later wake rechecks automatically; no routine retry question |
 | Feed validation transition failure | End validation lane; preserve search work; continue or checkpoint | Degrade only that lane; keep search mission and Heartbeats active |
-| Current CAPTCHA/login/rate-limit/warning | Stop affected work; release; `RISK_EVENT` | Keep timers; consolidate one human action only when actually required, otherwise auto-recheck |
-| Uncertain submission | Do not retry; resolve certainty if possible; release/callback | Freeze conflicting action and ask only if evidence cannot resolve it |
-| Registry/target mismatch before Chrome | Zero external work; callback | One reconciliation transaction; at most one clean replacement |
+| Timed rate limit or non-human platform wait | Stop affected lane; preserve retry time | Keep timers; auto-recheck; no user prompt |
+| Persistent human CAPTCHA or unrecoverable login/account mismatch | Release; `RISK_EVENT` | Ask once under hard-blocker whitelist |
+| Uncertain submission | Never retry; freeze exact target/action; continue independent safe work | Keep mission active; no confirmation prompt |
+| Registry/target mismatch before Chrome | Zero external work for that dispatch | One internal reconciliation/replacement transaction; no user unless sole control remains unavailable |
 | Deadline/user stop | No new work; `EXECUTOR_RELEASED` transaction | Retire exact Heartbeats after release and finalize |
 
-All risk returns to `TikTok 主控台`. The executor's user-visible final text may
-only state that it sent the result to the main console and is idle.
+Hard risk returns to `TikTok 主控台`. Ordinary candidate, route, technical,
+evidence, and lane outcomes remain in the ledger/normal checkpoint and do not
+create a standalone callback.
 
 ## Prompt shape
 

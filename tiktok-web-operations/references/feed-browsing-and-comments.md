@@ -10,12 +10,18 @@ Treat `刷视频` as read-only browsing unless the user separately authorizes an
    You only as a held-out recommendation check. A search card/thumbnail is not a
    consumed view, and a direct URL list loses search-origin evidence.
 3. Inspect one post at a time: creator, caption/on-screen premise, language, sound, visible context, comment culture, engagement signals, and account relevance.
-4. Watch enough to understand the setup and payoff. Use native next/previous or incremental scrolling after the relevant evidence is captured. Skip without forcing a comment when the context is unclear, stale, unsafe, or irrelevant.
+4. Watch enough to understand the setup and payoff. Use only the currently
+   approved native transition method after the relevant evidence is captured.
+   Skip without forcing a comment when the context is unclear, stale, unsafe,
+   irrelevant, or the route/action is prohibited. Do not ask to bypass a rule.
 5. Label the post `core`, `adjacent`, `irrelevant`, or `harmful_to_direction`; keep the post URL and a one-line reason. Stop when the sample is sufficient for the objective or the user-supplied time limit ends.
 6. When the feed drifts, run two search-training blocks (normally 20–30 qualified opened/watched core posts) before another 5–10 item For You validation. Treat any change as observed correlation, not proof of TikTok's ranking mechanism.
 7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Each action type keeps its own confirmation and persistence gate; TikTok Repost is distinct from generic Share.
 
-Do not manufacture human-like pauses or scrolling patterns to evade detection. Respect CAPTCHA, rate limits, warnings, and feature restrictions as hard stops.
+Do not manufacture human-like pauses or scrolling patterns to evade detection.
+Treat timed rate limits as automatic waits; treat feature restrictions as exact-
+lane skips. Only persistent human CAPTCHA/login/account lock or unavailable sole
+Chrome control can stop the whole mission under `blocker-minimization.md`.
 
 Use `Not interested` sparingly and only for content that is clearly harmful to the approved direction. Do not use it on merely adjacent content: an overly aggressive negative signal can narrow discovery before the target audience model is understood.
 
@@ -76,4 +82,9 @@ In `per_item_confirmation`, present the exact creator/post URL and exact final t
 3. Reload or reopen the post and locate the exact comment again.
 4. Record success, failure, removal, warning, or uncertainty before moving on.
 
-A successful comment does not prove that likes, favorites, reposts, follows, or later comments will persist. Verify every send after reload even in autonomous mode. Stop the comment lane on CAPTCHA, warning, throttling, removal, an uncertain submission, account mismatch, or a failed persistence check. Do not retry and do not substitute another candidate to fill the slot.
+A successful comment does not prove that likes, favorites, reposts, follows, or
+later comments will persist. Verify every send after reload even in autonomous
+mode. Freeze only the exact comment submission when uncertain; suspend the
+comment lane on persistence failure/removal; use automatic timed waits for
+throttling. Continue search/view and independent lanes. Do not retry the same
+submission or substitute another candidate to fill a quota.
