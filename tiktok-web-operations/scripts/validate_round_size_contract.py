@@ -21,7 +21,7 @@ def main():
     required = ("targets 35 qualified", "25–45", "25–35", "5–10",
                 "thumbnails", "duplicates", "do not count",
                 "never returns to the launcher between units or rounds",
-                "directly starts the next round")
+                "10–20 minute", "cooldown_until")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     scenarios = {str(n): boundary(n, natural=(n in {25,35,44})) for n in (0,24,25,34,35,44,45,50)}

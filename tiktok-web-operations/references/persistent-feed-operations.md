@@ -22,15 +22,18 @@ search-training unit
   -> next approved cluster when the current query is exhausted/repetitive/drifting
   -> sparse opportunity-triggered feedback
   -> held-out For You checkpoint after the sample threshold
-  -> reconcile cluster weights and continue immediately
+  -> reconcile cluster weights
+  -> 10–20 minute inter-round cooldown after the 25–45-view round boundary
+  -> next round
 ```
 
 One search-training unit normally reaches 9–15 qualified search views across
 distinct approved clusters, or ends honestly when suitable results are exhausted,
 repetitive, or visibly drifting. Trigger a 5–10 item held-out For You checkpoint
 after roughly 20–30 new qualified views or two distinct completed training units.
-Then continue immediately with the adjusted cluster mix. These are logical
-content boundaries, not Codex turns, Heartbeat slots, or fixed-minute promises.
+Training units continue immediately inside the same operating round. After the
+full 25–45-view round checkpoint, enter the required 10–20 minute cooldown
+before the adjusted cluster mix starts a new round.
 
 Before starting a new query, opening the next post, submitting any mutation,
 starting a held-out checkpoint, and after recovery, compare current time with
@@ -64,7 +67,7 @@ weight.
    outward actions requires an explicit no-candidate/current-lane/repetition/
    safety reason, not a blanket `mutation_allowed=false` dispatch.
 7. **Held-out validation** — After the sample threshold, enter For You once and sample a small continuous sequence. Measure composition; do not claim causal attribution.
-8. **Reconcile and continue** — Update qualified-consumption counts, feed-validation state, capability matrix, cluster weights, and exclusions, then immediately start the next approved unit while before the cutoff.
+8. **Reconcile and pace** — Update qualified-consumption counts, feed-validation state, capability matrix, cluster weights, and exclusions. Continue immediately only when the current 25–45-view round is incomplete. At a completed round boundary, enter inter-round cooldown.
 
 Search cards are candidate discovery, not recommendation training evidence.
 Record `search_results_assessed` separately from `qualified_search_views`. A
@@ -84,9 +87,18 @@ unverified playback do not count.
 After 25 qualified views the executor may end at the next natural boundary when
 inventory quality, runtime yield, or cutoff makes that sensible. At 45 it must
 checkpoint before more browsing. A round may contain multiple training units;
-unit completion never triggers a launcher message, task switch, or wait. After
-checkpoint the executor directly starts the next round when safe and before
-cutoff; Heartbeat is only recovery/resume.
+unit completion never triggers a distributor message, task switch, or wait.
+After the full round checkpoint, set `cooldown_minutes` to 10–20 and
+`cooldown_until` accordingly. Default to 15 minutes; use 10 for a read-only or
+low-yield round and 20 for a mutation- or recovery-heavy round. This is
+deterministic workload pacing, not randomized human imitation. During cooldown,
+perform no TikTok navigation, viewing, search, or mutation.
+
+Use the executor's existing repeat-on Heartbeat to resume. If its schedule can
+be updated safely, set the next eligible wake to `cooldown_until`; otherwise an
+early wake records a no-op and keeps the same timer active. When due, clear only
+the cooldown state and start the next round. Never create/delete a one-shot
+automation per round and never retire the Heartbeat because cooldown completed.
 
 Within each round, Comment receives the highest candidate-selection weight:
 target 6 attempts, flexible 4–8, absolute ceiling 10. Keep Like/Favorite/Repost

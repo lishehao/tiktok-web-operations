@@ -3,10 +3,11 @@
 Use two user-visible persistent Codex tasks for one run:
 
 ```text
-TikTok 启动台 --one-way assignment--> TikTok 执行台
-TikTok 启动台 --after acceptance--> reusable stateless idle
+TikTok 启动台 --healthy preflight, same task--> pinned TikTok 分发台
+TikTok 分发台 --one-way assignment--> TikTok 执行台
+TikTok 分发台 --after acceptance--> reusable stateless idle
 TikTok 执行台 --self Heartbeat--> same TikTok 执行台
-same TikTok 启动台 --later new command--> another fresh TikTok 执行台
+same TikTok 分发台 --later new command--> another fresh TikTok 执行台
 ```
 
 There is no long-term coordinator, callback, centralized scheduler, supervisor
@@ -17,13 +18,17 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
 
 1. Launcher verifies its title, bundle, tools, Chrome control, TikTok account,
    writable storage, local time, and ability to create the required task/profile.
-2. Require the Bootstrap profile-lock proof: `profile_status=CONFIRMED`, positive
+2. After health proof, rename this exact task `TikTok 分发台`, attempt to pin it,
+   and verify the exact task ID with `pinned=true` when readback exists. Pin or
+   rename failure is presentation degradation, never a dispatch blocker. Do not
+   pin the executor.
+3. Require the Bootstrap profile-lock proof: `profile_status=CONFIRMED`, positive
    `direction_profile_version`, exact confirmation evidence, and zero prior
    executor/search/view/mutation for this run. Only then resolve
    `direction_profile`, `authority_envelope`, `mission`, ledger path,
    `operation_stop_at`, and a brand-new unique `run_id`. Do not read or inherit
    any old mission, registry, Heartbeat, tab, ledger, task ID, or owner state.
-3. Set `fresh_only_dispatch=true` and call `create_thread` exactly once to create
+4. Set `fresh_only_dispatch=true` and call `create_thread` exactly once to create
    a new executor with an inert `executor_bootstrap/v1` object:
 
 ```json
@@ -36,13 +41,13 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
 }
 ```
 
-4. Record only the exact new ID returned by this create call and set its title
+5. Record only the exact new ID returned by this create call and set its title
    `TikTok 执行台`. Same-name titles are non-unique presentation. Do not call
    list/search/read on any historical task, and do not reuse, unarchive, revive,
    message, archive, replace, or otherwise modify one.
-5. Serialize one canonical `executor_assignment/v1` as UTF-8 JSON using
+6. Serialize one canonical `executor_assignment/v1` as UTF-8 JSON using
    `sort_keys=True` and `separators=(",", ":")`. Store byte length and SHA-256.
-6. Send those exact stored bytes once to the exact new executor. Required fields:
+7. Send those exact stored bytes once to the exact new executor. Required fields:
 
 ```json
 {
@@ -63,17 +68,17 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
 }
 ```
 
-7. Executor validates exact ID, role, profile, refs, bytes, and hash; stores the
+8. Executor validates exact ID, role, profile, refs, bytes, and hash; stores the
    assignment unchanged; writes `ASSIGNMENT_ACCEPTED` in its own task/ledger;
    then starts the read-only smoke. A mismatch is
    `ASSIGNMENT_RECONCILIATION_REQUIRED` before Chrome or mutation.
-8. Launcher may perform one immediate read of the exact newly-created executor
+9. Distributor may perform one immediate read of the exact newly-created executor
    solely to confirm `ASSIGNMENT_ACCEPTED`. This is handoff validation, not
    monitoring. It releases its bootstrap tab, records `EXECUTOR_ASSIGNED`, and
    becomes idle. It neither waits for smoke proof nor reads the task again.
 
 At reusable idle, a later user command starts another independent pass through
-the profile lock and then steps 1–8 with a new `run_id` and another fresh
+the profile lock and then steps 1–9 with a new `run_id` and another fresh
 executor. The launcher carries
 forward only installed dependency configuration and current preflight ability;
 it carries no old assignment, result, mission, registry, ledger, timer, tab,
@@ -97,9 +102,12 @@ After acceptance, executor:
 4. validates repeat-on, next local/UTC time, and finite cutoff;
 5. starts real mission work immediately and continues across logical units.
 
-The timer is self-resume insurance, not a per-unit pause. If a turn can keep
-working safely, it does. At a natural yield it releases the owned Chrome tab and
-persists a cursor; the next self wake resumes.
+The timer is self-resume insurance and the single inter-round cooldown carrier.
+Training units inside one round continue without a timer pause. After each
+completed 25–45-view round, persist `cooldown_minutes` and `cooldown_until`,
+perform zero TikTok work for 10–20 minutes, then resume the next round. Do not
+create/delete one-shot timers; update the existing timer's next eligible wake
+when supported, or no-op early recurring wakes until due.
 
 ## Self Heartbeat contract
 
@@ -122,6 +130,10 @@ transition, empty candidates, and lane failures remain recoverable. Uncertain
 mutation is never retried but does not stop independent work. For a timer error,
 create/read back the correct replacement first, switch the stored binding, then
 retire the old timer so no continuation gap exists.
+
+Cooldown completion clears only `cooldown_until`; it never retires the
+Heartbeat. Retire the Heartbeat only for explicit stop, finite deadline,
+objective completion, or terminal resource release.
 
 ## Independent-run invariant
 
@@ -159,6 +171,6 @@ On user stop, cutoff, or objective completion:
 5. retire the exact self Heartbeat;
 6. write `RUN_RELEASED` and a compact result in the executor task.
 
-The executor never contacts the launcher, and no system polls, unarchives, or
+The executor never contacts the distributor, and no system polls, unarchives, or
 repurposes it. It remains available only for the user to request another fresh
 one-way dispatch.

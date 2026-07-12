@@ -8,7 +8,8 @@ entry. Later commands use quick current health checks, not historical run state.
 ## Preflight record
 
 ```text
-launcher_title: TikTok 启动台 | DEGRADED_RENAME_UNAVAILABLE
+launcher_title: TikTok 启动台 | TikTok 分发台 | DEGRADED_RENAME_UNAVAILABLE
+dispatcher_pin: TRUE | DEGRADED_PIN_UNAVAILABLE | UNVERIFIED
 bundle_action: INSTALL | UPGRADE | NOOP | DEFERRED_ACTIVE_RUNTIME | BLOCKED
 bundle_version:
 skill_validation: PASSED | FAILED
@@ -50,6 +51,10 @@ profile_confirmation_evidence: NONE | exact user turn/ref
 7. Prove a newly created executor can own a dedicated Chrome tab and create a
    self-target repeat-on Heartbeat. Do not create the real timer in preflight.
 8. Finalize only the disposable launcher tab.
+9. After all required health checks pass, rename this exact task
+   `TikTok 分发台`, attempt to pin it, and read back the exact task ID with
+   `pinned=true` when supported. A rename/pin failure is presentation degradation
+   and does not block the profile gate or dispatch. Never pin an executor.
 
 Do not list, inspect, interrupt, archive, or coordinate with other TikTok tasks.
 Another Chrome/TikTok owner is irrelevant to this run's preflight. The installer
@@ -79,8 +84,11 @@ confirmation, persist `profile_status=CONFIRMED`, increment
 `direction_profile_version`, and store exact user evidence. Only then create the
 canonical `direction_ref` used by assignment.
 
-A detailed request is not automatically confirmation unless it explicitly says
-the profile is final or to start with that exact profile. A bare `继续`/`开始`
+A detailed request that supplies a usable direction and explicitly asks to
+start/operate is canonical confirmation; fill reversible omissions from the
+declared safe defaults and dispatch after the distributor rename/pin without an
+extra question. Advice/review wording without a start request is not
+confirmation. A bare `继续`/`开始`
 confirms only a proposal already visible in this launcher. If none exists,
 display the default proposal and wait.
 
@@ -110,7 +118,8 @@ Follow `operating-model.md`:
    `direction_ref`;
 5. require `ASSIGNMENT_ACCEPTED` before external work;
 6. release launcher Chrome and record `EXECUTOR_ASSIGNED`;
-7. launcher becomes `L2_IDLE` and performs no later supervision/callback work.
+7. pinned distributor becomes `L2_IDLE` and performs no later
+   supervision/callback work.
 
 On every later new operating instruction sent to the same launcher, repeat only
 the current dependency/account health checks and the fresh create/assignment
@@ -130,7 +139,7 @@ goes directly to `TikTok 执行台`.
 
 ## User-facing handoff
 
-When no account image was supplied, the launcher asks:
+When no account image was supplied, the already renamed/pinned distributor asks:
 
 ```text
 状态健康。当前账号：@handle。
@@ -139,6 +148,7 @@ When no account image was supplied, the launcher asks:
 
 Then present one proposal and wait for `确认`, `继续`, `开始`, explicit final
 corrections, or “按此开始”. Never say operation started before that confirmation.
-When the initial request already contains a detailed profile, skip the open
-question but still display the structured proposal and obtain the one
-confirmation unless the user explicitly declared that exact profile final.
+When the initial request contains a usable direction and explicit start/operate
+instruction, compile it as the confirmed profile and dispatch without an extra
+question. If it is detailed but asks only for advice/review, show the structured
+proposal and obtain confirmation before dispatch.

@@ -33,15 +33,20 @@ record the exact reason.
 
 ## Roles
 
-### TikTok 启动台 (`TIKTOK_LAUNCHER`)
+### TikTok 启动台 → TikTok 分发台 (`TIKTOK_LAUNCHER`)
 
 Its first available presentation action is renaming the current task
-`TikTok 启动台`. It has one objective: install/upgrade and validate the bundle,
-run read-only Chrome/TikTok preflight, resolve the initial mission using explicit
-values plus safe defaults, obtain explicit confirmation of one structured
-account-image proposal, fresh-create exactly one new `TikTok 执行台`, send one canonical
-assignment, verify that the assignment was accepted, release its disposable tab,
-then become idle.
+`TikTok 启动台`. That title is temporary and covers only install/upgrade,
+validation, read-only Chrome/TikTok preflight, and a user repair that prevents
+health proof. Immediately after every required preflight passes, rename the same
+exact task `TikTok 分发台`, attempt to pin that exact task, and verify
+`pinned=true` when readback exists. Rename/pin failure is presentation
+degradation and never blocks dispatch.
+
+The pinned distributor has one objective: resolve the initial mission using
+explicit values plus safe defaults, complete the profile gate only when needed,
+fresh-create exactly one unpinned `TikTok 执行台`, send one canonical assignment,
+verify acceptance, release its disposable tab, then become idle.
 
 The launcher never becomes `TikTok 主控台`, never creates or owns a Heartbeat,
 never supervises the execution task, never receives callbacks, and never acts as
@@ -49,7 +54,7 @@ a later risk or decision surface. A rename-tool failure is
 `DEGRADED_RENAME_UNAVAILABLE`; it does not block setup.
 
 Idle is reusable, not retired. Whenever the user later sends another new
-operating instruction in this same `TikTok 启动台`, run a quick current health
+operating instruction in this same `TikTok 分发台`, run a quick current health
 check, resolve only that instruction, generate a new `run_id`, fresh-create one
 new executor only after its profile proposal is confirmed, send the one-way
 assignment, and return to idle. Keep no watchlist
@@ -84,8 +89,8 @@ Read `references/role-and-stage-contract.md` and
 
 | User request | Behavior |
 |-|-|
-| Installer/setup prompt | Rename to `TikTok 启动台`, automatically install/upgrade, validate, and run preflight in the same turn. |
-| Clear mission with a healthy installation | Reuse only dependency health, produce a structured profile proposal, and wait for confirmation before fresh-create/assign. Never reuse an operating task. |
+| Installer/setup prompt | Rename to `TikTok 启动台`, automatically install/upgrade, validate, and run preflight; on health rename the same task `TikTok 分发台` and pin it. |
+| Clear mission with a healthy installation | Rename/pin as distributor first. Treat a sufficiently explicit start instruction as canonical profile confirmation and fresh-create/assign without another question. Never reuse an operating task. |
 | `继续` or `开始` after a visible profile proposal | Treat as confirmation of that exact proposal and proceed. |
 | `继续` or `开始` without a visible profile proposal | Produce the packaged default proposal; do not start until the user confirms it. |
 | Direction only | Complete a structured proposal from that direction and ask for one confirmation. |
@@ -124,8 +129,10 @@ The proposal contains `persona_name`, `target_audience`, `region_language`,
 `direction_profile_version`. Only the exact proposal the user confirmed becomes
 `direction_ref` and may enter `executor_assignment/v1`.
 
-A detailed initial user instruction is input, not implicit confirmation, unless
-the user explicitly says it is final or to start with that exact profile. A bare
+A detailed initial instruction that supplies a usable direction and explicitly
+asks to start/operate is canonical confirmation; compile missing reversible
+fields from shown safe defaults and do not add a confirmation round. A detailed
+description that asks for advice/review but not operation remains input only. A bare
 `继续` confirms only a proposal already shown. If no proposal has been shown,
 present the default proposal and wait once.
 
@@ -173,7 +180,13 @@ range of 25–45. This is a work-size boundary, not an exact quota:
    engagement to a separate post-view phase.
 5. After two units or roughly 20–30 new qualified views, sample 5–10 sequential
    For You items as held-out validation.
-6. Adjust search clusters from rolling evidence and repeat continuously until
+6. At the end of every completed 25–45-view operating round, persist a durable
+   checkpoint and set `cooldown_until` 10–20 minutes ahead. Use 15 minutes by
+   default, 10 for read-only/low-yield work, and 20 for mutation- or
+   recovery-heavy work. This is workload pacing, never randomized stealth.
+   During cooldown perform no TikTok navigation, viewing, or mutation. Resume
+   only when `now >= cooldown_until`, clear that state, and begin the next round.
+7. Adjust search clusters from rolling evidence and repeat until
    `operation_stop_at` or user stop. Model/browser latency changes throughput;
    do not promise a fixed number of units per hour.
 
@@ -281,10 +294,13 @@ After assignment acceptance, the executor creates exactly one repeat-on
 `operation_stop_at`/`UNTIL`. It immediately reads back and verifies automation
 ID, `targetThreadId`, repeat state, next local/UTC run, and cutoff.
 
-The Heartbeat is a continuation/recovery carrier, not a quota or a reason to
-pause healthy work. If the executor is already running, a wake does no
-overlapping work. If idle/yielded before cutoff, it resumes from the last valid
-checkpoint. Ordinary failure never deletes the Heartbeat. For a misbound or
+The Heartbeat is the continuation/recovery carrier and the only timer used for
+inter-round cooldown. Do not create and delete a one-shot automation per round.
+After a round, update the existing timer's next eligible wake to
+`cooldown_until` when supported; otherwise keep it repeat-on and make early
+wakes no-op until the timestamp is due. At the due wake, clear only the cooldown
+state and resume. If the executor is already running, a wake does no overlapping
+work. Ordinary failure never deletes the Heartbeat. For a misbound or
 misconfigured timer, create and verify the correct replacement, switch the
 stored binding, then retire the old timer. Retire only after user stop, deadline,
 objective completion, or terminal release.

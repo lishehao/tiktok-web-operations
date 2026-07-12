@@ -27,7 +27,8 @@ Use when setup should hand one mission directly to an independent persistent
 task:
 
 ```text
-launcher -> creates one executor -> sends one canonical assignment -> reusable idle
+launcher bootstrap -> same task becomes pinned distributor
+distributor -> creates one executor -> sends one canonical assignment -> reusable idle
 executor -> owns user conversation, external resource, ledger, recovery,
             self-target recurring Heartbeat, and finalization
 same launcher + later user command -> another fresh executor -> reusable idle
@@ -49,6 +50,10 @@ For this topology:
   operating instruction repeats fresh creation with a new run ID. The launcher
   never reads results, aggregates runs, or turns the new command into an old-run
   continuation.
+- a calling domain may require the bootstrap title to transition to a pinned
+  distributor title before any pre-dispatch gate or assignment. Pin/title
+  failure is presentation degradation unless the domain says otherwise; it does
+  not justify a second task.
 
 The calling domain may additionally require `fresh_only_dispatch=true`. TikTok
 does. In fresh-only dispatch, each setup/bootstrap/new run generates a new
@@ -81,24 +86,28 @@ creation.
 
 1. Apply the domain's launcher title as the first available presentation action.
    Rename failure is presentation degradation, not a reason to duplicate tasks.
-2. Run the domain preflight and every domain-declared pre-dispatch gate. A gate
+2. Run the domain preflight. If the domain declares a distributor transition,
+   rename this same exact task to the distributor title, attempt to pin its exact
+   ID, and read back `pinned=true` when supported. Pin failure is non-blocking
+   presentation degradation; never pin the executor unless explicitly required.
+3. Run every domain-declared pre-dispatch gate. A gate
    such as account-image confirmation must provide its explicit exit proof; the
    supervisor never converts a draft/proposal into confirmation.
-3. Resolve one mission from the accepted gate output.
-4. Generate a new run ID and call `create_thread` exactly once for one fresh
+4. Resolve one mission from the accepted gate output.
+5. Generate a new run ID and call `create_thread` exactly once for one fresh
    executor with an inert bootstrap object and
    `external_work=forbidden_until_assignment_acceptance`.
-5. Store the exact returned ID and set the domain title.
-6. Build one canonical assignment containing exact executor ID, run ID,
+6. Store the exact returned ID and set the domain title.
+7. Build one canonical assignment containing exact executor ID, run ID,
    execution profile, domain refs, resource/ledger policy, and
    `launcher_contact_policy=NO_CALLBACK_NO_SUPERVISION`.
-7. Send the stored bytes once to the exact executor. The executor validates and
+8. Send the stored bytes once to the exact executor. The executor validates and
    records `ASSIGNMENT_ACCEPTED` before external work.
-8. Launcher may read that exact task once to verify acceptance, releases its
+9. Distributor may read that exact task once to verify acceptance, releases its
    temporary resource, records handoff, and becomes idle.
 
 When the user later addresses the same idle launcher with another operating
-instruction, repeat the domain gate and steps 2–8 with a new run ID and new executor, then return to
+instruction, repeat the domain gate and steps 3–9 with a new run ID and new executor, then return to
 idle. Preserve only installed dependency configuration; inherit no historical
 mission/registry/ledger/Heartbeat/tab/result/risk state.
 
@@ -133,6 +142,12 @@ deadline, objective completion, or terminal resource release.
 
 Heartbeat prompts contain stable identity/resume instructions, not changing
 status or raw evidence. Dynamic progress belongs in the executor ledger/task.
+
+When the calling domain requires inter-round pacing, keep the same recurring
+Heartbeat active. Store `cooldown_until`, update that timer's next eligible wake
+when supported, and make early wakes no-op. At the due wake clear cooldown state
+and resume. Never create/delete a one-shot timer per round; timer retirement
+remains terminal-only.
 
 ## Coordinator-worker rules
 

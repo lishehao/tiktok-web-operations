@@ -9,8 +9,9 @@ exact tool readback.
 Mutable state associated with `executor_assignment/v1`:
 
 ```text
-launcher_title: TikTok 启动台 | DEGRADED_RENAME_UNAVAILABLE
-launcher_state: PREFLIGHT | ASSIGNING | REUSABLE_IDLE
+launcher_title: TikTok 启动台 | TikTok 分发台 | DEGRADED_RENAME_UNAVAILABLE
+launcher_pinned: TRUE | DEGRADED_PIN_UNAVAILABLE | UNVERIFIED
+launcher_state: PREFLIGHT | DISTRIBUTOR_READY | ASSIGNING | REUSABLE_IDLE
 launcher_dispatch_sequence: monotonically increasing local count
 pre_dispatch_gate_state: NONE | DRAFT | PROPOSED | CONFIRMED
 pre_dispatch_gate_ref: NONE | exact canonical ref
@@ -32,6 +33,8 @@ executor_heartbeat_target_thread_id: exact executor id
 executor_heartbeat_repeat: ON | OFF
 executor_heartbeat_next_tick_at:
 operation_stop_at:
+cooldown_minutes: NONE | integer 10..20
+cooldown_until: NONE | exact local/UTC timestamp
 resume_cursor:
 run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 ```
@@ -39,6 +42,11 @@ run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 The launcher records only the current dispatch's immutable handoff provenance
 until acceptance, then discards run working state and becomes `REUSABLE_IDLE`. It is
 not a manager, callback target, replacement owner, or automation owner.
+
+After domain health proof, the same exact launcher task may become a pinned
+distributor presentation. Verify the exact task ID with `pinned=true` when tool
+readback exists. Pin/title failure is non-blocking degradation and never causes
+a replacement task. Executors remain unpinned.
 
 A later command creates a new run ID and executor. It never resolves, reads, or
 inherits an earlier executor. `launcher_dispatch_sequence` may distinguish
@@ -86,6 +94,11 @@ keeps the timer active. Uncertain submission is never retried. For a bad timer,
 create/read back the replacement, switch stored binding, then retire the old
 timer. Stop/deadline/completion begins finalization; retire only after external
 resource release and ledger reconciliation.
+
+For an inter-round cooldown, retain the same Heartbeat. Early wakes before
+`cooldown_until` are no-op; the due wake clears cooldown state and resumes.
+Never create/delete a per-round one-shot timer or retire the recurring timer at
+cooldown expiry.
 
 Domains explicitly selecting coordinator-managed timers use their own contract;
 they do not override a self-owned executor domain.

@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.12.19`
+Protocol version: `2026.07.12.20`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -18,7 +18,7 @@ input, promise reach, or claim access to TikTok's private ranking weights.
 Send this to a new Codex task:
 
 ```text
-请通过 HTTPS 打开并完整遵循 https://raw.githubusercontent.com/lishehao/tiktok-web-operations/main/README.md，按 README 安装或升级 TikTok Web Operations，并继续完成其中的预检与启动交接。
+请通过 HTTPS 打开并完整遵循 https://raw.githubusercontent.com/lishehao/tiktok-web-operations/main/README.md，按 README 安装或升级 TikTok Web Operations，并继续完成其中的预检、分发台就绪与任务交接。
 ```
 
 The agent automatically validates version/source, installs or upgrades both
@@ -48,14 +48,18 @@ because an update exists.
 
 ```text
 TikTok 启动台
-  install/upgrade -> read-only preflight -> propose structured account image
-  -> user confirms exact proposal
+  install/upgrade -> read-only preflight
+  -> same task renames to pinned TikTok 分发台
+
+TikTok 分发台
+  -> resolve explicit mission or confirm a missing account image
   -> fresh-create/assign one new TikTok 执行台 -> verify acceptance
   -> reusable stateless idle -> later command creates another fresh executor
 
 TikTok 执行台
   read-only smoke -> create self-target recurring Heartbeat
   -> search-led operation -> held-out Feed checks -> verified interactions
+  -> 10–20 minute inter-round cooldown -> resume
   -> self-recovery/checkpoints -> final release
 ```
 
@@ -73,9 +77,10 @@ same-title, archived, completed, or live tasks; those remain untouched history.
 If fresh creation fails or its result is uncertain, this launch reports the
 fresh-task creation failure and stops without retry, replacement, or fallback.
 
-The same `TikTok 启动台` may be used repeatedly. Every later operating command
-starts another independent fresh-only dispatch and then returns the launcher to
-idle. The launcher retains installation capability but no old executor result,
+The same pinned `TikTok 分发台` may be used repeatedly. `TikTok 启动台` is only
+the temporary setup/repair title before health proof. Every later operating
+command starts another independent fresh-only dispatch and then returns the
+distributor to idle. It retains installation capability but no old executor result,
 mission, registry, ledger, Heartbeat, tab, risk, or progress. Workers never
 callback, return, or message the launcher.
 
@@ -84,8 +89,8 @@ TikTok Skill. It never substitutes a subagent or Goal Mode.
 
 ## Mission defaults
 
-Bootstrap uses a profile lock before every fresh dispatch. Preflight may finish,
-but the launcher must not create an executor, search, watch, or interact until
+The distributor uses a profile lock before every fresh dispatch. Preflight may finish,
+but it must not create an executor, search, watch, or interact until
 `profile_status=confirmed`.
 
 Use at most two user-facing rounds:
@@ -98,9 +103,11 @@ Use at most two user-facing rounds:
    supplies final replacement values once; supplied corrections count as
    confirmation unless the user explicitly asks to review another draft.
 
-A bare `继续` confirms only a proposal already displayed. Without a visible
-proposal, it asks the launcher to show the default proposal and does not start.
-Every later fresh run repeats this lock; the stateless launcher never inherits a
+A clear operating instruction that already defines a usable direction and asks
+to start is canonical confirmation; after health, rename/pin first and dispatch
+without another question. A bare `继续` confirms only a proposal already displayed. Without a visible
+proposal, it asks the distributor to show the default proposal and does not start.
+Every later fresh run repeats this lock; the stateless distributor never inherits a
 prior account image.
 
 If the user has not supplied values:
@@ -136,7 +143,11 @@ The primary training path is directed search, not Feed browsing:
    context, then write an original line rather than copying a result.
 6. After two units or roughly 20–30 qualified views, 5–10 continuous For You
    items are sampled as held-out validation.
-6. Search clusters are adjusted from rolling evidence and the loop continues
+7. At every completed 25–45-view round, persist a checkpoint and enter a real
+   10–20 minute no-TikTok cooldown. Default to 15 minutes; use 10 for a
+   read-only/low-yield round and 20 for a mutation- or recovery-heavy round.
+   Clear only the cooldown state when due, then continue the next round.
+8. Search clusters are adjusted from rolling evidence and the loop continues
    until stop/cutoff.
 
 For You movement uses one continuous native feed without reload/reset between
@@ -147,6 +158,8 @@ the executor's valid Heartbeat.
 ## Heartbeat receipt
 
 The executor owns one repeat-on, finite-cutoff Heartbeat targeted to itself.
+The same timer carries inter-round cooldown recovery; do not create/delete a
+one-shot timer per round. At the due wake, clear `cooldown_until` and resume.
 Every timed receipt has exactly three lines:
 
 ```text
@@ -162,7 +175,9 @@ No launcher callback or supervisor timer is created.
 From the repository root, run both Skill structural validators and all TikTok
 scenario validators. Required scenarios include:
 
-- setup immediate launcher rename;
+- setup immediate `TikTok 启动台` rename;
+- healthy preflight same-task rename to pinned `TikTok 分发台`;
+- pin failure is non-blocking presentation degradation and executors remain unpinned;
 - profile proposal required before executor creation;
 - bare continue without a visible proposal cannot start;
 - confirmed profile version is the only assignment direction reference;
@@ -170,15 +185,16 @@ scenario validators. Required scenarios include:
 - archived and live old runs ignored and untouched;
 - a fresh create is required for every new launch;
 - create failure produces no reuse, retry, or replacement;
-- each launcher command performs one fresh dispatch then returns idle;
-- same launcher second command creates another fresh executor;
-- launcher remains reusable stateless idle after every dispatch;
+- each distributor command performs one fresh dispatch then returns idle;
+- same distributor second command creates another fresh executor;
+- distributor remains reusable stateless idle after every dispatch;
 - no worker-to-launcher return/message/result path;
 - executor self-owned recurring Heartbeat;
 - no callback to launcher;
 - no coordinator/supervisor Heartbeat;
 - independent lanes and independent runs;
 - network/Chrome recovery and Heartbeat survival;
+- 10–20 minute inter-round cooldown with one persistent executor Heartbeat;
 - concurrent Like/Favorite/Repost/Comment attempt coverage during viewing, with
   `attempted|unavailable|hard_blocked` reporting and no persistence checks.
 - comment-priority 4–8 target range, selective Web meme research, and no-copy

@@ -34,4 +34,4 @@ its own tab and ledger. Recommendation changes are reported as observations,
 not sole-cause claims.
 
 Human-only current login/challenge/account-lock/control repair is asked once,
-directly in the executor task. No decision returns to `TikTok 启动台`.
+directly in the executor task. No decision returns to `TikTok 分发台`.

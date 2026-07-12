@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: TikTok 启动台 completes preflight, asks at most one open account-image question, presents a structured profile, and creates no fresh executor until that exact profile is confirmed. Each executor then runs 35-target rounds with comment-priority best-effort engagement."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: keep TikTok 启动台 temporary for setup/repair, then rename the same healthy task to pinned TikTok 分发台 for fresh-only dispatch. Each unpinned executor runs 35-target rounds, then takes a 10–20 minute cooldown using its one persistent Heartbeat."
