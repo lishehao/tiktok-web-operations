@@ -2,15 +2,31 @@
 
 Use this reference during bootstrap, first-run validation, browser recovery, and any blocked or key-risk callback.
 
-## Same-account mutation-writer preflight
+## Concurrent-account preflight
 
-Before creating or dispatching an executor, query recent TikTok-related Codex Threads and inspect any active or in-progress result. Require one of these states:
+Another task controlling Chrome, TikTok, or the same account is not a global
+operating blocker. Before creating or dispatching this run's executor, query
+recent TikTok-related Codex Threads only to protect tab ownership, submission
+certainty, and exact-target mutations:
 
-- no other TikTok Chrome executor is active;
-- the exact incumbent was explicitly retired by the user, returned `STOPPED_AND_RELEASED`, released Chrome, and has no mutation or submission in flight; or
-- the incumbent is the same registered executor being resumed.
+- keep exactly one executor inside this coordinator/run, but allow an unrelated
+  run to use the same account in its own dedicated tab;
+- never interrupt, archive, navigate, close, or adopt another run merely because
+  it is active;
+- record `concurrent_same_account_activity=true` and
+  `recommendation_attribution_contaminated=true` whenever another run may change
+  consumption or engagement signals; do not claim causal feed correction while
+  contamination is present;
+- pause only an exact mutation conflict: the same target post/comment/profile or
+  asset, the same action type, and another submission currently in flight or
+  still uncertain. Pause that target/action only; browsing and different-target
+  authorized actions may continue;
+- an uncertain submission created by this executor remains a blocker for this
+  executor under the normal submission-certainty rules.
 
-Do not create a second same-account mutation executor while write authority is active, ambiguous, or delegated to a collaboration agent. Do not infer that archiving stops an active turn. Stop/release first and verify. Keep the registered active/idle pair unarchived; archive completed temporary probes automatically, and archive a retired executor only after it has been replaced in the registry and owns no heartbeat, Chrome tab, or uncertain mutation.
+Thread archival is lifecycle cleanup, not concurrency control. Keep this run's
+registered pair unarchived; archive only released temporary probes or retired
+executors that own no automation, tab, or uncertain submission.
 
 ## Dedicated-tab isolation
 
@@ -20,8 +36,8 @@ Chrome session ownership is per controlled tab, not a global lock on the user's 
 2. At normal executor block start, create a new tab with `chrome.tabs.new()` and navigate that returned tab to TikTok. Verify the expected account in this dedicated tab before any further action.
 3. Reuse a tab only when it is already part of this executor's current browser-control session. Use `user.openTabs()` plus `user.claimTab()` only for an explicit user-requested handoff or continuation of a known unclaimed tab.
 4. If an existing tab reports `already part of browser session <uuid>`, leave it untouched and create a new tab. Do not interrupt, archive, or wait for that unrelated task. The message is not a global Chrome blocker.
-5. Stop only if `tabs.new()` or navigation/control fails, the new tab does not inherit the expected login/account, another same-account mutation executor is active/uncertain, or a submission is uncertain.
-6. A concurrent read-only task on the same TikTok account does not block a mechanical smoke, but mark `recommendation_attribution_contaminated`; do not claim that one task caused feed changes.
+5. Stop only if `tabs.new()` or navigation/control fails, the new tab does not inherit the expected login/account, this executor has an uncertain submission, or the exact target/action has a concurrent in-flight or uncertain submission.
+6. Any concurrent task on the same TikTok account is allowed, including another run's mutations on different targets. Mark `concurrent_same_account_activity=true` and `recommendation_attribution_contaminated=true`; do not claim that one task caused feed changes.
 7. At block completion, finalize only tabs created or controlled by this executor session. Never close or navigate another task's tabs.
 
 ## Immutable registry contract
@@ -37,40 +53,41 @@ Treat these fields as byte-for-byte immutable after `SELF_REGISTRY`: coordinator
 ## Persistence mechanism
 
 Persistence comes from the starter task after it becomes coordinator plus one
-user-visible executor, connected by callback-driven bounded blocks. Neither
-Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create descendant
-workers. The coordinator never operates Chrome. The executor never creates a
-replacement for itself.
+user-visible executor. Neither Thread may call `create_goal`, `update_goal`,
+`spawn_agent`, or create descendant workers. The coordinator never operates
+Chrome. The executor never creates a replacement for itself or manages an
+automation.
 
-An idle Thread is healthy persistent state. Do not manufacture activity through polling, Goal Mode continuation, or self-dispatch.
+An idle Thread is healthy persistent state. Do not use Goal Mode or an executor-
+owned one-shot timer. Treat every executor wake/message as one bounded round: it
+records a slot state, executes at most one block, releases Chrome, callbacks, and
+becomes idle.
 
-Treat every executor message as one bounded round. The executor completes that block, releases Chrome, callbacks, and becomes idle. The coordinator dispatches at most one next block after reconciling the callback.
+For an unattended multi-round run, after the immediate first block is proven,
+the verified coordinator creates and manages two distinct recurring Heartbeats:
 
-For an unattended multi-round run, attach an optional low-frequency heartbeat to the coordinator only. Use it as a watchdog and round scheduler, not as a Chrome operator:
+1. `operation_heartbeat`: explicit `targetThreadId=executor_thread_id`,
+   `repeat=on`, finite `UNTIL` or equivalent `operation_stop_at` guard. It wakes
+   the executor for one bounded block per slot. It is never `COUNT=1` followed by
+   executor self-renewal.
+2. `supervisor_heartbeat`: explicit `targetThreadId=coordinator_thread_id`,
+   lower frequency, `repeat=on`, and the same finite stop guard. It is read-only
+   and verifies executor wakes, new turns, callbacks, and the planned/started/
+   completed/blocked/missed slot ledger.
 
-- create it only from the verified coordinator with explicit
-  `targetThreadId=coordinator_thread_id`, then view and verify the exact
-  automation ID/binding before activation;
-- on wakeup require the waking Thread, target Thread, coordinator registry, run
-  ID, and automation ID to match; otherwise return
-  `MISBOUND_HEARTBEAT_NO_ACTION`;
-- read the coordinator/executor latest state;
-- while the executor is running, dispatch nothing and emit only the fixed
-  three-line heartbeat receipt with a plan to await its callback;
-- dispatch one next bounded block only when the prior callback is complete, the executor is idle, the circuit is closed, and `operation_stop_at` has not passed;
-- never create/replace Threads, bypass a blocker, or touch Chrome from the heartbeat;
-- at or after `operation_stop_at`, send one `STOP_AND_RELEASE`, confirm the final callback, and remove the heartbeat.
-
-The executor, installer, Skill-development task, sibling, or historical
-coordinator must never create, update, delete, inherit, or fire this heartbeat.
-
-Soft callbacks remain the primary sequencing signal. The heartbeat is a missed-callback/time-bound safety net and must never overlap executor turns.
+The coordinator creates, views, updates, pauses, and deletes both automations.
+The executor may receive the operation heartbeat but never creates, updates,
+renews, pauses, or deletes either one. After creation, require readback proof of
+each exact automation ID, target, repeat state, next run, local/UTC schedule, and
+deadline. A missing executor wake/proof or broken repeat chain is
+`SCHEDULER_CONTINUATION_FAILURE`; the supervisor reports it to the coordinator
+without touching Chrome or attempting TikTok mutation.
 
 ## First-run stability smoke
 
 Run this read-only block before a new executor performs a full search-training block or any mutation. Search-origin video consumption is the primary runtime gate; For You is an optional validation lane.
 
-1. Verify the registered IDs, exact account, no incumbent same-account mutation writer, no submission in flight, and no system-level challenge. Create the dedicated tab and record whether concurrent same-account browsing contaminates recommendation attribution.
+1. Verify the registered IDs, exact account, no unresolved submission owned by this executor, no exact-target/action mutation conflict, and no system-level challenge. Create the dedicated tab and record concurrent same-account activity and recommendation-attribution contamination.
 2. Open one direction-relevant search query and classify the first three visible result cards.
 3. Select one strong-core result, open it from the search surface, verify the stable post URL/creator identity, confirm playback or visible watch progression, and watch enough to understand its premise/payoff. Record it as one `qualified_search_view`, then return through normal navigation.
 4. If search-origin open/playback/return succeeds with zero mutation, mark `search_training_runtime=verified`.
@@ -112,7 +129,7 @@ Persistent `tab_binding_stale`, `browser_disconnected`, `dns_network`,
 sequence stops the current block and callbacks the coordinator; it does not
 masquerade as TikTok/account enforcement. HTTP 429, explicit platform challenge,
 account mismatch, or uncertain submission returns immediately. Two consecutive
-failures with the same dedicated-tab, mutation-writer, search-origin
+failures with the same dedicated-tab, exact-target mutation-collision, search-origin
 open/playback, rendering, or diagnostic failure class open the whole-run circuit
 breaker. Feed-native transition failures are lane-local when search training
 and account/browser safety remain healthy; after two consecutive failures

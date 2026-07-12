@@ -29,6 +29,12 @@ submission certainty remain registry/safety facts. A user instruction may
 change the operating envelope, but must not be used to guess or bypass those
 facts.
 
+Another task using Chrome, TikTok, or the same account is operating context, not
+a blocker. Create/use this run's dedicated tab and continue. Concurrent activity
+only forces `recommendation_attribution_contaminated=true` and prevents causal
+feed claims. Pause only when the same target and action have another in-flight or
+uncertain submission; pause that exact mutation, not the whole mission.
+
 ## Historical versus current state
 
 Classify every warning, rate limit, failure, or capability result as one of:

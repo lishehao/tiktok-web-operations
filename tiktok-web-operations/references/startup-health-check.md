@@ -25,18 +25,24 @@ run_registry: WRITABLE | UNAVAILABLE
 model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAVAILABLE
 fast_mode: ACTIVE | INACTIVE | UNVERIFIED
 automation_support: AVAILABLE | UNAVAILABLE | NOT_REQUESTED
-automation_owner_thread_id: NONE | exact coordinator id
-heartbeat_automation_id: NONE | exact id
-heartbeat_target_thread_id: NONE | exact id
+automation_manager_thread_id: NONE | exact coordinator id
+operation_heartbeat_id: NONE | exact id
+operation_heartbeat_target_thread_id: NONE | exact executor id
+operation_heartbeat_repeat: NONE | ON | OFF
+operation_heartbeat_next_tick_at: NONE | timestamp
+supervisor_heartbeat_id: NONE | exact id
+supervisor_heartbeat_target_thread_id: NONE | exact coordinator id
+supervisor_heartbeat_repeat: NONE | ON | OFF
+supervisor_heartbeat_next_tick_at: NONE | timestamp
 operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
-operation_timer_next_tick_at: NONE | timestamp
 operation_timer_stop_at: NONE | timestamp
 durable_install_state_path: ${CODEX_HOME:-$HOME/.codex}/state/tiktok-web-operations/install-state.json
 first_install_supervision: NOT_APPLICABLE | PENDING | ACTIVE | CONSUMED | DEGRADED
 first_install_supervision_checkpoints: NONE | timestamps
-incumbent_executor: NONE | SAME_REGISTERED_EXECUTOR | RETIRED_AND_RELEASED | ACTIVE_OR_UNCERTAIN
 dedicated_tab_creation: AVAILABLE | UNAVAILABLE
-same_account_external_activity:
+concurrent_same_account_activity: true | false
+recommendation_attribution_contaminated: true | false
+exact_mutation_conflict: none | target/action
 local_time_check:
 ledger_path:
 dependency_status: READY | BLOCKED
@@ -76,17 +82,19 @@ Run checks in order:
    ID through unique-title `list_threads` plus `read_thread`. Phase 1 may use a
    temporary nonce/title and then restore a user-friendly bootstrap title.
 7. Prove a writable private run registry can store exact task identity,
-   automation ownership, authority, ledger, and stop fields.
+   automation management/targets, authority, ledger, slot state, and stop fields.
 8. Prove executor creation and operational dispatch support
    `model=gpt-5.6-luna` with `thinking=high`. This TikTok profile is mandatory.
    Record Fast Mode only when independently visible; it is not a creation gate.
 9. When unattended/timed continuation is requested, prove `automation_update`
-   can create and view a heartbeat with explicit `targetThreadId`. Do not create
-   the real operating heartbeat during Phase 1 and do not use the bootstrap or
-   Skill-development task as its owner.
-10. Inspect active TikTok tasks. Block only an active/uncertain same-account
-   mutation executor or uncertain submission. Other Chrome tabs are allowed;
-   concurrent same-account read-only browsing only contaminates attribution.
+   can create and view repeat-on heartbeats with explicit `targetThreadId`, a
+   finite `UNTIL` or equivalent stop guard, next-run readback, and local/UTC
+   schedule evidence. Do not create real operating heartbeats during Phase 1.
+10. Inspect active TikTok tasks only to detect tab ownership, attribution
+   contamination, and exact-target/action submission collisions. Other Chrome
+   tabs and other same-account runs are allowed, including different-target
+   mutations. Record concurrent activity and contamination; block only this
+   executor's unresolved submission or the exact colliding target/action.
 11. Read local time and create a writable private ledger path. Initialize every
    mutation lane independently without modifying TikTok.
 12. Finalize only the disposable bootstrap tab and release its control session.
@@ -136,7 +144,7 @@ application advice, pure study motivation, and generic non-campus content.
 Follow `operating-model.md` exactly:
 
 1. Temporarily rename this task `TikTok 主控台注册 · <run_nonce>`, resolve and verify its
-   exact Thread ID, create the immutable run registry with automation owner
+   exact Thread ID, create the immutable run registry with automation manager
    equal to that coordinator ID, then set the final title to `TikTok 主控台` and pin it.
 2. Create one executor with `gpt-5.6-luna/high`, record its returned ID, set its
    final title to `TikTok 执行台`, keep it unpinned, and include the
@@ -151,23 +159,25 @@ Follow `operating-model.md` exactly:
    account/tab control, parseable incremental ledger, and zero mutation. For You
    success verifies the optional validation lane; native-feed failure alone
    degrades that lane and does not block search-led operation.
-6. If the resolved duration exceeds one bounded block, the verified coordinator
-   now creates this run's single durable timer heartbeat with explicit
-   `targetThreadId` equal to its exact ID, views the returned automation,
-   verifies the same binding, and stores its ID, next tick, and
-   `operation_stop_at`. Callback handles events; this timer handles time. Never
-   create a heartbeat per block. Any ownership mismatch stops with no dispatch;
-   unavailable automation marks timer `DEGRADED` and must be disclosed.
-7. If the durable install state is `PENDING`, this first real run consumes the
-   one-time supervision contract after smoke: apply approximately
-   `+15/+35/+60` checkpoints to that same durable timer, capped by stop time, or
-   mark `DEGRADED` and callback-only if automation is unavailable. This window
-   emits only the fixed three-line heartbeat receipt when healthy and never
-   touches TikTok.
-8. Only after the primary smoke passes and any requested heartbeat binding verifies may
-   the coordinator dispatch a full search-training
-   or mutation block. Keep both tasks persistent and unarchived; pin only the
-   coordinator.
+6. The first real bounded block runs immediately in this user turn and must be
+   accepted from proof; do not wait for the scheduler to establish baseline
+   capability.
+7. If the resolved duration exceeds one bounded block, the verified coordinator
+   now creates two long-running repeat-on heartbeats. The operation heartbeat
+   targets the exact executor ID and has finite `UNTIL`/`operation_stop_at`; the
+   lower-frequency supervisor heartbeat targets the exact coordinator ID and
+   uses the same stop guard. View both exact automation IDs and verify target,
+   repeat-on, next run, local/UTC schedule, and deadline. The executor never
+   creates, renews, updates, or deletes either heartbeat. `COUNT=1` plus worker
+   self-continuation is invalid.
+8. If durable install state is `PENDING`, the supervisor heartbeat consumes the
+   one-time first-hour checks near `+15/+35/+60`, capped by stop time. It reads
+   only executor turns/callbacks and planned/started/completed/blocked/missed slot
+   ledger state; it never touches TikTok.
+9. Only after primary smoke and both required bindings verify may scheduled
+   blocks begin. Keep both tasks persistent and unarchived; pin only the
+   coordinator. Missing repeat/wake/proof is
+   `SCHEDULER_CONTINUATION_FAILURE`, not successful persistence.
 
 If creation, registry, callback, or smoke fails, do not create another task or
 claim stable operation.

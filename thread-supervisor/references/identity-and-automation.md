@@ -26,9 +26,18 @@ execution_profile:
 authority_envelope_hash_or_version:
 ledger_path:
 operation_stop_at:
-automation_owner_thread_id:
+automation_manager_thread_id:
+automation_topology: coordinator_tick | coordinator_managed_worker_tick
 heartbeat_automation_id: NONE | exact id
 heartbeat_target_thread_id: NONE | exact id
+operation_heartbeat_automation_id: NONE | exact id
+operation_heartbeat_target_thread_id: NONE | exact executor id
+operation_heartbeat_repeat: NONE | ON | OFF
+operation_heartbeat_next_tick_at: NONE | timestamp
+supervisor_heartbeat_automation_id: NONE | exact id
+supervisor_heartbeat_target_thread_id: NONE | exact coordinator id
+supervisor_heartbeat_repeat: NONE | ON | OFF
+supervisor_heartbeat_next_tick_at: NONE | timestamp
 operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
 operation_timer_next_tick_at: NONE | timestamp
 operation_timer_next_purpose: NONE | short bounded purpose
@@ -54,8 +63,9 @@ The only authoritative identity sources are:
 - executor: the exact ID returned by `create_thread`, confirmed by
   `read_thread` and the callback transport's `source_thread_id`;
 - callback destination: the registered coordinator ID;
-- heartbeat ownership: `targetThreadId` returned by an `automation_update` view
-  of the exact automation ID.
+- automation management: the verified coordinator recorded as manager plus
+  `targetThreadId`, repeat state, next run, and cutoff returned by an
+  `automation_update` view of each exact automation ID.
 
 Never derive identity from a directory suffix, copied URL, remembered ID,
 focused Codex window, task ordering, matching title alone, another coordinator's
@@ -114,7 +124,7 @@ Missing final release proof -> RUN_FINALIZATION_BLOCKED
 `ROUND_COMPLETE` means one bounded round ended; it is never whole-run
 completion. A heartbeat tick is only a time signal. Declare `RUN_COMPLETED` only
 after a terminal executor callback proves release, final evidence is reconciled,
-and the coordinator has retired its owned timer.
+and the coordinator has retired its managed run heartbeat(s).
 
 Before every thread dispatch, callback reconciliation, heartbeat creation,
 heartbeat update, heartbeat execution, stop request, replacement, or archive:
@@ -127,20 +137,31 @@ heartbeat update, heartbeat execution, stop request, replacement, or archive:
 Do not repair an identity mismatch by guessing another target or by reusing a
 similar task title.
 
-## Automation owner invariant
+## Automation manager invariant
 
-A Thread-owned heartbeat must be created from and attached to its own verified
-coordinator Thread:
+Every run heartbeat is created, updated, paused, and deleted only by the exact
+verified coordinator:
 
 ```text
-automation_owner_thread_id == heartbeat_target_thread_id == coordinator_thread_id
+automation_manager_thread_id == coordinator_thread_id
 ```
 
-The executor never creates, updates, deletes, inherits, or owns a heartbeat. A
-bootstrap, installer, Skill-development task, sibling coordinator, or external
-supervisor must not create a heartbeat on behalf of the operating coordinator.
-Send an instruction to the registered coordinator and let that coordinator
-create its own heartbeat.
+The target depends on the calling domain's declared topology:
+
+```text
+coordinator_tick:
+  heartbeat_target_thread_id == coordinator_thread_id
+
+coordinator_managed_worker_tick:
+  operation_heartbeat_target_thread_id == executor_thread_id
+  supervisor_heartbeat_target_thread_id == coordinator_thread_id
+```
+
+In the second topology the operation heartbeat may wake the executor, but this
+does not give the executor ownership. The executor never creates, updates,
+renews, pauses, deletes, inherits, or retargets an automation. A bootstrap,
+installer, Skill-development task, sibling coordinator, or external supervisor
+must not manage the operating coordinator's automations.
 
 ## Heartbeat creation transaction
 
@@ -148,38 +169,43 @@ Only create a heartbeat when the user requested proactive timed continuation,
 callbacks are unreliable, or a domain Skill explicitly authorizes an unattended
 time-bounded run.
 
-A domain may define every multi-round duration as timer-authorized. In that
-case, create one durable coordinator-owned timer after pair readiness, reuse the
-same logical automation throughout the run, and never create per-round timers.
+A domain may define every multi-round duration as timer-authorized. It must also
+declare one supported topology. `coordinator_tick` uses one durable coordinator-
+target timer. `coordinator_managed_worker_tick` uses one repeat-on operation
+heartbeat targeting the executor and one lower-frequency repeat-on supervisor
+heartbeat targeting the coordinator. Neither topology may use per-round
+automations or `COUNT=1` followed by worker self-renewal.
 
 1. Require `identity_state=VERIFIED` and `pair_state=PAIR_READY` or
    `ROUND_COMPLETE`.
-2. Set `automation_owner_thread_id` to the exact coordinator ID.
+2. Set `automation_manager_thread_id` to the exact coordinator ID.
 3. Inspect existing automations. Reuse only one whose stored
-   `target_thread_id`, `run_id`, purpose/lane, and owner all match. Never update
+   `target_thread_id`, `run_id`, purpose/lane, and manager all match. Never update
    a similarly named automation attached to another Thread.
-4. Create the heartbeat with explicit `targetThreadId=coordinator_thread_id`
-   when the tool exposes that field. Include `run_id` and a short nonce in the
-   name and stable prompt.
-5. Record the returned automation ID, then immediately call automation view on
-   that exact ID.
-6. Require the readback to match kind, status, name, run ID, and
-   `targetThreadId`. Store the ID and target only after this proof.
+4. Create the required heartbeat(s) with explicit target(s) from the declared
+   topology. For worker-tick operation require `targetThreadId=executor_thread_id`;
+   for supervisor require `targetThreadId=coordinator_thread_id`. Include `run_id`
+   and a short role nonce in each name/prompt.
+5. Record each returned automation ID, then immediately call automation view on
+   each exact ID.
+6. Require every readback to match kind, status, name, run ID, target, repeat-on
+   state when required, next run, local/UTC schedule, and finite cutoff. Store
+   IDs/targets only after this proof.
 7. If readback is missing or mismatched, mark `AUTOMATION_TARGET_MISMATCH`,
    disable continuation, and do not dispatch external work from that heartbeat.
 
 If the current transaction itself created a misbound heartbeat and no firing is
 possible or in flight, delete that exact automation immediately and report the
 failed transaction. Never delete or retarget a pre-existing automation with a
-different owner; report it to the user or its verified owner.
+different manager; report it to the user or its verified manager.
 
 ## Heartbeat update and deletion
 
 Before update or deletion, view the exact automation ID and verify:
 
-- `targetThreadId == coordinator_thread_id`;
+- `targetThreadId` equals the registered target for that automation role;
 - stored `run_id` and purpose match the registry;
-- the current Thread is the verified coordinator/owner;
+- the current Thread is the verified coordinator/manager;
 - no replacement automation transaction is in flight.
 
 If any check fails, do not mutate the automation. Return
@@ -192,12 +218,13 @@ heartbeat and clears the automation fields from its registry.
 
 ## Heartbeat firing gate
 
-On every wakeup, the coordinator must verify its identity again before reading
-or dispatching:
+On every wakeup, the target Thread must verify its identity and automation role
+before reading or acting:
 
-1. The waking Thread ID equals `heartbeat_target_thread_id` and
-   `coordinator_thread_id`.
-2. The automation ID equals the registered heartbeat ID.
+1. For coordinator tick/supervisor wake, the waking Thread equals the registered
+   coordinator target. For operation wake, it equals the registered executor
+   target.
+2. The automation ID equals the registered ID for that role.
 3. The active executor ID, run ID, account/project, authority envelope, and stop
    time match the registry.
 4. The executor is idle and the prior block has a terminal callback.
@@ -213,14 +240,15 @@ The calling domain selects `heartbeat_receipt_policy`. Keep
 `silent_unless_event` as the generic default; use `always_three_lines` only when
 the domain or user explicitly requires a visible receipt for every valid tick.
 
-For `always_three_lines`, after each valid heartbeat:
+For `always_three_lines`, after each valid coordinator/supervisor heartbeat:
 
 1. Reconcile work completed since the previous tick and choose at most one next
    bounded action. If the executor is still running, the next action is to wait
    for its callback; never overlap it.
-2. Compute the next tick as the earlier of the useful cadence and
-   `operation_stop_at`. Update/reuse the exact owned timer, view that exact
-   automation, and require the readback schedule/target/ID to match.
+2. Compute the next relevant tick as the earlier of the useful cadence and
+   `operation_stop_at`. View all registered run heartbeat(s), and require their
+   readback schedule/target/ID/repeat/cutoff to match. Update only when the
+   calling domain's cadence or operation template actually changed.
 3. Only after successful readback, store `operation_timer_next_tick_at` and
    `operation_timer_next_purpose`, then emit exactly three concise lines in the
    coordinator Thread:
@@ -270,7 +298,7 @@ complete:
    `terminal_event=EXECUTOR_RELEASED`, `release_state=STOPPED_AND_RELEASED`, final
    cumulative evidence, and no unresolved external action.
 4. Set `run_terminal_state=EXECUTOR_RELEASED`, then verify and delete/pause only
-   the coordinator-owned timer. Mark `operation_timer_state=COMPLETE`.
+   every coordinator-managed run heartbeat. Mark `operation_timer_state=COMPLETE`.
 5. Reconcile the final ledger/counters and set `run_terminal_state=RUN_COMPLETED`.
    The coordinator then emits one user-facing completion summary in its own
    Thread. It never callbacks a bootstrap or Skill-development Thread.

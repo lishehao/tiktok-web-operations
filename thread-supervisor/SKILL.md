@@ -66,9 +66,9 @@ user-visible execution task over multiple bounded rounds:
 ```text
 starter task becomes coordinator
   -> creates one persistent executor with create_thread
-  -> executor completes one bounded round
-  -> executor callbacks coordinator
-  -> coordinator reconciles and dispatches at most one next round
+  -> first bounded round runs immediately and is proven
+  -> executor callbacks coordinator after every bounded round
+  -> continuation follows the calling domain's declared scheduler topology
 ```
 
 Keep each role single-purpose:
@@ -123,8 +123,9 @@ card plus a bounded input contract before dispatch.
   Heartbeat completion alone is never run completion.
 
 The calling domain Skill owns what a round means, which actions are authorized,
-and how evidence is validated. Thread Supervisor owns only registration,
-dispatch, callback, work state, heartbeat fallback, stop/release, and archival.
+how evidence is validated, and whether timed continuation uses coordinator ticks
+or coordinator-managed worker ticks. Thread Supervisor owns only registration,
+dispatch, callback, work state, heartbeat mechanics, stop/release, and archival.
 Before creating a persistent pair or any heartbeat, read
 `references/identity-and-automation.md` and enforce its immutable run registry.
 
@@ -162,7 +163,7 @@ After a callback:
 For a persistent coordinator/executor run, ordinary `completed` means only that
 one bounded round finished. At deadline, user stop, or objective completion,
 follow the whole-run transaction in `references/identity-and-automation.md`:
-stop dispatch, obtain `EXECUTOR_RELEASED`, retire the exact owned timer, reconcile
+stop dispatch, obtain `EXECUTOR_RELEASED`, retire the exact managed heartbeat(s), reconcile
 the final ledger, then mark `RUN_COMPLETED`. If release proof is missing, use
 `RUN_FINALIZATION_BLOCKED` and do not tell the user the run completed.
 
@@ -264,20 +265,25 @@ Use heartbeat automation when soft hooks are unavailable or unreliable, the
 user wants proactive reminders, or a domain Skill defines a multi-round timed
 operation that needs a durable clock.
 
-For a multi-round time-bounded operation, prefer one coordinator-owned durable
-timer heartbeat even when callbacks work. Callbacks mean “an event arrived”;
-the timer means “time arrived.” Keep one logical timer per run, reuse/update its
-exact automation ID, and store `operation_stop_at` plus the next tick in the
-registry. Never create one heartbeat per block.
+For a multi-round time-bounded operation, use the topology declared by the
+calling domain:
 
-Create, update, fire, pause, or delete a heartbeat only from its verified owner
-coordinator. Require
-`automation_owner_thread_id == targetThreadId == coordinator_thread_id`, pass
-the exact `targetThreadId` when supported, then view the returned automation ID
-and verify its binding. The executor and unrelated bootstrap, Skill-development,
-or sibling Threads never own or manage the coordinator's heartbeat. On any
-mismatch, follow `references/identity-and-automation.md` and take no external
-action.
+- `coordinator_tick`: one coordinator-target durable timer;
+- `coordinator_managed_worker_tick`: one repeat-on operation heartbeat targeting
+  the executor plus one lower-frequency repeat-on supervisor heartbeat targeting
+  the coordinator.
+
+Callbacks mean “an event arrived”; a heartbeat means “time arrived.” Keep one
+logical automation per declared role, never one per block. A recurring worker
+operation must have `repeat=on` plus finite `UNTIL` or equivalent
+`operation_stop_at`; `COUNT=1` followed by worker self-renewal is invalid.
+
+Create, update, pause, or delete every run heartbeat only from the verified
+coordinator/manager. The target may be the coordinator or exact executor as
+declared, but the executor never manages an automation. Immediately view every
+created automation and verify exact ID, target, repeat state, next run, local/UTC
+schedule, and cutoff. On mismatch follow
+`references/identity-and-automation.md` and take no external action.
 
 Heartbeat automations are stable mechanisms, not project status documents.
 Do not update a heartbeat just because a worker completed, a decision list changed,
@@ -288,11 +294,11 @@ Update an existing heartbeat only when one of these changes:
 
 - active watchlist membership
 - reminder cadence
-- ownership boundary
+- management or target boundary
 - notification rules
-- target coordinator thread
+- target Thread or bounded operation template
 
-On heartbeat:
+On a coordinator/supervisor heartbeat:
 
 - read only active target threads, usually latest 1-3 turns
 - notify only for completion, block, validation pass/fail, user decision, key risk, or major scope change
@@ -305,7 +311,7 @@ On heartbeat:
 
 A calling domain may set `heartbeat_receipt_policy=always_three_lines`. In that
 case, do not stay silent on healthy ticks. First update/reuse and read back the
-exact owned timer, then report exactly:
+exact managed run heartbeat(s), then report exactly:
 
 ```text
 本轮完成：<one sentence>
@@ -317,22 +323,24 @@ If no next tick exists, say why in the second line. Never announce an inferred
 schedule before automation readback. Keep generic reminder heartbeats on the
 default `silent_unless_event` policy unless the user/domain explicitly opts in.
 
-For a durable operation timer, each tick must additionally:
+For durable timed operation:
 
-- verify owner, target, run ID, automation ID, current time, and stop time;
-- if the deadline is reached, dispatch no new work and perform the domain's
-  stop/release sequence;
-- if a callback was missed, reconcile it before considering more work;
-- if the executor is running, do not interrupt or overlap it;
-- if the executor is idle, no decision is pending, standing authorization still
-  applies, and time remains, dispatch at most one next bounded block;
-- schedule the next low-frequency tick at the earlier of the next watch time or
-  `operation_stop_at`, using the same logical timer;
-- delete the timer when the run ends or the user stops.
+- verify manager, target, role, run ID, automation ID, repeat state, current
+  time, next run, and stop time;
+- the executor-target operation wake executes at most one deterministic bounded
+  slot, writes `planned|started|completed|blocked|missed`, callbacks, releases the
+  external resource, and idles; it never schedules the next slot;
+- the coordinator-target supervisor wake reads the executor's new turn,
+  callback, proof, and slot ledger; it never operates the external system;
+- if a prior slot is still running/uncertain, do not overlap it; record the new
+  due slot as missed or blocked according to domain rules;
+- missing repeat state, missing wake/new turn, missing proof, or broken next run
+  is `SCHEDULER_CONTINUATION_FAILURE` and must be surfaced by the coordinator;
+- user mission changes update the same operation heartbeat; stop/completion
+  retires all exact run heartbeats only after terminal executor release proof.
 
-Reaching the final timer tick starts the stop/release transaction; it does not
-complete it. The timer is retired only after terminal executor release proof is
-accepted, except when retaining it would itself violate a verified safety rule.
+Reaching the final scheduled tick starts the stop/release transaction; it does
+not complete it.
 
 ### One-time first-run supervision window
 
@@ -352,8 +360,9 @@ is not a recurring default:
 - stay silent when healthy; centralize any block, validation failure, decision,
   or key risk in the coordinator;
 - persist the supervision overlay as `CONSUMED` at its final checkpoint, early
-  user stop, or run end. When it shares the durable run timer, keep that timer
-  through terminal executor release and retire it only in whole-run
+  user stop, or run end. When a domain uses a dedicated supervisor heartbeat,
+  reuse that heartbeat for this overlay and keep all run heartbeats through
+  terminal executor release; retire them only in whole-run
   finalization; never recreate the first-run overlay on later missions.
 
 If automation support is unavailable, mark the one-time window `DEGRADED`, keep

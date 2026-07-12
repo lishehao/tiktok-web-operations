@@ -106,7 +106,8 @@ uncertain submission, or another non-inferable safety decision.
    the same turn and prove Chrome
    control, exact TikTok login, absence of blocking warnings, required thread
    tools, starter-task self-registration, exact `gpt-5.6-luna/high` executor
-   creation support, no conflicting same-account mutation executor, local time,
+   creation support, dedicated-tab isolation, exact-target mutation-conflict
+   detection, local time,
    and a writable ledger. Keep TikTok read-only, finalize only the bootstrap tab,
    return the guided direction/duration prompt, and wait one user turn.
 2. **Resolve and operate:** after the healthy user replies, resolve the requested
@@ -135,15 +136,15 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 ## Execution Thread Loop
 
 1. Read the coordinator Thread ID and operating envelope: account, objective, audience, exclusions, authorizations, stop conditions, ledger path, and result schema.
-2. Confirm this exact Thread is the registered TikTok executor and sole same-account mutation writer. Create or recover only its own dedicated Chrome tab, then verify TikTok account, time context, visible warnings, and capabilities.
+2. Confirm this exact Thread is this run's registered TikTok executor. Create or recover only its own dedicated Chrome tab, then verify TikTok account, time context, visible warnings, capabilities, and any exact target/action submission collision. Other same-account tasks are allowed.
 3. Read account health, current page state, recent relevant history, and ledger tail.
 4. For recommendation work, run the search-training block in `references/persistent-feed-operations.md`; label `core`, `adjacent`, `irrelevant`, and `harmful_to_direction`. Search cards only assess query quality. Count training only after opening a strong-core result from search/bridge, verifying direct post identity/playback, and watching through its premise/payoff.
    Treat For You as a separate held-out validation block, normally 5–10 continuous items after two training blocks or 20–30 qualified search views. Preserve its native-feed invariants, but a lane-local transition failure must not erase completed search training or stop a healthy search-led run.
 5. Run Check A before drafting and Check B on the exact action. Never mechanically reuse a comment, caption, hook, or asset.
 6. Before any mutation, require exact action-time confirmation or a matching active standing action envelope.
 7. Execute one state-changing action at a time. Gate every action type independently and verify persisted state.
-8. Update the sole-writer ledger.
-9. At block completion or a meaningful event, call `send_message_to_thread` to the registered coordinator ID with `model=gpt-5.6-luna`, `thinking=high`, and the structured result. Then become idle until the next message.
+8. Update this run's sole-writer ledger, including slot state and concurrent-account attribution fields.
+9. At block completion or a meaningful event, call `send_message_to_thread` to the registered coordinator ID with `model=gpt-5.6-luna`, `thinking=high`, and the structured result. Then become idle until a direct message or the next verified operation-heartbeat wake; never schedule that wake itself.
 
 ## Control Rules
 
@@ -156,7 +157,7 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
 - Pin only `TikTok 主控台`. Keep the registered `TikTok 执行台` unpinned and
   unarchived, including while idle between blocks.
 - Do not use Goal Mode for persistence. Neither operating Thread may call `create_goal`, `update_goal`, `spawn_agent`, or create replacement workers.
-- Before every executor creation or replacement, inspect active TikTok Threads. Block same-account mutation only when another mutation executor is active/uncertain or a submission may be in flight. An unrelated task using Chrome or another TikTok tab is not a global blocker and must not be interrupted or archived. If it browses the same account concurrently, record recommendation-attribution contamination; do not attribute feed changes to one task. Archiving alone is not release proof for an incumbent mutation executor.
+- Before executor creation or any mutation, inspect active TikTok Threads only for tab ownership, concurrent-account attribution, and exact target/action submission conflicts. Another task using Chrome, TikTok, or the same account is never by itself a blocker and must not be interrupted or archived. Create this run's own tab and continue. Record `concurrent_same_account_activity=true` plus `recommendation_attribution_contaminated=true`, and make no causal feed claims. Pause only the exact target/action whose same-type submission is concurrently in flight or uncertain; other browsing and different-target authorized actions continue.
 - Use only registered cross-thread IDs. The executor reports solely to this
   starter task after it becomes `TikTok 主控台`; never callback to a
   Skill-development task or any other bootstrap task.
@@ -173,31 +174,28 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   instruction after a verified external-state change.
 - Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
 - Include `run_id`, coordinator/executor IDs, host/project identity, automation
-  owner, heartbeat ID/target, authority version, ledger, stop time, exact titles,
+  manager, both heartbeat IDs/targets/repeat states, slot state, authority version, ledger, stop time, exact titles,
   and pin policy in the immutable run registry. Re-read it before every dispatch,
   callback, heartbeat, stop, replacement, or archive. Titles and pin state remain
   presentation fields; IDs remain authoritative identity.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
-- Prefer callback-driven sequencing. Do not poll a running Thread or interrupt it with unrelated work. The coordinator sends the next block only after completion, block, validation failure, decision request, or key risk.
-- Run exactly one bounded block per executor turn. For an unattended duration,
-  an optional coordinator-only heartbeat may schedule the next block after a
-  completed callback or enforce `operation_stop_at`. It must be created from
-  the verified coordinator with explicit `targetThreadId` equal to the
-  coordinator ID, then viewed and stored only after exact binding proof. The
-  executor and every bootstrap, Skill-development, sibling, or historical task
-  never own or manage it.
-- For every timed operation expected to exceed one bounded block, make one
-  verified coordinator-owned heartbeat the durable run timer. Callback drives
-  event-time decisions; heartbeat drives low-frequency status checks, missed-
-  callback recovery, next due time, and `operation_stop_at`. Store and reuse one
-  logical automation ID for the run, never one per block. On a tick, do not
-  touch Chrome or overlap a running executor; dispatch at most one block only
-  when the executor is idle, no decision is pending, authorization remains, and
-  time remains. At the deadline, start the terminal transaction; do not treat a
-  heartbeat tick as completion. Delete the timer only after the executor returns
-  verified final release evidence and the coordinator finalizes the run.
-- Set `heartbeat_receipt_policy=always_three_lines`. After timer creation and
-  every valid tick, first update/reuse and read back the exact owned timer, then
+- Run the first real bounded block immediately in the current user turn and
+  accept it only from real proof. For a multi-block timed run, the coordinator
+  then creates two long-running repeat-on Heartbeats: operation targets the exact
+  executor; lower-frequency supervisor targets the exact coordinator. Both have
+  finite `UNTIL`/`operation_stop_at` protection and verified next-run local/UTC
+  readback. Never implement continuation as `COUNT=1` plus worker self-renewal.
+- Run exactly one bounded block per executor wake/turn. The executor records
+  `planned|started|completed|blocked|missed`, releases Chrome, callbacks, and
+  idles. It never creates, updates, renews, pauses, or deletes an automation.
+  The coordinator updates the same operation heartbeat when the user changes the
+  mission and retires both exact Heartbeats after final release proof.
+- The supervisor heartbeat is read-only. It verifies real executor wake/new
+  turn/proof and the slot ledger. A missing repeat state, wake, callback, proof,
+  or next run is `SCHEDULER_CONTINUATION_FAILURE`; it reports to `TikTok 主控台`
+  and never touches Chrome or performs mutation.
+- Set `heartbeat_receipt_policy=always_three_lines`. After both Heartbeats are created and
+  every valid supervisor tick, first view/read back the exact registered automations, then
   tell the user in exactly three lines what finished, the verified next local
   heartbeat time, and one next bounded plan. Never expose an inferred schedule.
 - On a true first install, persist
@@ -208,14 +206,15 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   capped by `operation_stop_at`. Each checkpoint reads only the registered
   executor's status/callback/ledger, emits only the fixed three-line receipt when
   healthy, and centralizes risk in `TikTok 主控台`. Persist `CONSUMED` at one hour, early stop, or run end,
-  but retain the shared durable timer until terminal executor release is
+  but retain both durable Heartbeats until terminal executor release is
   verified. Never recreate the overlay after an upgrade, restart, or later
   operation. If automation is unavailable, mark `DEGRADED`, disclose once, use
   callbacks only, and still consume it.
-- On heartbeat wakeup require
-  `waking_thread_id == targetThreadId == coordinator_thread_id` and the exact
-  registered automation ID. A mismatch returns
-  `MISBOUND_HEARTBEAT_NO_ACTION`; it must not inspect TikTok or dispatch work.
+- On heartbeat wakeup require exact automation/run/role binding. Operation wake:
+  `waking_thread_id == targetThreadId == executor_thread_id`. Supervisor wake:
+  `waking_thread_id == targetThreadId == coordinator_thread_id`. A mismatch
+  returns `MISBOUND_HEARTBEAT_NO_ACTION`; it must not inspect TikTok or dispatch
+  work.
 - A current `blocked` or `key_risk` callback opens the recovery circuit in `stability-and-circuit-breakers.md`. Do not self-declare a fresh audit, rebuild a worker, or hop across transition methods. After the bounded recovery budget, wait for the recorded user decision when one is truly required or for the exact verified external-state change; the latter automatically resumes the still-authorized latest instruction. Historical ended events never keep this circuit open.
 - Scope circuit breakers by lane. A For You next/down failure with healthy
   account, dedicated-tab control, and search-origin playback marks the held-out
