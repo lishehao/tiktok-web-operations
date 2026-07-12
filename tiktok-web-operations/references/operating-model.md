@@ -4,8 +4,9 @@ Use two user-visible persistent Codex tasks for one run:
 
 ```text
 TikTok 启动台 --one-way assignment--> TikTok 执行台
-TikTok 启动台 --after acceptance--> idle
+TikTok 启动台 --after acceptance--> reusable stateless idle
 TikTok 执行台 --self Heartbeat--> same TikTok 执行台
+same TikTok 启动台 --later new command--> another fresh TikTok 执行台
 ```
 
 There is no long-term coordinator, callback, centralized scheduler, supervisor
@@ -67,6 +68,12 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
    solely to confirm `ASSIGNMENT_ACCEPTED`. This is handoff validation, not
    monitoring. It releases its bootstrap tab, records `EXECUTOR_ASSIGNED`, and
    becomes idle. It neither waits for smoke proof nor reads the task again.
+
+At reusable idle, a later user command starts another independent pass through
+steps 1–8 with a new `run_id` and another fresh executor. The launcher carries
+forward only installed dependency configuration and current preflight ability;
+it carries no old assignment, result, mission, registry, ledger, timer, tab,
+risk, or progress. It never compares or summarizes runs.
 
 If `create_thread` fails, or its result is uncertain and no exact new returned ID
 is available, record `FRESH_TASK_CREATION_FAILED` or
@@ -148,4 +155,6 @@ On user stop, cutoff, or objective completion:
 5. retire the exact self Heartbeat;
 6. write `RUN_RELEASED` and a compact result in the executor task.
 
-The launcher is not contacted, polled, unarchived, or repurposed.
+The executor never contacts the launcher, and no system polls, unarchives, or
+repurposes it. It remains available only for the user to request another fresh
+one-way dispatch.

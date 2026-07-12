@@ -1,7 +1,9 @@
-# Startup Health Check And One-Time Dispatch
+# Startup Health Check And Reusable Fresh Dispatch
 
 Use this reference for install, upgrade, or first mission launch. The launcher
 performs preflight and one-way assignment; it never becomes a coordinator.
+After initial setup, the same launcher remains a reusable stateless dispatch
+entry. Later commands use quick current health checks, not historical run state.
 
 ## Preflight record
 
@@ -76,6 +78,12 @@ Follow `operating-model.md`:
 4. require `ASSIGNMENT_ACCEPTED` before external work;
 5. release launcher Chrome and record `EXECUTOR_ASSIGNED`;
 6. launcher becomes `L2_IDLE` and performs no later supervision/callback work.
+
+On every later new operating instruction sent to the same launcher, repeat only
+the current dependency/account health checks and the fresh create/assignment
+steps with a new run ID. Do not repeat installation unless version management
+requires it. After acceptance return to `L2_IDLE` again. This is a new dispatch,
+not continuation or aggregation of an old run.
 
 The launcher must not list/search/read historical tasks, choose a same-title
 task, reuse/unarchive/revive/message/archive/replace an old executor, or inherit

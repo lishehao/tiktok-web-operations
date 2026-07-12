@@ -10,7 +10,8 @@ Mutable state associated with `executor_assignment/v1`:
 
 ```text
 launcher_title: TikTok 启动台 | DEGRADED_RENAME_UNAVAILABLE
-launcher_state: PREFLIGHT | ASSIGNING | IDLE
+launcher_state: PREFLIGHT | ASSIGNING | REUSABLE_IDLE
+launcher_dispatch_sequence: monotonically increasing local count
 dispatch_policy: FRESH_ONLY
 fresh_create_attempts: 0 | 1
 executor_thread_id:
@@ -33,8 +34,13 @@ resume_cursor:
 run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 ```
 
-The launcher records only immutable handoff provenance and becomes idle. It is
+The launcher records only the current dispatch's immutable handoff provenance
+until acceptance, then discards run working state and becomes `REUSABLE_IDLE`. It is
 not a manager, callback target, replacement owner, or automation owner.
+
+A later command creates a new run ID and executor. It never resolves, reads, or
+inherits an earlier executor. `launcher_dispatch_sequence` may distinguish
+launcher invocations but is not a cross-run registry, watchlist, or result log.
 
 ## Identity proof
 

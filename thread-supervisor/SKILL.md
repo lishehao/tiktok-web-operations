@@ -27,9 +27,10 @@ Use when setup should hand one mission directly to an independent persistent
 task:
 
 ```text
-launcher -> creates one executor -> sends one canonical assignment -> idle
+launcher -> creates one executor -> sends one canonical assignment -> reusable idle
 executor -> owns user conversation, external resource, ledger, recovery,
             self-target recurring Heartbeat, and finalization
+same launcher + later user command -> another fresh executor -> reusable idle
 ```
 
 For this topology:
@@ -44,6 +45,10 @@ For this topology:
   another task or browser owner as a blocker;
 - a launcher may read the exact newly-created task once only to verify assignment
   acceptance, then becomes idle.
+- idle launchers remain reusable stateless entrypoints. Each later explicit new
+  operating instruction repeats fresh creation with a new run ID. The launcher
+  never reads results, aggregates runs, or turns the new command into an old-run
+  continuation.
 
 The calling domain may additionally require `fresh_only_dispatch=true`. TikTok
 does. In fresh-only dispatch, each setup/bootstrap/new run generates a new
@@ -88,6 +93,11 @@ creation.
    records `ASSIGNMENT_ACCEPTED` before external work.
 7. Launcher may read that exact task once to verify acceptance, releases its
    temporary resource, records handoff, and becomes idle.
+
+When the user later addresses the same idle launcher with another operating
+instruction, repeat steps 2–7 with a new run ID and new executor, then return to
+idle. Preserve only installed dependency configuration; inherit no historical
+mission/registry/ledger/Heartbeat/tab/result/risk state.
 
 For fresh-only dispatch, `create_thread` failure or an uncertain result without
 an exact returned ID is `FRESH_TASK_CREATION_FAILED|UNKNOWN`. Report it for this
@@ -151,6 +161,8 @@ automation, or pause because another task exists.
   historical executors; the executor may finalize only its own task resources.
 - A self-owned executor reports progress, hard blockers, and completion in its
   own task. The launcher has no pending-result reminders after handoff.
+- A launcher is not archived/retired by a successful dispatch. It remains idle
+  and user-reusable, but stateless with respect to every execution run.
 
 ## Tools
 

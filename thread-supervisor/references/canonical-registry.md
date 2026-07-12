@@ -45,6 +45,11 @@ single create call. No historical registry/mission/authority/ledger/timer/tab or
 same-title task is an input. If no exact new ID was returned, no assignment
 object may be created and no historical ID may be substituted.
 
+The same launcher may perform multiple independent fresh-only dispatches across
+user turns. Each dispatch has a distinct run ID, assignment ID, executor ID, and
+canonical object set. No field points back to a prior run, and no worker return
+or result becomes launcher input.
+
 Direction, authority, and mission are independently versioned. The executor is
 their sole writer after acceptance, applying new user instructions at safe
 boundaries. Mutable progress, timer ID, next wake, resume cursor, lane state,

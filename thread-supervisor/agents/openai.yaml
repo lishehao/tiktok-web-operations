@@ -1,4 +1,4 @@
 interface:
   display_name: "Thread Supervisor"
   short_description: "Assign and schedule persistent tasks safely"
-  default_prompt: "Use $thread-supervisor to select the calling domain's explicit topology, verify exact task IDs, and enforce either coordinator-worker ownership or fresh-only one-way launcher-to-self-owned-executor assignment with exact self-Heartbeat binding and no historical-task reuse."
+  default_prompt: "Use $thread-supervisor to select the calling domain's topology and enforce either coordinator-worker ownership or a reusable stateless launcher whose every command makes a fresh-only one-way executor assignment with no historical-task reuse or worker return."

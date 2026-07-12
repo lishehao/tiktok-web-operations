@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.12.14`
+Protocol version: `2026.07.12.15`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -49,7 +49,8 @@ because an update exists.
 ```text
 TikTok 启动台
   install/upgrade -> read-only preflight -> resolve initial mission
-  -> fresh-create/assign one new TikTok 执行台 -> verify acceptance -> idle
+  -> fresh-create/assign one new TikTok 执行台 -> verify acceptance
+  -> reusable stateless idle -> later command creates another fresh executor
 
 TikTok 执行台
   read-only smoke -> create self-target recurring Heartbeat
@@ -70,6 +71,12 @@ unarchives/revives/messages/archives/replaces a historical executor, including
 same-title, archived, completed, or live tasks; those remain untouched history.
 If fresh creation fails or its result is uncertain, this launch reports the
 fresh-task creation failure and stops without retry, replacement, or fallback.
+
+The same `TikTok 启动台` may be used repeatedly. Every later operating command
+starts another independent fresh-only dispatch and then returns the launcher to
+idle. The launcher retains installation capability but no old executor result,
+mission, registry, ledger, Heartbeat, tab, risk, or progress. Workers never
+callback, return, or message the launcher.
 
 The launcher uses `gpt-5.6-luna`/high for the executor exactly as required by the
 TikTok Skill. It never substitutes a subagent or Goal Mode.
@@ -94,7 +101,10 @@ The primary training path is directed search, not Feed browsing:
 
 1. Three distinct approved search clusters.
 2. Five result cards assessed per cluster.
-3. Usually 9–15 qualified strong-core search-origin views per logical unit.
+3. Each operating round targets 35 qualified views, with an allowed 25–45
+   range: normally 25–35 search-origin views plus 5–10 For You validation views.
+   For You failure may be replaced by search views. Duplicates, drift, failed
+   loads, and thumbnails do not count.
 4. Contextual Favorite/Repost/Comment actions only through independently
    verified persistence lanes; comments never exceed 30 words.
 5. After two units or roughly 20–30 qualified views, 5–10 continuous For You
@@ -130,7 +140,10 @@ scenario validators. Required scenarios include:
 - archived and live old runs ignored and untouched;
 - a fresh create is required for every new launch;
 - create failure produces no reuse, retry, or replacement;
-- launcher one-time dispatch then idle;
+- each launcher command performs one fresh dispatch then returns idle;
+- same launcher second command creates another fresh executor;
+- launcher remains reusable stateless idle after every dispatch;
+- no worker-to-launcher return/message/result path;
 - executor self-owned recurring Heartbeat;
 - no callback to launcher;
 - no coordinator/supervisor Heartbeat;

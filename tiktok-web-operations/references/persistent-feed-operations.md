@@ -72,6 +72,21 @@ stable post URL/creator identity, playback or visible watch progression, and
 premise/payoff understanding. Directly opening an already-known URL does not
 replace the search-origin proof.
 
+## Operating round and search-training units
+
+An operating round targets 35 qualified watched videos with an allowed range of
+25–45. Normally use 25–35 qualified search-origin views plus 5–10 sequential For
+You validation views. If the Feed lane is unavailable, use search-origin views
+for the whole round. Thumbnails, duplicates, clear drift, failed loads, and
+unverified playback do not count.
+
+After 25 qualified views the executor may end at the next natural boundary when
+inventory quality, runtime yield, or cutoff makes that sensible. At 45 it must
+checkpoint before more browsing. A round may contain multiple training units;
+unit completion never triggers a launcher message, task switch, or wait. After
+checkpoint the executor directly starts the next round when safe and before
+cutoff; Heartbeat is only recovery/resume.
+
 ## Default search-training unit
 
 Use one logical training unit for a new, sparse, or visibly off-direction account.

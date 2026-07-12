@@ -11,7 +11,8 @@ description: >-
 
 Operate TikTok from the user's existing logged-in Chrome with durable evidence.
 For persistent operation use the `launcher_self_owned_executor` topology from
-`$thread-supervisor`: one temporary launcher and one independent execution task.
+`$thread-supervisor`: one reusable stateless launcher and one newly created,
+independent execution task per operating instruction.
 
 ## Operating objectives
 
@@ -45,6 +46,12 @@ The launcher never becomes `TikTok 主控台`, never creates or owns a Heartbeat
 never supervises the execution task, never receives callbacks, and never acts as
 a later risk or decision surface. A rename-tool failure is
 `DEGRADED_RENAME_UNAVAILABLE`; it does not block setup.
+
+Idle is reusable, not retired. Whenever the user later sends another new
+operating instruction in this same `TikTok 启动台`, run a quick current health
+check, resolve only that instruction, generate a new `run_id`, fresh-create one
+new executor, send the one-way assignment, and return to idle. Keep no watchlist
+or cross-run result state and never aggregate previous executor output.
 
 Every setup/bootstrap/new operating start is `fresh_only_dispatch=true`. The
 launcher calls `create_thread` once and accepts only that call's newly returned
@@ -105,6 +112,18 @@ historical warnings, old mission fields, and recovery suggestions. Historical
 ended failures remain ledger evidence only.
 
 ## Search-led operating loop
+
+One executor operating round targets 35 qualified watched videos with an allowed
+range of 25–45. This is a work-size boundary, not an exact quota:
+
+- normally 25–35 strong-core search-origin views plus 5–10 sequential For You
+  validation views;
+- if For You is unavailable, search-origin views may fill the whole round;
+- thumbnails, duplicates, clear drift, and failed loads do not count;
+- after 25 qualified views, finish at the next natural boundary when quality or
+  runtime conditions justify it; never exceed 45 before a durable checkpoint;
+- a normal 35-view round may contain multiple search units and never returns to
+  the launcher between units or rounds.
 
 1. Search three distinct approved clusters.
 2. Assess the first five results per cluster and open every suitable strong-core

@@ -23,6 +23,12 @@ The first available presentation action is title `TikTok 启动台`. Healthy
 handoff does not rename or promote this task. It remains launcher and becomes
 idle. Rename failure is `DEGRADED_RENAME_UNAVAILABLE`, not a blocker.
 
+`L2_IDLE` is a reusable stateless entry state, not retirement. A later user
+operating instruction transitions the same launcher back to `L1_ASSIGN` after a
+quick current health check. It creates a new run/executor exactly as on the
+first dispatch, then returns to `L2_IDLE`. It keeps no executor watchlist,
+results, risk, mission, ledger, Heartbeat, or completion state between dispatches.
+
 Every launch generates a new `run_id` and requires one fresh `create_thread`
 result. Same-title, archived, completed, or live historical executors are all
 ignored and untouched. A failed/uncertain create is a terminal launch failure;
@@ -56,7 +62,7 @@ Every launcher or executor records exactly one applicable stage.
 |-|-|-|-|-|
 | `L0_BOOTSTRAP` | launcher | immediate title; bundle validation/install; read-only preflight | healthy dependencies/login/account and released bootstrap tab | `L1_ASSIGN` |
 | `L1_ASSIGN` | launcher | resolve defaults; fresh-create one new executor; send canonical assignment | this create call's exact executor ID, new run ID, assignment hash, `ASSIGNMENT_ACCEPTED`; launcher idle | launcher `L2_IDLE`, executor `E0_SMOKE` |
-| `L2_IDLE` | launcher | no monitoring or operating work | none; new work requires a new explicit setup/mission invocation | terminal idle |
+| `L2_IDLE` | launcher | reusable stateless wait; no monitoring or operating work | a new explicit operating instruction plus quick health check | `L1_ASSIGN` for another fresh executor, otherwise remain idle |
 | `E0_SMOKE` | executor | one read-only search-origin smoke and ledger append | account/tab stability, parseable ledger, zero mutation | `E1_RUN` |
 | `E1_RUN` | executor | continuous search-led training, held-out validation, authorized lanes, self-heartbeat | durable checkpoints until stop/cutoff | remain or `E2_HARD_REPAIR`/`E3_FINALIZE` |
 | `E2_HARD_REPAIR` | executor + user | ask directly only for a human-only current blocker | verified clearance | `E1_RUN` or `E3_FINALIZE` |
@@ -83,6 +89,8 @@ without waiting for a timer.
 - Setup's first presentation action attempted `TikTok 启动台`.
 - Launcher made exactly one fresh create attempt, used only its new returned ID,
   and became idle after acceptance; create failure produced no reuse/replacement.
+- A second launcher instruction creates a second fresh executor with another
+  run ID; the launcher returns to reusable idle without reading either result.
 - Old matching-title, archived, completed, and live executors were ignored and
   left unchanged.
 - No `TikTok 主控台`, callback target, coordinator timer, or supervisor timer.

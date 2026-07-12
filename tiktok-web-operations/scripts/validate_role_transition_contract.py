@@ -19,6 +19,7 @@ def transition(event: str):
         "executor": {"role":"TIKTOK_EXECUTOR","title":"TikTok 执行台","action":"SELF_OWNED_RUN"},
         "rename_unavailable": {"role":"TIKTOK_LAUNCHER","title":"DEGRADED_RENAME_UNAVAILABLE","action":"CONTINUE"},
         "create_failed": {"role":"TIKTOK_LAUNCHER","title":"TikTok 启动台","action":"REPORT_NO_REUSE"},
+        "second_command": {"role":"TIKTOK_LAUNCHER","title":"TikTok 启动台","action":"NEW_RUN_NEW_EXECUTOR_THEN_REUSABLE_IDLE"},
     }[event]
 
 def main():
@@ -27,13 +28,15 @@ def main():
     required = ("TikTok 启动台", "TikTok 执行台", "first available presentation action",
                 "launcher_self_owned_executor", "ASSIGNMENT_ACCEPTED", "become idle",
                 "fresh_only_dispatch", "exactly one fresh create attempt",
+                "reusable stateless", "later user", "another fresh executor",
                 "never becomes `TikTok 主控台`", "No callback", "No launcher/coordinator/supervisor Heartbeat")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
-    scenarios = {e: transition(e) for e in ("setup","hard_repair","accepted","executor","rename_unavailable","create_failed")}
+    scenarios = {e: transition(e) for e in ("setup","hard_repair","accepted","executor","rename_unavailable","create_failed","second_command")}
     assert scenarios["accepted"]["action"] == "IDLE"
     assert scenarios["executor"]["action"] == "SELF_OWNED_RUN"
     assert scenarios["create_failed"]["action"] == "REPORT_NO_REUSE"
+    assert scenarios["second_command"]["action"] == "NEW_RUN_NEW_EXECUTOR_THEN_REUSABLE_IDLE"
     assert all(s["title"] != "TikTok 主控台" for s in scenarios.values())
     print(json.dumps({"status":"PASS","scenarios":scenarios}, ensure_ascii=False, sort_keys=True))
 
