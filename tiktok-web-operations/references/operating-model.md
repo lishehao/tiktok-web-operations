@@ -17,7 +17,10 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
 
 1. Launcher verifies its title, bundle, tools, Chrome control, TikTok account,
    writable storage, local time, and ability to create the required task/profile.
-2. Resolve `direction_profile`, `authority_envelope`, `mission`, ledger path,
+2. Require the Bootstrap profile-lock proof: `profile_status=CONFIRMED`, positive
+   `direction_profile_version`, exact confirmation evidence, and zero prior
+   executor/search/view/mutation for this run. Only then resolve
+   `direction_profile`, `authority_envelope`, `mission`, ledger path,
    `operation_stop_at`, and a brand-new unique `run_id`. Do not read or inherit
    any old mission, registry, Heartbeat, tab, ledger, task ID, or owner state.
 3. Set `fresh_only_dispatch=true` and call `create_thread` exactly once to create
@@ -70,7 +73,8 @@ Heartbeat, or risk-return path. Both tasks use `gpt-5.6-luna` with
    becomes idle. It neither waits for smoke proof nor reads the task again.
 
 At reusable idle, a later user command starts another independent pass through
-steps 1–8 with a new `run_id` and another fresh executor. The launcher carries
+the profile lock and then steps 1–8 with a new `run_id` and another fresh
+executor. The launcher carries
 forward only installed dependency configuration and current preflight ability;
 it carries no old assignment, result, mission, registry, ledger, timer, tab,
 risk, or progress. It never compares or summarizes runs.

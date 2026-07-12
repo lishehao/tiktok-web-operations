@@ -27,7 +27,7 @@ FILES = (
 
 def classify(event: str) -> dict[str, str | bool]:
     table = {
-        "missing_region_universal": ("DEFAULT_AND_START", "mission", False),
+        "unconfirmed_profile": ("SHOW_PROFILE_PROPOSAL_WAIT_CONFIRM", "profile_lock", True),
         "network_timeout": ("AUTO_RETRY_CONTINUE", "route", False),
         "chrome_disconnect": ("RECONNECT_SAME_CHROME", "chrome_activation", False),
         "empty_candidates": ("NO_ACTION_CHECKPOINT", "query", False),
@@ -56,7 +56,7 @@ def main() -> None:
         "Hard blocker whitelist",
         "no_action_checkpoint",
         "global English with North American bias",
-        "Preferences such as region",
+        "Defaults fill missing proposal fields",
         "auto-recheck",
         "freeze exact target/action",
         "asks the user directly",
@@ -77,7 +77,7 @@ def main() -> None:
     assert not present, f"stale over-blocking rules remain: {present}"
 
     events = (
-        "missing_region_universal",
+        "unconfirmed_profile",
         "network_timeout",
         "chrome_disconnect",
         "empty_candidates",
@@ -95,7 +95,12 @@ def main() -> None:
     )
     scenarios = {event: classify(event) for event in events}
 
-    for event in events[:9]:
+    assert scenarios["unconfirmed_profile"] == {
+        "action": "SHOW_PROFILE_PROPOSAL_WAIT_CONFIRM",
+        "scope": "profile_lock",
+        "decision_required": True,
+    }
+    for event in events[1:9]:
         assert scenarios[event]["decision_required"] is False
         assert scenarios[event]["scope"] != "whole_mission"
     for event in events[9:13]:

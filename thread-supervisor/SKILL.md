@@ -81,21 +81,24 @@ creation.
 
 1. Apply the domain's launcher title as the first available presentation action.
    Rename failure is presentation degradation, not a reason to duplicate tasks.
-2. Run the domain preflight and resolve one mission.
-3. Generate a new run ID and call `create_thread` exactly once for one fresh
+2. Run the domain preflight and every domain-declared pre-dispatch gate. A gate
+   such as account-image confirmation must provide its explicit exit proof; the
+   supervisor never converts a draft/proposal into confirmation.
+3. Resolve one mission from the accepted gate output.
+4. Generate a new run ID and call `create_thread` exactly once for one fresh
    executor with an inert bootstrap object and
    `external_work=forbidden_until_assignment_acceptance`.
-4. Store the exact returned ID and set the domain title.
-5. Build one canonical assignment containing exact executor ID, run ID,
+5. Store the exact returned ID and set the domain title.
+6. Build one canonical assignment containing exact executor ID, run ID,
    execution profile, domain refs, resource/ledger policy, and
    `launcher_contact_policy=NO_CALLBACK_NO_SUPERVISION`.
-6. Send the stored bytes once to the exact executor. The executor validates and
+7. Send the stored bytes once to the exact executor. The executor validates and
    records `ASSIGNMENT_ACCEPTED` before external work.
-7. Launcher may read that exact task once to verify acceptance, releases its
+8. Launcher may read that exact task once to verify acceptance, releases its
    temporary resource, records handoff, and becomes idle.
 
 When the user later addresses the same idle launcher with another operating
-instruction, repeat steps 2–7 with a new run ID and new executor, then return to
+instruction, repeat the domain gate and steps 2–8 with a new run ID and new executor, then return to
 idle. Preserve only installed dependency configuration; inherit no historical
 mission/registry/ledger/Heartbeat/tab/result/risk state.
 

@@ -12,6 +12,8 @@ Mutable state associated with `executor_assignment/v1`:
 launcher_title: TikTok 启动台 | DEGRADED_RENAME_UNAVAILABLE
 launcher_state: PREFLIGHT | ASSIGNING | REUSABLE_IDLE
 launcher_dispatch_sequence: monotonically increasing local count
+pre_dispatch_gate_state: NONE | DRAFT | PROPOSED | CONFIRMED
+pre_dispatch_gate_ref: NONE | exact canonical ref
 dispatch_policy: FRESH_ONLY
 fresh_create_attempts: 0 | 1
 executor_thread_id:
@@ -41,6 +43,11 @@ not a manager, callback target, replacement owner, or automation owner.
 A later command creates a new run ID and executor. It never resolves, reads, or
 inherits an earlier executor. `launcher_dispatch_sequence` may distinguish
 launcher invocations but is not a cross-run registry, watchlist, or result log.
+
+A calling domain may require `pre_dispatch_gate_state=CONFIRMED` before creation.
+Thread Supervisor validates the exact gate ref and exit proof; it never infers
+confirmation from defaults, a draft, a historical profile, or a bare continue
+without a visible proposal.
 
 ## Identity proof
 

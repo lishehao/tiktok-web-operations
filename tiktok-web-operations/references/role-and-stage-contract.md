@@ -9,11 +9,12 @@ This is the authority for TikTok task ownership and lifecycle. The topology is
 
 ```text
 objective: establish one healthy, assigned TikTok execution task, then idle.
-owns: bundle install/upgrade; read-only preflight; initial mission resolution;
+owns: bundle install/upgrade; read-only preflight; structured account-image
+proposal/confirmation; initial mission resolution;
 one executor creation; one canonical assignment; disposable bootstrap tab.
 reads: public bundle, installed manifests, current login/account, user input.
 writes: launcher handoff record and immutable assignment reference.
-outputs: EXECUTOR_ASSIGNED or one concrete bootstrap repair request.
+outputs: PROFILE_PROPOSED, EXECUTOR_ASSIGNED, or one concrete bootstrap repair request.
 never: become TikTok 主控台; operate a mission; own/create a Heartbeat; supervise;
 poll after handoff; receive callback; make later decisions; touch executor tabs;
 list/search/read/reuse/message/unarchive/revive/archive/replace historical executors.
@@ -33,6 +34,11 @@ Every launch generates a new `run_id` and requires one fresh `create_thread`
 result. Same-title, archived, completed, or live historical executors are all
 ignored and untouched. A failed/uncertain create is a terminal launch failure;
 it never selects an old owner or creates a replacement.
+
+Before every fresh create, the launcher owns one profile lock. It may preflight,
+ask one open question, and present one structured proposal, but it must not
+create an executor or operate TikTok until `profile_status=CONFIRMED`. The
+confirmed profile version is run-local and never inherited by the next dispatch.
 
 ### TIKTOK_EXECUTOR — `TikTok 执行台`
 
@@ -60,9 +66,10 @@ Every launcher or executor records exactly one applicable stage.
 
 | Stage | Owner | Work | Exit proof | Next |
 |-|-|-|-|-|
-| `L0_BOOTSTRAP` | launcher | immediate title; bundle validation/install; read-only preflight | healthy dependencies/login/account and released bootstrap tab | `L1_ASSIGN` |
-| `L1_ASSIGN` | launcher | resolve defaults; fresh-create one new executor; send canonical assignment | this create call's exact executor ID, new run ID, assignment hash, `ASSIGNMENT_ACCEPTED`; launcher idle | launcher `L2_IDLE`, executor `E0_SMOKE` |
-| `L2_IDLE` | launcher | reusable stateless wait; no monitoring or operating work | a new explicit operating instruction plus quick health check | `L1_ASSIGN` for another fresh executor, otherwise remain idle |
+| `L0_BOOTSTRAP` | launcher | immediate title; bundle validation/install; read-only preflight | healthy dependencies/login/account and released bootstrap tab | `L0_PROFILE_LOCK` |
+| `L0_PROFILE_LOCK` | launcher + user | at most one open question; structured profile proposal; final confirmation/corrections | `profile_status=CONFIRMED`, positive direction version, exact confirmation evidence; zero executor/search/view/mutation | `L1_ASSIGN` |
+| `L1_ASSIGN` | launcher | use confirmed direction; fresh-create one new executor; send canonical assignment | this create call's exact executor ID, new run ID, confirmed direction ref, assignment hash, `ASSIGNMENT_ACCEPTED`; launcher idle | launcher `L2_IDLE`, executor `E0_SMOKE` |
+| `L2_IDLE` | launcher | reusable stateless wait; no monitoring or operating work | a new explicit operating instruction plus quick health check | `L0_PROFILE_LOCK` for another fresh proposal, otherwise remain idle |
 | `E0_SMOKE` | executor | one read-only search-origin smoke and ledger append | account/tab stability, parseable ledger, zero mutation | `E1_RUN` |
 | `E1_RUN` | executor | continuous search-led training, held-out validation, authorized lanes, self-heartbeat | durable checkpoints until stop/cutoff | remain or `E2_HARD_REPAIR`/`E3_FINALIZE` |
 | `E2_HARD_REPAIR` | executor + user | ask directly only for a human-only current blocker | verified clearance | `E1_RUN` or `E3_FINALIZE` |
@@ -87,6 +94,8 @@ without waiting for a timer.
 ## Audit checklist
 
 - Setup's first presentation action attempted `TikTok 启动台`.
+- No executor/search/view/mutation existed before exact profile confirmation.
+- `继续` without a visible proposal produced a proposal, not a dispatch.
 - Launcher made exactly one fresh create attempt, used only its new returned ID,
   and became idle after acceptance; create failure produced no reuse/replacement.
 - A second launcher instruction creates a second fresh executor with another

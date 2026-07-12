@@ -39,6 +39,11 @@ The executor validates bytes/hash/its exact ID and records
 `ASSIGNMENT_ACCEPTED`. No callback target, coordinator identity, supervisor
 timer, or launcher-owned mutable state belongs in this schema.
 
+When a domain requires a profile lock, `direction_ref` may be created only from
+the exact canonical proposal whose state is `CONFIRMED`. Draft/proposed profile
+objects, defaults not shown to the user, or remembered prior-run profiles cannot
+enter an assignment.
+
 For `fresh_only_dispatch`, `run_id` is newly generated for every launch and
 `executor_thread_id` must equal the exact ID newly returned by that launch's
 single create call. No historical registry/mission/authority/ledger/timer/tab or

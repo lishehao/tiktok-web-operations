@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.12.18`
+Protocol version: `2026.07.12.19`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -48,7 +48,8 @@ because an update exists.
 
 ```text
 TikTok 启动台
-  install/upgrade -> read-only preflight -> resolve initial mission
+  install/upgrade -> read-only preflight -> propose structured account image
+  -> user confirms exact proposal
   -> fresh-create/assign one new TikTok 执行台 -> verify acceptance
   -> reusable stateless idle -> later command creates another fresh executor
 
@@ -83,6 +84,25 @@ TikTok Skill. It never substitutes a subagent or Goal Mode.
 
 ## Mission defaults
 
+Bootstrap uses a profile lock before every fresh dispatch. Preflight may finish,
+but the launcher must not create an executor, search, watch, or interact until
+`profile_status=confirmed`.
+
+Use at most two user-facing rounds:
+
+1. Ask what identity the account should represent, which audience it serves,
+   and what it will eventually publish. Skip this question when already clear.
+2. Present one structured proposal containing persona, target audience,
+   region/language, 3–5 pillars, exclusions, comment voice, future-post
+   alignment, duration/intensity, and interaction policy. The user confirms or
+   supplies final replacement values once; supplied corrections count as
+   confirmation unless the user explicitly asks to review another draft.
+
+A bare `继续` confirms only a proposal already displayed. Without a visible
+proposal, it asks the launcher to show the default proposal and does not start.
+Every later fresh run repeats this lock; the stateless launcher never inherits a
+prior account image.
+
 If the user has not supplied values:
 
 - direction: North American college/dorm life;
@@ -92,8 +112,9 @@ If the user has not supplied values:
   are four independent `best_effort_attempt` lanes with
   `parallel_engagement=true`;
 
-`继续` accepts defaults. Explicit direction, duration, intensity, and action
-instructions override the corresponding defaults without repeat confirmation.
+After a proposal is visible, `确认`, `继续`, `开始`, or an explicit “按此开始”
+confirms it. Explicit final corrections produce the confirmed revised version
+before dispatch.
 
 ## Operating method
 
@@ -142,6 +163,9 @@ From the repository root, run both Skill structural validators and all TikTok
 scenario validators. Required scenarios include:
 
 - setup immediate launcher rename;
+- profile proposal required before executor creation;
+- bare continue without a visible proposal cannot start;
+- confirmed profile version is the only assignment direction reference;
 - old matching title ignored and untouched;
 - archived and live old runs ignored and untouched;
 - a fresh create is required for every new launch;

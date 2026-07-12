@@ -38,7 +38,8 @@ record the exact reason.
 Its first available presentation action is renaming the current task
 `TikTok 启动台`. It has one objective: install/upgrade and validate the bundle,
 run read-only Chrome/TikTok preflight, resolve the initial mission using explicit
-values plus safe defaults, fresh-create exactly one new `TikTok 执行台`, send one canonical
+values plus safe defaults, obtain explicit confirmation of one structured
+account-image proposal, fresh-create exactly one new `TikTok 执行台`, send one canonical
 assignment, verify that the assignment was accepted, release its disposable tab,
 then become idle.
 
@@ -50,7 +51,8 @@ a later risk or decision surface. A rename-tool failure is
 Idle is reusable, not retired. Whenever the user later sends another new
 operating instruction in this same `TikTok 启动台`, run a quick current health
 check, resolve only that instruction, generate a new `run_id`, fresh-create one
-new executor, send the one-way assignment, and return to idle. Keep no watchlist
+new executor only after its profile proposal is confirmed, send the one-way
+assignment, and return to idle. Keep no watchlist
 or cross-run result state and never aggregate previous executor output.
 
 Every setup/bootstrap/new operating start is `fresh_only_dispatch=true`. The
@@ -83,10 +85,11 @@ Read `references/role-and-stage-contract.md` and
 | User request | Behavior |
 |-|-|
 | Installer/setup prompt | Rename to `TikTok 启动台`, automatically install/upgrade, validate, and run preflight in the same turn. |
-| Clear mission with a healthy installation | Reuse only dependency health, resolve safe defaults, and fresh-create/assign a new executor in the same turn. Never reuse an operating task. |
-| `继续` or `开始` without details | Default to North American college/dorm life, 3 hours, standard intensity. |
-| Direction only | Use that direction and default duration to 3 hours. |
-| Duration only | Use the packaged college/dorm direction and that duration. |
+| Clear mission with a healthy installation | Reuse only dependency health, produce a structured profile proposal, and wait for confirmation before fresh-create/assign. Never reuse an operating task. |
+| `继续` or `开始` after a visible profile proposal | Treat as confirmation of that exact proposal and proceed. |
+| `继续` or `开始` without a visible profile proposal | Produce the packaged default proposal; do not start until the user confirms it. |
+| Direction only | Complete a structured proposal from that direction and ask for one confirmation. |
+| Duration only | Produce the packaged default direction proposal with that duration and ask for one confirmation. |
 | Browse-only wording | Search/view only; do not infer mutation authority. |
 | Cultivation/growth wording | Enable post Like, Favorite, Repost, and Comment as four independent `best_effort_attempt` lanes with parallel engagement during viewing. |
 | `自动发短评论` | Within the accepted audience/language/voice envelope, comments are contextual, preferably 2–12 words, and never over 30 words. |
@@ -97,6 +100,38 @@ lifestyle topics such as pets, food, travel, or humor, default to `global
 English with North American bias` unless the user specifies otherwise.
 
 ## Mission contract
+
+### Bootstrap account-image lock
+
+Preflight may complete before direction is known, but no executor creation,
+TikTok search, video viewing, or interaction is allowed until
+`profile_status=confirmed`.
+
+Use at most two user-facing rounds:
+
+1. ask one open question: what identity should this account represent, for whom,
+   and what should it eventually publish? If the initial user message already
+   answers this, skip the question;
+2. present one inferred structured proposal and ask the user to confirm or name
+   final replacement values. A correction message that supplies those values
+   confirms the revised profile unless it explicitly asks to review another
+   draft. Do not interrogate every field separately.
+
+The proposal contains `persona_name`, `target_audience`, `region_language`,
+3–5 `content_pillars`, `excluded_topics`, `voice_and_comment_style`,
+`future_post_alignment`, duration/intensity, and interaction policy. Store
+`profile_status=draft|proposed|confirmed` plus
+`direction_profile_version`. Only the exact proposal the user confirmed becomes
+`direction_ref` and may enter `executor_assignment/v1`.
+
+A detailed initial user instruction is input, not implicit confirmation, unless
+the user explicitly says it is final or to start with that exact profile. A bare
+`继续` confirms only a proposal already shown. If no proposal has been shown,
+present the default proposal and wait once.
+
+Every later fresh dispatch through the reusable launcher repeats this profile
+lock for that new run. Stateless launchers never inherit a prior profile; the
+user must restate it or confirm the newly displayed proposal.
 
 Resolve and store:
 

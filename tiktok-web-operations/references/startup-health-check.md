@@ -27,6 +27,9 @@ dedicated_tab_creation: AVAILABLE | UNAVAILABLE
 local_time:
 ledger_path:
 dependency_status: READY | HARD_REPAIR_REQUIRED
+profile_status: DRAFT | PROPOSED | CONFIRMED
+direction_profile_version: NONE | positive integer
+profile_confirmation_evidence: NONE | exact user turn/ref
 ```
 
 ## Ordered checks
@@ -53,7 +56,35 @@ Another Chrome/TikTok owner is irrelevant to this run's preflight. The installer
 may inspect active managed runtimes only for safe bundle hot-reload fencing; it
 does not use that inspection as operational coordination.
 
-## Resolve initial mission
+## Bootstrap profile lock
+
+After healthy preflight, lock the account image before mission creation. No
+executor, TikTok search, watched video, or outward interaction may exist while
+`profile_status != CONFIRMED`.
+
+Use at most two user-facing rounds:
+
+1. If direction is missing, ask one open question covering account identity,
+   target audience, and intended future posts. If the user's initial message is
+   already specific, skip this question.
+2. Infer and display one structured proposal with:
+   `persona_name`, `target_audience`, `region_language`, 3–5
+   `content_pillars`, `excluded_topics`, `voice_and_comment_style`,
+   `future_post_alignment`, duration/intensity, and interaction policy. Ask for
+   confirmation or final replacement values. Supplied replacement values count
+   as confirmation unless the user explicitly requests another draft.
+
+Record `profile_status=PROPOSED` and the exact proposal hash before asking. On
+confirmation, persist `profile_status=CONFIRMED`, increment
+`direction_profile_version`, and store exact user evidence. Only then create the
+canonical `direction_ref` used by assignment.
+
+A detailed request is not automatically confirmation unless it explicitly says
+the profile is final or to start with that exact profile. A bare `继续`/`开始`
+confirms only a proposal already visible in this launcher. If none exists,
+display the default proposal and wait.
+
+## Resolve confirmed mission
 
 Apply explicit values first. Safe defaults:
 
@@ -64,21 +95,22 @@ Apply explicit values first. Safe defaults:
   `best_effort_attempt` lanes with `parallel_engagement=true`;
 - browse-only lanes: all mutations disabled.
 
-Ask only when a missing value changes authorization or an irreversible action.
-Preferences such as region, intensity, tone detail, and sub-pillar mix normally
-use reversible defaults and never block dispatch.
+Defaults fill missing proposal fields; they never bypass confirmation.
 
 ## Create and hand off
 
 Follow `operating-model.md`:
 
-1. generate a new `run_id`; make exactly one fresh `create_thread` attempt for a
+1. require `profile_status=CONFIRMED` and one exact confirmed
+   `direction_profile_version`; otherwise stop before creation;
+2. generate a new `run_id`; make exactly one fresh `create_thread` attempt for a
    new `TikTok 执行台` with Luna/High and inert bootstrap;
-2. store only that call's exact newly returned ID;
-3. send one canonical `executor_assignment/v1`;
-4. require `ASSIGNMENT_ACCEPTED` before external work;
-5. release launcher Chrome and record `EXECUTOR_ASSIGNED`;
-6. launcher becomes `L2_IDLE` and performs no later supervision/callback work.
+3. store only that call's exact newly returned ID;
+4. send one canonical `executor_assignment/v1` referencing the confirmed
+   `direction_ref`;
+5. require `ASSIGNMENT_ACCEPTED` before external work;
+6. release launcher Chrome and record `EXECUTOR_ASSIGNED`;
+7. launcher becomes `L2_IDLE` and performs no later supervision/callback work.
 
 On every later new operating instruction sent to the same launcher, repeat only
 the current dependency/account health checks and the fresh create/assignment
@@ -98,14 +130,15 @@ goes directly to `TikTok 执行台`.
 
 ## User-facing handoff
 
-When no mission direction/duration was supplied, the launcher may say:
+When no account image was supplied, the launcher asks:
 
 ```text
 状态健康。当前账号：@handle。
-你想把账号运营成什么方向、持续多久？这会影响搜索、观看和评论口吻；收藏、Repost、短评论是可观测活跃度信号，不保证 TikTok 内部权重或曝光。
-你也可以直接回复“继续”，我会按北美大学生 / dorm life、3 小时开始。
+你希望这个账号未来以什么身份、面向什么人群、发布什么内容？一句话描述即可，我会整理成完整画像给你确认。
 ```
 
-When the initial request already contains a mission, do not wait for this extra
-turn: use quick health reuse, resolve defaults, create/assign the executor, and
-handoff immediately.
+Then present one proposal and wait for `确认`, `继续`, `开始`, explicit final
+corrections, or “按此开始”. Never say operation started before that confirmation.
+When the initial request already contains a detailed profile, skip the open
+question but still display the structured proposal and obtain the one
+confirmation unless the user explicitly declared that exact profile final.
