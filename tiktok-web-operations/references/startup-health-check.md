@@ -21,7 +21,12 @@ tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_support: READY | UNAVAILABLE
 coordinator_self_registration: PROVABLE | UNAVAILABLE
-run_registry: WRITABLE | UNAVAILABLE
+canonical_object_store: WRITABLE | UNAVAILABLE
+bootstrap_ref: NONE | exact ref
+registry_ref: NONE | exact ref
+direction_ref: NONE | exact ref
+authority_ref: NONE | exact ref
+mission_ref: NONE | exact ref
 executor_owner_state: NONE | CANDIDATE_ONLY | LIVE | ARCHIVED_RETIRED | LIVENESS_UNVERIFIED_TRANSIENT | STALE_OWNER_TOMBSTONE | REPLACED
 executor_generation:
 orphan_automation_check: NOT_RUN | CLEAR | FAILED
@@ -85,9 +90,10 @@ Run checks in order:
 6. Prove the current starter task can self-rename and can later resolve its exact
    ID through unique-title `list_threads` plus `read_thread`. Phase 1 may use a
    temporary nonce/title and then restore a user-friendly bootstrap title.
-7. Prove a writable private run registry can store exact task identity, owner
-   liveness/generation/retirement/replacement state, automation management/
-   targets, authority, ledger, slot state, and stop fields.
+7. Prove a writable private canonical-object store can persist exact UTF-8 bytes
+   and SHA-256 references for bootstrap, identity registry, direction,
+   authority, and mission objects. Prove mutable owner/automation/slot state is
+   stored separately. Do not use natural-language summaries as canonical data.
 8. Prove executor creation and operational dispatch support
    `model=gpt-5.6-luna` with `thinking=high`. This TikTok profile is mandatory.
    Record Fast Mode only when independently visible; it is not a creation gate.
@@ -148,15 +154,19 @@ application advice, pure study motivation, and generic non-campus content.
 
 Follow `operating-model.md` exactly:
 
-1. Temporarily rename this task `TikTok 主控台注册 · <run_nonce>`, resolve and verify its
-   exact Thread ID, create the immutable run registry with automation manager
-   equal to that coordinator ID, then set the final title to `TikTok 主控台` and pin it.
-2. Create one executor with `gpt-5.6-luna/high`, record its returned ID, set its
-   final title to `TikTok 执行台`, keep it unpinned, and include the
-   coordinator ID and require it to wait for `SELF_REGISTRY`.
-3. Send the exact returned executor ID through `SELF_REGISTRY`, then require a
-   nonce-bound `THREAD_READY`/owner-liveness callback to the coordinator. A
-   title, summary, list/search result, or readable cached turn is not equivalent.
+1. Temporarily rename this task `TikTok 主控台注册 · <run_nonce>`, resolve and
+   verify its exact Thread ID, persist one canonical inert bootstrap envelope,
+   then set the final title to `TikTok 主控台` and pin it.
+2. Create one executor with `gpt-5.6-luna/high`. Its initial prompt embeds only
+   the stored bootstrap JSON once and requires it to wait for `SELF_REGISTRY`;
+   it must not contain a second prose copy of account/role/authorization/
+   direction/ledger/stop fields. Record the returned ID, set its final title to
+   `TikTok 执行台`, and keep it unpinned.
+3. Only now finalize the canonical identity-registry generation plus versioned
+   direction/authority/mission objects. Copy the stored identity bytes through
+   `SELF_REGISTRY`, then require a nonce-bound `THREAD_READY` that echoes the
+   exact `registry_ref`. A title, summary, paraphrase, list/search result, or
+   readable cached turn is not equivalent.
 4. Dispatch one Luna/High read-only `stability_smoke_01`: assess three cards from
    one direction query, open one strong-core result from search, verify direct
    post identity/playback and premise/payoff, then separately attempt up to five
@@ -185,11 +195,12 @@ Follow `operating-model.md` exactly:
    coordinator. Missing repeat/wake/proof is
    `SCHEDULER_CONTINUATION_FAILURE`, not successful persistence.
 
-If creation, registry, callback, or smoke fails, do not create another task or
-claim stable operation unless the exact failure proves
-`STALE_OWNER_TOMBSTONE`; that case uses the one-attempt replacement transaction
-in `operating-model.md`. A host/network/tool transient never authorizes
-replacement.
+If creation, registry, callback, or smoke fails, do not casually create another
+task or claim stable operation. A definitive `STALE_OWNER_TOMBSTONE` uses its
+one-attempt replacement transaction. A pre-Chrome create/SELF/hash conflict uses
+one `REGISTRY_RECONCILIATION`; if the executor accepted mixed snapshots, the
+verified coordinator may retire it and create exactly one clean replacement.
+Host/network/tool transients never authorize replacement.
 
 ## Default action envelope
 

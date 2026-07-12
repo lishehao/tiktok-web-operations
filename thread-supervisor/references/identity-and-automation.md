@@ -4,20 +4,19 @@ Use this reference for every persistent coordinator/executor pair and every
 heartbeat attached to a Thread. A title, focused window, project directory, or
 old prompt is not identity proof.
 
-## Immutable run registry
+## Canonical identity and mutable run state
 
-Create one registry before external work:
+Read `canonical-registry.md` first. The canonical identity registry is finalized
+only after `create_thread` returns the exact executor ID. Before creation, use
+the separate inert bootstrap envelope; never embed a second natural-language
+registry in the create prompt.
+
+The following fields are mutable runtime state associated with the accepted
+`registry_ref`; they are not part of its immutable serialized bytes:
 
 ```text
-run_id:
-run_nonce:
-coordinator_thread_id:
 coordinator_title:
-coordinator_host_id:
-coordinator_project_or_cwd:
-executor_thread_id:
 executor_title:
-executor_host_id:
 executor_owner_state: NONE | CANDIDATE_ONLY | LIVE | ARCHIVED_RETIRED | LIVENESS_UNVERIFIED_TRANSIENT | STALE_OWNER_TOMBSTONE | REPLACEMENT_IN_PROGRESS | REPLACED
 executor_generation:
 owner_liveness_probe_id: NONE | exact id
@@ -34,11 +33,11 @@ coordinator_pinned: true | false
 executor_pinned: true | false
 archive_temporary_on_complete: true | false
 archive_retired_executor_after_release: true | false
-execution_profile:
-authority_envelope_hash_or_version:
-ledger_path:
+registry_ref:
+direction_ref:
+authority_ref:
+mission_ref:
 operation_stop_at:
-automation_manager_thread_id:
 automation_topology: coordinator_tick | coordinator_managed_worker_tick
 heartbeat_automation_id: NONE | exact id
 heartbeat_target_thread_id: NONE | exact id
@@ -67,6 +66,13 @@ durable_install_state_path: NONE | local path outside managed Skill tree
 identity_state: UNVERIFIED | VERIFIED | MISMATCH
 pair_state:
 ```
+
+The identity registry itself holds run/coordinator/executor/account/profile/
+ledger/writer identity as structured enums and values. Direction, authorization,
+stop time, and current instruction are independently versioned canonical
+objects. Heartbeat IDs, next-run times, owner state, replacement history, slot
+state, and finalization state remain mutable ledger state. Never call that whole
+mutable record an immutable registry and never compare prose summaries.
 
 The only authoritative identity sources are:
 
@@ -135,10 +141,10 @@ store that ID in the registry, then set `coordinator_title` and its pin state.
 The executor identity is the exact ID returned by `create_thread`; set
 `executor_title` and its pin state only after recording that ID.
 
-Keep account, platform, run ID, model, duration, status, version, and strategy in
-the immutable registry or description, not the title. After final naming, do not
-rename either task for routine state changes. A matching final title is never
-identity or ownership proof.
+Keep identity in the canonical registry, changing direction/authority/mission in
+versioned objects, and duration/status/automation state in mutable run state—not
+in the title. After final naming, do not rename either task for routine state
+changes. A matching final title is never identity or ownership proof.
 
 Pinning is presentation state, not ownership proof. Never archive an active task,
 a task with a managed heartbeat or tab, or a task with unresolved external-action
@@ -176,15 +182,22 @@ and the coordinator has retired its managed run heartbeat(s).
 Before every thread dispatch, callback reconciliation, heartbeat creation,
 heartbeat update, heartbeat execution, stop request, replacement, or archive:
 
-1. Re-read the immutable registry.
+1. Re-read the accepted `registry_ref`, current direction/authority/mission
+   references, and mutable run state.
 2. Resolve the exact relevant task with `read_thread`; treat title/search results
    only as candidates.
 3. Apply the owner-liveness gate when a new turn or target binding is required.
 4. Compare actual tool target/source with the registered ID.
-5. Continue only when the values match byte-for-byte and owner state is `LIVE`.
+5. Continue only when canonical references/hashes and exact tool IDs match and
+   owner state is `LIVE`.
 
 Do not repair an identity mismatch by guessing another target or by reusing a
 similar task title.
+
+For an initial `registry_mismatch`, run the one
+`REGISTRY_RECONCILIATION` transaction in `canonical-registry.md`. A contaminated
+create/SELF snapshot may be replaced once before external work; this is distinct
+from stale-owner replacement and must not be retried by alternating prose.
 
 ## Stale executor replacement transaction
 
@@ -199,15 +212,16 @@ authority envelope, deadline, and executor role.
    search for the same run ID targeting the old executor. Pause/delete only
    exact matching automations before replacement. Require
    `orphan_automation_check=CLEAR`; never mutate another run's automation.
-3. Remove the old ID from the canonical executor field, append it to
-   `retired_executor_thread_ids` as `STALE_OWNER_TOMBSTONE`, and never send to or
-   automatically unarchive it again.
+3. Append the old ID to `retired_executor_thread_ids` as
+   `STALE_OWNER_TOMBSTONE`; never mutate the accepted registry generation, send
+   to that old ID, or automatically unarchive it again.
 4. Call `create_thread` at most once. Record the returned exact ID as
-   `replacement_new_executor_thread_id`, increment `executor_generation`, and set
-   it as the sole canonical `executor_thread_id`. Title/summary search is not
-   identity proof.
-5. Complete `SELF_REGISTRY`, a nonce-bound `OWNER_LIVENESS_ACK`, and the pending
-   mission dispatch against the exact new ID. Record
+   `replacement_new_executor_thread_id`, increment `executor_generation`, and
+   create one new canonical identity-registry generation naming it as the sole
+   executor. Title/summary search is not identity proof.
+5. Copy the new generation's canonical bytes through `SELF_REGISTRY`, complete a
+   nonce-bound `OWNER_LIVENESS_ACK`, and send the pending mission references
+   against the exact new ID. Record
    `replacement_mission_dispatch_id`; do not perform TikTok mutation until the
    new executor acknowledges the registry and mission.
 6. Recreate/update the run's operation heartbeat to target the exact new ID;

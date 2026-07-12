@@ -6,10 +6,12 @@ becomes the coordinator; it creates one execution Thread. Both TikTok roles use
 Mode, or an agent tree for either role.
 
 Use `$thread-supervisor` for generic registration, callback, work-state,
-heartbeat fallback, stop/release, and archival mechanics. Read its
-`references/identity-and-automation.md` before creating either the executor or
-an automation. This reference owns the TikTok-specific authority split and
-evidence contract.
+heartbeat fallback, stop/release, and archival mechanics. Read
+`$thread-supervisor/references/canonical-registry.md` and
+`$thread-supervisor/references/identity-and-automation.md` before creating either
+the executor or an automation. The canonical reference owns serialization,
+versioned envelopes, and reconciliation; this reference owns the TikTok-specific
+authority split and evidence contract.
 
 ## Topology
 
@@ -44,7 +46,7 @@ dispatches.
 TikTok 执行台
 objective: execute exactly the current bounded block, record evidence, release
 Chrome, callback, and idle.
-inputs: immutable registry plus one immediate dispatch or one operation-heartbeat slot.
+inputs: accepted canonical references plus one immediate dispatch or one operation-heartbeat slot.
 output: ledger checkpoints plus one structured callback.
 never: long-term strategy, user questions, self-recovery beyond the explicit
 budget, scheduling, another block, another Thread, Skill development.
@@ -67,12 +69,11 @@ The coordinator must know its exact Thread ID before creating the executor:
    account, direction handoff, and `run_nonce` are consistent.
 4. Record that returned ID as `coordinator_thread_id`. Never derive an ID from a
    directory name, old prompt, previous run, or another task's callback.
-5. Create the run registry with `run_id`, `run_nonce`, coordinator ID/host,
-   `coordinator_title=TikTok 主控台`, `coordinator_pinned=true`, executor ID
-   initially `NONE`, `executor_title=TikTok 执行台`, `executor_pinned=false`,
-   account, Luna/High profile, ledger, authority envelope version, stop time,
-   automation manager equal to the coordinator ID, and both operation/supervisor
-   heartbeat fields initially `NONE`.
+5. Create and persist the canonical `thread_bootstrap/v1` envelope. It contains
+   only run/coordinator identity, the exact Luna/High profile, and
+   `external_work=forbidden_until_registry_ack`. Do not create an incomplete
+   identity registry with `executor_id=NONE`, and do not duplicate bootstrap
+   fields in prose.
 6. Rename the verified coordinator to the final title `TikTok 主控台`, pin it,
    and verify presentation state when the tool exposes it. Final title/pin are
    presentation only and must never replace the registered ID.
@@ -94,15 +95,22 @@ accepts defaults:
 4. Select the same saved project for the executor when clearly available;
    otherwise create it as a projectless local Thread.
 5. Call `create_thread(model="gpt-5.6-luna", thinking="high")` exactly once for
-   the initial executor. Its initial prompt includes the coordinator ID,
-   account, envelope, ledger, dedicated-tab rule, this-run writer role, and
-   callback schema, and says to wait for `SELF_REGISTRY` without touching Chrome.
+   the initial executor. Its prompt embeds the stored canonical bootstrap JSON
+   once, tells the executor to verify its hash, and says to wait for
+   `SELF_REGISTRY` without touching Chrome, TikTok, a ledger, or automations. Do
+   not independently restate account, authorization, role prose, direction,
+   ledger, or stop time in that prompt.
 6. Record the returned executor ID, set its final title to `TikTok 执行台`, and
-   explicitly keep it unpinned.
-7. Send `SELF_REGISTRY` to the exact returned executor ID with Luna/High. Include
-   both IDs, account, ledger, authority, role, and stop time byte-for-byte.
-8. Require the executor to callback `THREAD_READY` to the registered coordinator
-   ID. Verify callback source and payload IDs against the registry.
+   explicitly keep it unpinned. Now finalize and persist one
+   `thread_identity_registry/v1` generation with structured role codes,
+   Luna/High profile, account, ledger, callback target, and writer/tab policies.
+   Create separate canonical direction, authority, and mission objects.
+7. Send `SELF_REGISTRY` to the exact returned executor ID with Luna/High by
+   copying the stored identity-registry bytes. Include its schema, ID,
+   generation, byte length, and SHA-256; do not render a prose equivalent.
+8. Require the executor to hash the received bytes, store them unchanged, and
+   callback `THREAD_READY` with the exact `registry_ref` to the registered
+   coordinator ID. Verify callback source, payload IDs, profile, and hash.
 9. Dispatch one read-only `stability_smoke_01` to the exact executor ID. Require
    the acceptance criteria in `stability-and-circuit-breakers.md` before any
    full calibration block or mutation.
@@ -119,10 +127,12 @@ accepts defaults:
     unpinned. Navigate the app to the coordinator when useful.
 
 If self-registration, creation, handshake, or smoke fails, do not claim stable
-operation. Do not create a second executor or another coordinator merely as a
-retry. The only automatic replacement is the single stale-owner transaction
-below after definitive tombstone evidence. Archive an empty executor only when
-the user requests cleanup; otherwise preserve evidence.
+operation. Do not create another coordinator or casually create another
+executor. A definitive stale owner may use the stale-owner replacement below;
+pre-Chrome mixed create/SELF snapshots may use exactly one
+`REGISTRY_RECONCILIATION` clean replacement. Both require automation cleanup,
+old/new ID evidence, one canonical owner, and no second retry. Preserve the
+failure evidence.
 
 ## TikTok stale-owner recovery
 
@@ -187,9 +197,9 @@ Fast Mode unless the tool surface exposes and confirms that field.
 
 1. Receive the executor callback and read at most the latest relevant 1-3 turns
    when more evidence is necessary.
-2. Verify callback transport source, payload run ID, both Thread IDs, ledger,
-   current block ID, executor generation, and owner-liveness state against the
-   immutable registry.
+2. Verify callback transport source, payload canonical references, both Thread
+   IDs, ledger, current block ID, executor generation, and owner-liveness state
+   against the accepted identity registry and current versioned envelopes.
 3. Reconcile search cards assessed, qualified search views, held-out For You
    validation, query quality, capability changes, pending user work,
    authorization, deadline, and risk. Never treat card relevance as consumed
@@ -217,8 +227,9 @@ Fast Mode unless the tool surface exposes and confirms that field.
 7. For a scheduled run, update the existing operation heartbeat's bounded block
    template only when strategy/authorization changes; never dispatch a parallel
    ad-hoc round. For a one-block/manual run, send one direct message to the exact
-   executor. In either case verify registry fields, block/slot identity, and
-   callback target before execution.
+   executor. In either case verify `registry_ref`, `direction_ref`,
+   `authority_ref`, `mission_ref`, block/slot identity, and callback target
+   before execution.
 8. Never poll Chrome, operate TikTok, or dispatch overlapping blocks.
 
 Routine per-video observations stay in the ledger. Callback only on completed
@@ -360,9 +371,10 @@ credential, cookie, browser state, or content history.
 For each direct message from the registered coordinator ID or verified operation
 heartbeat wake targeted to this executor:
 
-1. Verify both IDs, exact account, Luna/High profile, dedicated-tab isolation,
-   this-run writer authority, capability matrix, ledger tail, stop time, current
-   block, automation ID, and deterministic slot ID when heartbeat-triggered.
+1. Verify the accepted identity/direction/authority/mission references, both
+   exact IDs, account, Luna/High profile, dedicated-tab isolation, this-run
+   writer authority, capability matrix, ledger tail, stop time, current block,
+   automation ID, and deterministic slot ID when heartbeat-triggered.
 2. Execute only that bounded block or exact authorized action.
 3. Append raw evidence at the checkpoints required by the active TikTok block.
 4. Release only the executor's Chrome control at completion or terminal failure.
@@ -383,15 +395,18 @@ and follow the whole-run completion transaction exactly once.
 
 ## Execution envelope
 
-Every dispatch includes run ID, both Thread IDs, account, roles, Luna/High profile,
-dedicated-tab and this-run writer rules, full `direction_profile`, search clusters,
-content ontology, sample parameters, continuous-feed invariant, capability
-matrix, lane-specific authorization, comment voice and 30-word ceiling, ledger,
-stop time, latest instruction/authority version, circuit-breaker state, and callback schema.
+Every dispatch is a canonical `block_dispatch/v1` object with exact
+`registry_ref`, `direction_ref`, `authority_ref`, and `mission_ref`, plus the
+bounded block/slot ID, trigger, search clusters, sample parameters, capability
+snapshot reference, circuit state, and callback schema version. Full structured
+objects are retrieved from their accepted artifacts; do not duplicate them as
+hand-written prose in the dispatch.
 
-Copy registry values byte-for-byte. Any drift before Chrome connection is a
-terminal `registry_mismatch`. Never include a Skill-development task or another
-bootstrap task as callback target.
+Before Chrome, reject an unknown or mismatched reference as
+`registry_mismatch` and run at most one `REGISTRY_RECONCILIATION`. A legitimate
+user change creates and acknowledges a new direction/authority/mission version;
+it never edits the identity registry or masquerades as a repair. Never include
+a Skill-development/bootstrap task as callback target.
 
 ## Default action envelope
 
@@ -419,6 +434,10 @@ release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
 run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
 run_id:
 instruction_version:
+registry_ref:
+direction_ref:
+authority_ref:
+mission_ref:
 coordinator_thread_id:
 executor_thread_id:
 executor_generation:

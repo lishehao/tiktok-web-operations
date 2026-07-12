@@ -8,7 +8,8 @@ Use only when creating or updating a supervisor heartbeat for unhandled items.
   registered coordinator and automation owner.
 - Inspect existing automations first.
 - Reuse/update a matching heartbeat only when its viewed `targetThreadId`, run
-  ID, purpose, and coordinator all match the immutable registry.
+  ID, purpose, coordinator, and accepted canonical reference match the current
+  run state.
 - If an existing heartbeat belongs to another project group, create a separate one.
 - Pass explicit `targetThreadId=coordinator_thread_id`, view the returned
   automation ID, and verify the stored binding before treating creation as

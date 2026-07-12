@@ -40,15 +40,29 @@ Chrome session ownership is per controlled tab, not a global lock on the user's 
 6. Any concurrent task on the same TikTok account is allowed, including another run's mutations on different targets. Mark `concurrent_same_account_activity=true` and `recommendation_attribution_contaminated=true`; do not claim that one task caused feed changes.
 7. At block completion, finalize only tabs created or controlled by this executor session. Never close or navigate another task's tabs.
 
-## Immutable registry contract
+## Canonical registry contract
 
-Treat these fields as byte-for-byte immutable after `SELF_REGISTRY`: coordinator Thread ID, executor Thread ID, account handle, ledger path, mutation authorization, role, model, and thinking level.
+Use `$thread-supervisor/references/canonical-registry.md`. The create prompt has
+one inert canonical bootstrap object; the identity registry is finalized only
+after the executor ID exists. Direction, authorization, mission/stop time, and
+mutable runtime state are separate versioned objects or ledger state.
 
-- The coordinator must construct every dispatch by copying the registered values; it must not retype, shorten, normalize, relocate, or regenerate them.
-- The `send_message_to_thread` tool-call target is an immutable field too. Set it from the registry and compare the actual target before sending. If a failed call proves the target was mistyped and nothing was delivered, one corrected send to the registered ID is allowed and must be logged; a failure at the correct target is terminal for that block.
-- Before connecting to Chrome, the executor must compare every dispatch field with its local registry snapshot.
-- Any mismatch is a terminal `registry_mismatch`: do not connect/navigate Chrome, do not create a second ledger, and callback once with both values.
-- A bootstrap correction may replace the dispatch only before Chrome navigation and only when it repeats the original authoritative registry exactly. It does not change the registry itself.
+- Persist canonical UTF-8 JSON bytes and SHA-256 once. `SELF_REGISTRY` copies the
+  stored identity bytes; `THREAD_READY` echoes their exact reference.
+- The coordinator constructs dispatches from accepted
+  `registry_ref`/`direction_ref`/`authority_ref`/`mission_ref` values. It never
+  retypes, summarizes, or normalizes a prose registry.
+- The `send_message_to_thread` target must equal the coordinator's accepted
+  executor ID. A proven undelivered target typo allows one corrected send;
+  failure at the correct target ends the block.
+- Before Chrome, the executor validates all references, exact target/source IDs,
+  required Luna/High profile, and current accepted versions.
+- Any unresolved mismatch stops with `registry_mismatch`, zero external work,
+  and one `REGISTRY_RECONCILIATION`. Do not alternate snapshots. If create/SELF
+  values were mixed, retire the contaminated executor and permit at most one
+  clean replacement; failure becomes `ORCHESTRATION_REGISTRY_BLOCKER`.
+- A legitimate user change creates a new direction/authority/mission version
+  and acknowledgement. It never rewrites the identity registry in place.
 
 ## Persistence mechanism
 

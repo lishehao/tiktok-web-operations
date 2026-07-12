@@ -49,6 +49,7 @@ a released, retired executor after removing its heartbeat/tab/mutation ownership
 
 Use `references/operating-model.md` for the exact creation, handshake, callback, lifecycle, and recovery protocol.
 Before any persistent Thread or heartbeat action, also read
+`$thread-supervisor/references/canonical-registry.md` and
 `$thread-supervisor/references/identity-and-automation.md`.
 
 ## Route The Request
@@ -173,13 +174,17 @@ When the healthy user replies `继续` or `开始` without specifics, use North 
   scope. It asks the user only when `decision_required=true`; otherwise it stores
   the shortest `auto_resume_condition` and resumes the unchanged latest user
   instruction after a verified external-state change.
-- Treat Thread IDs, account, ledger path, mutation authorization, role, model, and thinking as immutable registry fields. Copy them byte-for-byte into dispatches and compare them before Chrome connection; any mismatch terminates the block without page navigation. The `send_message_to_thread` tool-call target itself is part of this check and must equal the registered executor ID.
-- Include `run_id`, coordinator/executor IDs, executor generation/owner state,
-  retired/replacement IDs, host/project identity, automation manager, both
-  heartbeat IDs/targets/repeat states, orphan/duplicate-owner checks, slot state, authority version, ledger, stop time, exact titles,
-  and pin policy in the immutable run registry. Re-read it before every dispatch,
-  callback, heartbeat, stop, replacement, or archive. Titles and pin state remain
-  presentation fields; IDs remain authoritative identity.
+- Use the canonical two-phase registry contract. The create prompt carries one
+  inert canonical bootstrap envelope; after `create_thread` returns its exact ID,
+  `SELF_REGISTRY` carries one stored canonical identity object. Dispatches,
+  callbacks, and heartbeat prompts use exact registry/direction/authority/mission
+  references and never retype those values as natural-language snapshots.
+- Keep immutable identity separate from versioned direction/authority/mission
+  objects and mutable owner/heartbeat/slot/finalization state. Re-read their
+  accepted hashes plus exact tool target IDs before every dispatch, callback,
+  heartbeat, stop, replacement, or archive. Any unresolved reference mismatch
+  stops before Chrome and enters one bounded `REGISTRY_RECONCILIATION`; it never
+  triggers repeated prompt rewriting.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Run the first real bounded block immediately in the current user turn and
   accept it only from real proof. For a multi-block timed run, the coordinator

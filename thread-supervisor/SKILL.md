@@ -104,9 +104,11 @@ card plus a bounded input contract before dispatch.
 - Create the executor with `create_thread`; never substitute `spawn_agent`, a
   collaboration subagent, Goal Mode, or an agent tree when the contract requires
   a persistent sidebar task.
-- Pass the exact coordinator ID, returned executor ID, execution profile,
-  authority envelope, ledger, stop conditions, and callback schema through a
-  `SELF_REGISTRY` handshake before the executor performs external work.
+- Use the two-phase canonical protocol in
+  `references/canonical-registry.md`: one inert bootstrap envelope before
+  creation, then one finalized identity registry after the executor ID exists.
+  `SELF_REGISTRY` sends the stored canonical bytes once; later dispatches and
+  callbacks carry hashes/references rather than retyped registry prose.
 - Treat self-registration failure as a bootstrap blocker. Do not create a second
   coordinator merely to work around an unknown starter-task ID unless the user
   explicitly selects that alternate topology.
@@ -131,7 +133,9 @@ how evidence is validated, and whether timed continuation uses coordinator ticks
 or coordinator-managed worker ticks. Thread Supervisor owns only registration,
 dispatch, callback, work state, heartbeat mechanics, stop/release, and archival.
 Before creating a persistent pair or any heartbeat, read
-`references/identity-and-automation.md` and enforce its immutable run registry.
+`references/canonical-registry.md` and
+`references/identity-and-automation.md`; enforce canonical identity separately
+from versioned direction/authority/mission objects and mutable runtime state.
 
 Callback shape:
 

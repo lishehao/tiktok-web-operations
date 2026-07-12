@@ -2,7 +2,7 @@
 
 这是 TikTok 运营 bundle 的公开分发仓库。公开仓库只保留一个安装入口、通用 `thread-supervisor` Skill 和完整 `tiktok-web-operations` Skill；详细规则以两个 Skills 内 references 为准。
 
-Protocol version: `2026.07.12.6`
+Protocol version: `2026.07.12.7`
 
 ## 直接安装
 
@@ -61,7 +61,7 @@ Git、GitHub CLI、Python、Node.js、包管理器和 API Key 都不是消费者
 2. 在这个新标签页里只读打开 TikTok，确认它继承同一 Chrome profile 的登录并记录准确 `@handle`。不要输入、索取或保存密码、OTP、passkey、验证码或恢复码，也不要 claim 其他任务的标签页。
 3. 当前页面没有阻塞性的 CAPTCHA、验证挑战、rate limit、warning、restriction 或账号错配。
 4. Codex App 能创建、列出、读取、命名、置顶/取消置顶、归档和跨任务发送消息；当前启动任务能通过唯一标题 nonce 自注册准确 Thread ID；`create_thread` 与 `send_message_to_thread` 支持 `gpt-5.6-luna` + `high`。标题/摘要/readability 只发现候选，续写前还要通过 owner-liveness gate。若只缺少置顶工具，记录为非阻塞展示限制。
-5. 能建立 immutable run registry，保存 run ID、主/执行 Thread ID、executor generation/owner state/retired IDs、host/project、授权、ledger、slot state、stop time，以及 automation manager、两个 heartbeat ID/target/repeat/next-run、orphan automation 与 duplicate canonical owner 检查。
+5. 能写入 canonical object store：先保存 inert bootstrap，再在 executor ID 返回后冻结 identity registry；direction、authority、mission 独立版本化并按 SHA-256 引用，owner/heartbeat/slot 状态另存为 mutable runtime state。自然语言摘要不能作为 registry。
 6. 若用户要求无人值守持续运行，`automation_update` 必须支持显式 `targetThreadId`、`repeat=on`、有限 `UNTIL` 或等价截止保护，以及 view readback。真实 heartbeat 只能由已验证的主控台创建和管理，执行台不得自建或续排。
 7. 用 `list_threads`/`read_thread` 检查 active TikTok 任务，只用于保护标签页、标记推荐流归因污染和识别精确 mutation 冲突。同账号、同 Chrome 或另一个 TikTok executor 本身都不是 blocker；新 run 创建自己的 tab 并继续。只有同一 target/action 的提交正在进行或状态不确定时，才暂停那个精确 mutation，其他浏览与不同目标动作继续。
 8. 能读取真实当地时间、时区、UTC offset，并建立可写 ledger 路径。
@@ -147,9 +147,10 @@ HTTPS 安装/版本比较
   -> Chrome/TikTok/Thread/Automation 只读预检
   -> 询问方向和时长，等待用户第二条消息
   -> 当前任务自注册为唯一 coordinator
-  -> 建立 immutable run registry
+  -> 保存 canonical inert bootstrap
   -> 只创建一个 Luna/High executor
-  -> SELF_REGISTRY + THREAD_READY 双向身份握手
+  -> executor ID 返回后冻结 identity registry
+  -> SELF_REGISTRY bytes/hash + THREAD_READY ref 双向身份握手
   -> executor 完成只读 stability smoke
   -> 当前用户回合立即执行并验收首个真实 bounded block
   -> coordinator 创建 repeat-on executor operation heartbeat
@@ -164,9 +165,9 @@ HTTPS 安装/版本比较
 
 启动顺序：
 
-1. 当前任务生成唯一 `run_id/run_nonce`，先用一次临时 nonce 标题通过 `list_threads` 与 `read_thread` 证明自己的准确 ID，写入 immutable run registry，再把最终标题固定为 `TikTok 主控台` 并置顶。它拥有用户对话、`direction_profile`、时长、授权、能力矩阵、风险和 executor registry；绝不碰 Chrome。
+1. 当前任务生成唯一 `run_id/run_nonce`，先用一次临时 nonce 标题通过 `list_threads` 与 `read_thread` 证明自己的准确 ID，保存唯一 canonical inert bootstrap，再把最终标题固定为 `TikTok 主控台` 并置顶。它拥有用户对话、版本化 direction/authority/mission、能力矩阵和风险；绝不碰 Chrome。
 2. 只创建一个最终标题为 `TikTok 执行台` 的任务，明确保持未置顶，并强制 `gpt-5.6-luna/high`。它每个 block 默认用 `chrome.tabs.new()` 创建自己的隔离标签页，是本 run 的 mutation/ledger writer；不得碰其他任务标签页、扩大授权、创建其他 Threads 或回调其他任务。同账号的其他独立 run 可以并存。
-3. 记录主任务与执行任务的准确 ID、host/project、run ID、授权版本、ledger 和停止时间，通过 `SELF_REGISTRY` 与 `THREAD_READY` 完成双向握手；所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
+3. `create_thread` 初始提示只嵌入一次 canonical bootstrap，不重复写账号/角色/授权/方向/ledger/stop prose。准确 executor ID 返回后才冻结 identity registry，并把同一份 UTF-8 JSON bytes/hash 通过 `SELF_REGISTRY` 发送；`THREAD_READY` 必须回显准确 `registry_ref`。所有创建和跨任务消息都显式指定 `gpt-5.6-luna/high`。
    任何后续复用都必须重新证明可续写；已归档 TikTok 执行台默认 retired，不自动解除归档。
 4. 把准确账号、`direction_profile`、`operation_stop_at`、搜索簇、排除项、互动授权、能力矩阵、ledger 和停止条件交给执行任务。
 5. 主任务向 executor 派发只读 `stability_smoke_01`：一个方向搜索词评估 3 张结果卡，实际从搜索点开 1 条 strong-core 视频，验证直接帖子身份、播放进度和 premise/payoff；随后单独尝试最多 5 个连续 For You 身份。零 mutation。
@@ -216,13 +217,13 @@ HTTPS 安装/版本比较
 - Native next/down 失败后不自动切 PageDown、ArrowDown、wheel、script scroll、reload 或 reset；记录 partial/unavailable 并继续下一次独立搜索训练。Scroll-only 验证仍需用户另行明确授权。
 - Native next/down 必须从位置 1 起锁定方向特定的精确签名；禁止使用 `button:not([disabled])` 一类宽 locator，因为第一次推进后 up/down 通常都会 enabled。每次 DOM 移动后重新解析同一 down 签名。
 - 预期 UI gate 失败必须在当前判断分支直接写终态、释放 Chrome、callback；不能用 `throw` 返回 reasoning 后继续换 locator 诊断。
-- Run ID、Coordinator/executor ID、host/project、账号、ledger path、授权、角色、模型、thinking、automation manager、两个 ID/target/repeat/next-run 和 stop time 都是 immutable registry；dispatch、callback 和 heartbeat 必须逐字比较，任何漂移都以 `registry_mismatch` 或 `AUTOMATION_OWNERSHIP_MISMATCH` 终止。
+- Identity registry 只保存结构化 run/coordinator/executor/account/profile/ledger/writer identity；方向、授权、mission/stop time 独立版本化，owner/heartbeat/slot/next-run 属于 mutable runtime state。Dispatch/callback/heartbeat 只携带已接受的 registry/direction/authority/mission refs 与准确工具 ID，不手写同义文本。引用漂移在 Chrome 前停止并只执行一次 `REGISTRY_RECONCILIATION`。
 - Heartbeat 醒来后按角色验证：operation 必须醒在 executor；supervisor 必须醒在 coordinator。任一 target/ID/repeat/run 不匹配只返回 `MISBOUND_HEARTBEAT_NO_ACTION`，不得转发、接管或操作 TikTok。
 - Tab ID 不得跨 turn、prompt 或 ledger 复用。普通 block 默认直接调用 `chrome.tabs.new()`，只操作该 executor 本轮创建或已经控制的标签页；`openTabs()`/`claimTab()` 只用于用户明确要求的现有标签页交接。
 - Chrome 标签页控制权不是整个 Chrome profile 或 TikTok 账号的全局锁。若某个现有 tab 属于另一个 browser session，跳过它并新建自己的 tab；不得擅自中断、归档、导航或关闭对方任务。同账号其他 run 的浏览或不同目标 mutation 允许并行，只标记推荐流归因污染。只有新建 tab/登录验证失败、本 executor 提交不确定，或相同 target/action 正在提交/不确定时，才暂停受影响范围。
 - 一次页面加载失败不等于 TikTok 风控。执行台先分清 stale tab/browser disconnect、DNS/网络 `ERR_*`、代理/TLS、HTTP 429/403/5xx、`ERR_BLOCKED_BY_CLIENT` 和空白/脚本加载失败；记录错误码与 URL 后，在原登录 Chrome 内短暂等待并重试当前页，必要时从同一 browser binding 新建专属 tab，并用 TikTok 首页/中性 HTTPS 诊断全网、单域或单页范围。恢复后必须重新确认账号、目标页、系统 warning 和提交确定性才继续；不得切 Computer Use/其他浏览器、绕过 TLS/登录或重试不确定写操作。持久失败或账号/CAPTCHA/429/限流统一回 TikTok 主控台。
 - 用户解释必须由 exact error code 加同域/中性页探测共同生成，并明确写成“可能原因”，不得断言根因。`ERR_NETWORK_CHANGED` 对应网络接口/VPN/代理可能切换，`ERR_CONNECTION_RESET` 对应连接可能被网络路径/VPN/服务端/安全软件重置，`ERR_NAME_NOT_RESOLVED` 对应域名/DNS 可能失败，`5xx` 对应站点服务可能异常，`ERR_BLOCKED_BY_CLIENT` 对应扩展或过滤规则可能拦截。暂态恢复后继续任务，不单独打扰用户，只在下一次三行回执的“本轮完成”中简短说明；持续失败回主控台，必须带 exact code、可能原因、已尝试动作和最小用户操作。回执永远不增加第四行。
-- Coordinator 的 `send_message_to_thread` 工具目标本身也属于 immutable registry。若失败明确来自未送达的 target typo，可记录后纠正一次；正确目标上的传输失败不得反复重试。
+- Coordinator 的 `send_message_to_thread` 工具目标必须等于 canonical identity registry 中的 executor ID。若失败明确来自未送达的 target typo，可记录后纠正一次；正确目标上的传输失败不得反复重试。
 - 若摘要索引仍能发现 executor，但续写返回 `failed to resolve rollout path` 且底层文件不存在/`ENOENT`，把它记为 `STALE_OWNER_TOMBSTONE`，而不是账号风险：停止对旧 ID 重发，先清理指向旧 ID 的 automation，再从 registry 退休旧 ID，只创建一个替代执行台，并验证 new ID、mission dispatch、operation heartbeat binding、零 orphan automation 和唯一 canonical owner。host unavailable、timeout、网络或工具暂态错误只做有界复核，绝不立即归档或替换。
 
 ### 互动能力
