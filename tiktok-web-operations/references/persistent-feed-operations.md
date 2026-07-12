@@ -4,7 +4,38 @@ Use this reference for long-running feed calibration, keyword/community seeding,
 
 Assume the persistent `execution_thread` role defined in `operating-model.md`. This file defines browsing and recommendation-calibration behavior only; it does not grant authority or change the two-Thread ownership model.
 
-Before the first full block of a new executor/runtime, pass the read-only `stability_smoke_01` in `stability-and-circuit-breakers.md`. Do not combine the smoke with mutation gates.
+Before the first continuous mission segment of a new executor/runtime, pass the
+read-only `stability_smoke_01` in `stability-and-circuit-breakers.md`. Do not
+combine the smoke with mutation gates.
+
+## Continuous mission loop
+
+Run until the canonical `operation_stop_at`, explicit user stop, authorized
+objective completion, or a current safety boundary. Do not use estimated model,
+video, or Chrome-loading time as a control condition. Time estimates are
+observability metrics only.
+
+Use evidence counts and content state to advance:
+
+```text
+search-training unit
+  -> next approved cluster when the current query is exhausted/repetitive/drifting
+  -> sparse opportunity-triggered feedback
+  -> held-out For You checkpoint after the sample threshold
+  -> reconcile cluster weights and continue immediately
+```
+
+One search-training unit normally reaches 9–15 qualified search views across
+distinct approved clusters, or ends honestly when suitable results are exhausted,
+repetitive, or visibly drifting. Trigger a 5–10 item held-out For You checkpoint
+after roughly 20–30 new qualified views or two distinct completed training units.
+Then continue immediately with the adjusted cluster mix. These are logical
+content boundaries, not Codex turns, Heartbeat slots, or fixed-minute promises.
+
+Before starting a new query, opening the next post, submitting any mutation,
+starting a held-out checkpoint, and after recovery, compare current time with
+`operation_stop_at`. At/after cutoff, start no new action and enter the terminal
+release transaction.
 
 ## Search-training state machine
 
@@ -17,9 +48,9 @@ weight.
 3. **Search assessment** — Search one approved cluster and classify the first five result cards in order. This measures query quality only.
 4. **Qualified consumption** — From those results, open strong `core` posts individually from the search surface, verify the direct post identity/playback, and watch through the premise/payoff or completion when reasonably short. Returning without opening the post is not consumption.
 5. **Bridge consumption** — From a consumed core post, optionally open one relevant creator, hashtag, sound, or related-search path and consume another core post when it adds audience context.
-6. **Sparse explicit feedback** — Only when separately authorized and independently persistence-verified, choose the smallest genuine Favorite, TikTok Repost, or proactive-comment signal on distinct strong-core posts. Do not require an outward action for a training block to pass.
-7. **Held-out validation** — After multiple search-training blocks, enter For You once and sample a small continuous sequence. Measure composition; do not claim causal attribution.
-8. **Reconcile** — Update qualified-consumption counts, feed-validation state, capability matrix, search seeds, exclusions, and next block.
+6. **Sparse explicit feedback** — Only when separately authorized and independently persistence-verified, choose the smallest genuine Favorite, TikTok Repost, or proactive-comment signal on distinct strong-core posts. Do not require an outward action for a training unit to pass.
+7. **Held-out validation** — After the sample threshold, enter For You once and sample a small continuous sequence. Measure composition; do not claim causal attribution.
+8. **Reconcile and continue** — Update qualified-consumption counts, feed-validation state, capability matrix, cluster weights, and exclusions, then immediately start the next approved unit while before the cutoff.
 
 Search cards are candidate discovery, not recommendation training evidence.
 Record `search_results_assessed` separately from `qualified_search_views`. A
@@ -28,30 +59,32 @@ stable post URL/creator identity, playback or visible watch progression, and
 premise/payoff understanding. Directly opening an already-known URL does not
 replace the search-origin proof.
 
-## Default search-training block
+## Default search-training unit
 
-Use one block as the repeatable unit for a new, sparse, or visibly off-direction account. Spend most operating time here; do not append a For You checkpoint to every block.
+Use one logical training unit for a new, sparse, or visibly off-direction account.
+Spend most operating effort here; do not append a For You checkpoint to every
+unit and do not yield merely because one unit completed.
 
 1. Lock the audience ontology before browsing: current core clusters, adjacent boundary, exclusions, language/region, and active capability matrix.
 2. Select three distinct approved search clusters. Do not use three near-duplicate queries from the same microtopic.
 3. For each cluster, classify the first five result cards in order. Count product/storefront, stale, adjacent, and irrelevant results in the assessment denominator.
 4. Open and consume every suitable strong-core result among those five, normally three to five per cluster. Verify the exact post page, observe playback progression, and watch enough to understand the premise/payoff. Record observed/total time when exposed, without inventing a universal dwell rule.
 5. Return through normal page navigation to the same search context; do not substitute a direct URL list or merely inspect thumbnails/captions.
-6. Record two separate denominators: all 15 assessed result cards and the number of qualified consumed core posts. A complete block normally contains at least nine qualified search views; if fewer exist, finish honestly and rotate weak clusters rather than opening irrelevant posts to fill a quota.
+6. Record two separate denominators: all assessed result cards and the number of qualified consumed core posts. A complete unit normally contains 9–15 qualified search views; if fewer exist, finish honestly and rotate weak clusters rather than opening irrelevant posts to fill a quota.
 7. When `autonomous_comment_mode` is active, comment only on a strong core post after it has become a qualified view. Zero comments remains valid.
-8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line stops the block before more browsing.
-9. Run held-out For You validation only after two search-training blocks or roughly 20–30 qualified search views, unless the coordinator explicitly requests an earlier diagnostic.
+8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line suspends further browsing until the ledger is repaired; it does not retire either Heartbeat.
+9. Run held-out For You validation only after two distinct training units or roughly 20–30 qualified search views, unless the coordinator explicitly requests an earlier diagnostic.
 
-The default block success metric is qualified search consumption, not search-card relevance and not For You composition.
+The default unit success metric is qualified search consumption, not search-card relevance and not For You composition.
 
-## Held-out For You validation block
+## Held-out For You validation checkpoint
 
 Use For You to measure whether the recommendation mix is moving, not as the main training surface:
 
 1. Enter For You once and sample 5–10 sequential items through the verified native next/down control. Do not watch irrelevant posts longer merely to complete a research sample; classify as soon as the premise is clear and advance normally.
 2. Keep the same continuous-page invariants: no reload, Home reset, direct-post replacement, mixed transition method, or cherry-picking.
 3. Record exact before/after identities and composition. A five-item sample is directional only; compare rolling checkpoints rather than one small sample.
-4. If native transition fails after at least five reliable identities, mark `feed_validation_status=partial` and finish the block normally. This does not invalidate completed search training.
+4. If native transition fails after at least five reliable identities, mark `feed_validation_status=partial` and finish the checkpoint normally. This does not invalidate completed search training.
 5. If fewer than five reliable identities are available, mark `feed_validation_status=unavailable`. When account/login/warning/Chrome ownership remain healthy, disable or defer only the feed-validation lane and continue future search-training blocks.
 6. Two consecutive feed-transition failures may disable the validation lane for the current runtime. They do not open the whole-run circuit unless the failure also affects dedicated-tab control, account certainty, platform risk, or search-origin video consumption.
 
@@ -71,9 +104,9 @@ Use these operating heuristics, not as claims about TikTok's official algorithm:
 
 | Observed For You composition | Next training plan |
 |-|-|
-| `core_share < 20%` | Remain search-training-led; run two training blocks before the next 5–10 item validation. |
-| `core_share 20–50%` | Remain search-led but validate after each one or two training blocks. |
-| `core_share > 50%` in two consecutive checkpoints | Permit mixed mode; retain at least one qualified search-consumption cluster per block. |
+| `core_share < 20%` | Remain search-training-led; run two training units before the next 5–10 item validation. |
+| `core_share 20–50%` | Remain search-led but validate after each one or two training units. |
+| `core_share > 50%` in two consecutive checkpoints | Permit mixed mode; retain at least one qualified search-consumption cluster per cycle. |
 
 Do not switch to feed-led mode from one favorable checkpoint. If `core_share` stays below 10% across three validation checkpoints despite at least 60 qualified search views, change query/cluster mix and recheck account, region, and language context; do not compensate by posting more comments.
 

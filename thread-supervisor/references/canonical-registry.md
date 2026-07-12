@@ -114,8 +114,9 @@ and hash. It never edits the accepted generation in place.
 
 ### Versioned operating objects
 
-Direction, authorization, user instruction, capability state, stop time, block
-parameters, slot state, heartbeat IDs/next-run state, owner state, and release
+Direction, authorization, user instruction, capability state, stop time,
+round/mission parameters, progress/resume state, Heartbeat IDs/next-run state,
+owner state, and release
 state can change. They do not belong in the immutable identity registry.
 
 Store them as separate objects:
@@ -126,15 +127,20 @@ Store them as separate objects:
   versioned and hashed. Do not use one prose `mutation_authorization` string.
 - `mission_instruction/v1`: instruction version, direction reference, authority
   reference, operation stop time, and the current high-level objective.
-- `block_dispatch/v1`: block/slot ID, trigger, query clusters, sample parameters,
-  capability snapshot reference, callback schema version, and the four canonical
-  references needed for the block.
+- `block_dispatch/v1` for bounded-round domains: block/slot ID, trigger,
+  parameters, capability snapshot reference, callback schema version, and the
+  canonical references needed for the block.
+- `mission_dispatch/v2` for continuous-resumable domains: mission generation,
+  trigger/resume cursor, logical sample thresholds, capability/lane snapshot,
+  callback schema version, and the canonical references needed to resume the
+  same mission without duplicating work.
 - mutable runtime state: owner liveness, retired/replacement IDs, heartbeat IDs,
-  targets/repeat/next-run, slot state, circuit state, and finalization evidence.
+  targets/repeat/next-run, round slot or mission progress/resume state, circuit
+  state, and finalization evidence.
 
 A user change creates a new direction, authority, or mission version and hash.
 The coordinator sends one `VERSION_COMMIT` transaction; the executor acknowledges
-the new references before the next block. A changed authorization value must not
+the new references before the next safe work boundary. A changed authorization value must not
 be disguised as a registry repair. Older versions remain append-only evidence.
 
 Every dispatch contains, at minimum:

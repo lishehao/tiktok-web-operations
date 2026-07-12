@@ -69,7 +69,7 @@ When a current blocker exists:
    never touches Chrome.
 6. When the condition visibly clears, account/submission certainty is restored,
    authorization is still active, and time remains, automatically resume the
-   original instruction at the next bounded block.
+   original instruction at the next safe mission boundary.
 
 Set `decision_required=true` only when a human action/choice is actually needed:
 manual login/challenge resolution, unresolved submission certainty, ambiguous or

@@ -21,19 +21,19 @@ def route_event(
     event: str,
     *,
     actor: str,
-    running_block: bool = False,
+    mission_running: bool = False,
     human_needed: bool = False,
 ) -> str:
     if event == "operation_heartbeat":
-        return "EXECUTE_ONE_BLOCK" if actor == "executor" and not running_block else "NO_ACTION"
+        return "RESUME_MISSION" if actor == "executor" and not mission_running else "NO_ACTION"
     if event == "supervisor_heartbeat":
         return "READ_ONLY_SUPERVISE" if actor == "coordinator" else "NO_ACTION"
     if event == "candidate_outside_scope":
-        return "SKIP_WITHIN_BLOCK" if actor == "executor" else "NO_ACTION"
+        return "SKIP_WITHIN_MISSION" if actor == "executor" else "NO_ACTION"
     if event == "captcha":
         return "RELEASE_AND_RISK_EVENT" if actor == "executor" else "NO_ACTION"
     if event == "direction_change":
-        return "QUEUE_NEXT_VERSION" if actor == "coordinator" and running_block else "VERSION_COMMIT"
+        return "QUEUE_SAFE_BOUNDARY_VERSION" if actor == "coordinator" and mission_running else "VERSION_COMMIT"
     if event in {"stop", "deadline"}:
         return "START_FINALIZATION" if actor == "coordinator" else "NO_ACTION"
     if event == "risk_callback":
@@ -63,17 +63,18 @@ def main() -> None:
         "S1_MISSION",
         "S2_PAIR_BOOTSTRAP",
         "S3_RUNTIME_SMOKE",
-        "S4_FIRST_BLOCK",
-        "S5_SCHEDULED_RUN",
+        "S4_FIRST_SEGMENT",
+        "S5_CONTINUOUS_RUN",
         "S6_PAUSED",
         "S7_FINALIZE",
         "S8_IDLE_COMPLETE",
         "THREAD_READY",
-        "BLOCK_RESULT",
+        "MISSION_CHECKPOINT",
         "RISK_EVENT",
         "EXECUTOR_RELEASED",
-        "one accepted block is active at most",
-        "Heartbeats are wake signals, not roles or agents",
+        "one accepted mission is active at most",
+        "Heartbeats are durable continuation and supervision signals",
+        "Heartbeat survival invariant",
         "role-and-stage-contract.md",
     )
     missing_terms = [term for term in required if term.lower() not in joined.lower()]
@@ -83,7 +84,7 @@ def main() -> None:
     assert "never: choose or change the account direction" in role_text
     assert "raw per-item ledger" in role_text
     assert "Exact comment text within the approved voice" in role_text
-    assert "The main console chooses the next bounded outcome" in " ".join(skill_text.split())
+    assert "One executor activation may finish multiple logical training units" in " ".join(skill_text.split())
 
     stale_duplicate_sections = (
         "## Topology",
@@ -99,8 +100,8 @@ def main() -> None:
     scenarios = {
         "correct_operation_wake": route_event("operation_heartbeat", actor="executor"),
         "operation_wakes_coordinator": route_event("operation_heartbeat", actor="coordinator"),
-        "overlapping_operation_slot": route_event(
-            "operation_heartbeat", actor="executor", running_block=True
+        "operation_wake_while_running": route_event(
+            "operation_heartbeat", actor="executor", mission_running=True
         ),
         "correct_supervisor_wake": route_event("supervisor_heartbeat", actor="coordinator"),
         "supervisor_wakes_executor": route_event("supervisor_heartbeat", actor="executor"),
@@ -109,7 +110,7 @@ def main() -> None:
         ),
         "executor_captcha": route_event("captcha", actor="executor"),
         "direction_change_while_running": route_event(
-            "direction_change", actor="coordinator", running_block=True
+            "direction_change", actor="coordinator", mission_running=True
         ),
         "deadline": route_event("deadline", actor="coordinator"),
         "risk_needs_human": route_event(
@@ -120,14 +121,14 @@ def main() -> None:
         ),
     }
     expected = {
-        "correct_operation_wake": "EXECUTE_ONE_BLOCK",
+        "correct_operation_wake": "RESUME_MISSION",
         "operation_wakes_coordinator": "NO_ACTION",
-        "overlapping_operation_slot": "NO_ACTION",
+        "operation_wake_while_running": "NO_ACTION",
         "correct_supervisor_wake": "READ_ONLY_SUPERVISE",
         "supervisor_wakes_executor": "NO_ACTION",
-        "executor_candidate_outside_scope": "SKIP_WITHIN_BLOCK",
+        "executor_candidate_outside_scope": "SKIP_WITHIN_MISSION",
         "executor_captcha": "RELEASE_AND_RISK_EVENT",
-        "direction_change_while_running": "QUEUE_NEXT_VERSION",
+        "direction_change_while_running": "QUEUE_SAFE_BOUNDARY_VERSION",
         "deadline": "START_FINALIZATION",
         "risk_needs_human": "ASK_USER",
         "risk_auto_resume": "AUTO_RESUME_WAIT",

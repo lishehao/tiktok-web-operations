@@ -65,13 +65,14 @@ invent a fallback or silently strengthen, weaken, or substitute a model.
 ## Persistent coordinator/executor pair
 
 Use this reusable topology when one user-visible task must supervise one
-user-visible execution task over multiple bounded rounds:
+user-visible execution task over bounded rounds or one continuous resumable
+mission, as declared by the calling domain:
 
 ```text
 starter task becomes coordinator
   -> creates one persistent executor with create_thread
-  -> first bounded round runs immediately and is proven
-  -> executor callbacks coordinator after every bounded round
+  -> first real work runs immediately and is proven
+  -> executor checkpoints/callbacks at the calling domain's declared boundaries
   -> continuation follows the calling domain's declared scheduler topology
 ```
 
@@ -81,8 +82,10 @@ Keep each role single-purpose:
 Coordinator objective: advance or stop the authorized run at the correct time,
 and own every user decision.
 
-Executor objective: execute exactly the current bounded block, record evidence,
-release the external resource, callback, and become idle.
+Executor objective: execute exactly one accepted mission. A bounded-round domain
+ends after one round; a continuous domain keeps advancing until a natural
+runtime yield, blocker, or cutoff, then checkpoints, releases the external
+resource, callbacks, and becomes resumable.
 ```
 
 Treat strategy, policy, account, direction, capability matrix, deadline, and
@@ -125,12 +128,15 @@ enforces that contract but does not restate or broaden it.
   let both operate the same mutable surface.
 - Make the coordinator the only user-facing decision surface. A worker that
   encounters a block, validation failure, decision need, key risk, uncertain
-  external action, or terminal event must callback the coordinator, stop its
-  current work, and become idle. It must not ask the user to decide inside the
-  worker Thread, self-authorize recovery, or scatter risk handling across tasks.
-- Amortize callback overhead with meaningful bounded rounds. Routine per-item
-  progress stays in the ledger; callback only at round completion or on a
-  terminal event.
+  external action, or terminal event must checkpoint and callback the
+  coordinator. Stop the affected scope; a continuous domain may keep explicitly
+  independent safe lanes running under its accepted policy. It must not ask the
+  user to decide inside the worker Thread, expand recovery authority, or scatter
+  risk handling across tasks.
+- Amortize callback overhead with meaningful boundaries. Routine per-item
+  progress stays in the ledger. For a continuous domain, logical content units
+  do not force a callback; callback at a natural turn/runtime yield, blocker,
+  material checkpoint required by the domain, or terminal event.
 - Distinguish round completion, resource release, and whole-run completion.
   When the overall run ends, require one terminal executor callback proving
   release and final evidence before the coordinator marks `RUN_COMPLETED`.
@@ -174,10 +180,13 @@ After a callback:
   do not manufacture a user confirmation or recovery-tier choice
 - resume only after the user decides in the coordinator or a verifiable
   external-state change clears the blocker
-- remove completed threads from the active watchlist
+- remove a target from the active watchlist only when its whole run is terminal
+  or the calling domain retires it. A bounded-round completion or continuous-
+  mission checkpoint does not remove the persistent executor.
 
-For a persistent coordinator/executor run, ordinary `completed` means only that
-one bounded round finished. At deadline, user stop, or objective completion,
+For a persistent coordinator/executor run, ordinary `completed` or a mission
+checkpoint means only that recoverable progress was recorded. At deadline,
+user stop, or objective completion,
 follow the whole-run transaction in `references/identity-and-automation.md`:
 stop dispatch, obtain `EXECUTOR_RELEASED`, retire the exact managed heartbeat(s), reconcile
 the final ledger, then mark `RUN_COMPLETED`. If release proof is missing, use
@@ -281,18 +290,18 @@ Use heartbeat automation when soft hooks are unavailable or unreliable, the
 user wants proactive reminders, or a domain Skill defines a multi-round timed
 operation that needs a durable clock.
 
-For a multi-round time-bounded operation, use the topology declared by the
-calling domain:
+For a time-bounded operation, use the topology declared by the calling domain:
 
 - `coordinator_tick`: one coordinator-target durable timer;
 - `coordinator_managed_worker_tick`: one repeat-on operation heartbeat targeting
   the executor plus one lower-frequency repeat-on supervisor heartbeat targeting
   the coordinator.
 
-Callbacks mean “an event arrived”; a heartbeat means “time arrived.” Keep one
-logical automation per declared role, never one per block. A recurring worker
-operation must have `repeat=on` plus finite `UNTIL` or equivalent
-`operation_stop_at`; `COUNT=1` followed by worker self-renewal is invalid.
+Callbacks mean “an event arrived”; a heartbeat means “a continuation/recovery or
+supervision time arrived.” Keep one logical automation per declared role, never
+one per content unit or block. A recurring worker operation must have `repeat=on`
+plus finite `UNTIL` or equivalent `operation_stop_at`; `COUNT=1` followed by
+worker self-renewal is invalid.
 
 Create, update, pause, or delete every run heartbeat only from the verified
 coordinator/manager. The target may be the coordinator or exact executor as
@@ -301,7 +310,8 @@ created automation and verify exact ID, target, repeat state, next run, local/UT
 schedule, and cutoff. On mismatch follow
 `references/identity-and-automation.md` and take no external action.
 
-Heartbeat automations are stable mechanisms, not project status documents.
+Heartbeat automations are stable mechanisms and recovery carriers, not project
+status documents.
 Do not update a heartbeat just because a worker completed, a decision list changed,
 or a brief was refreshed. Put dynamic state in the coordinator thread, a management
 brief, or the user-facing report.
@@ -323,7 +333,9 @@ On a coordinator/supervisor heartbeat:
   - 5-7 minutes for validation or near-completion
   - 15-30 minutes for normal implementation
   - 30-60 minutes for long-running or low-risk tracking
-- delete the automation when no active thread or unacknowledged result remains
+- retire a run automation only when its domain declares the run terminal and
+  verifies external-resource release; ordinary reminder-only automations may be
+  deleted when no active thread or unacknowledged result remains
 
 A calling domain may set `heartbeat_receipt_policy=always_three_lines`. In that
 case, do not stay silent on healthy ticks. First update/reuse and read back the
@@ -343,17 +355,24 @@ For durable timed operation:
 
 - verify manager, target, role, run ID, automation ID, repeat state, current
   time, next run, and stop time;
-- the executor-target operation wake executes at most one deterministic bounded
-  slot, writes `planned|started|completed|blocked|missed`, callbacks, releases the
-  external resource, and idles; it never schedules the next slot;
+- in bounded-round topology, the executor-target wake executes at most one
+  deterministic round; in continuous-resumable topology, it resumes the same
+  accepted mission from the latest durable checkpoint when idle/yielded and does
+  no overlapping work when already running;
 - the coordinator-target supervisor wake reads the executor's new turn,
-  callback, proof, and slot ledger; it never operates the external system;
-- if a prior slot is still running/uncertain, do not overlap it; record the new
-  due slot as missed or blocked according to domain rules;
+  callback, proof, and either bounded-round slot state or continuous-mission
+  progress/resume state; it never operates the external system;
+- if the executor is already running, do not overlap it. If one mutation is
+  uncertain, freeze that exact action/lane but preserve unaffected work as the
+  domain permits;
 - missing repeat state, missing wake/new turn, missing proof, or broken next run
   is `SCHEDULER_CONTINUATION_FAILURE` and must be surfaced by the coordinator;
-- user mission changes update the same operation heartbeat; stop/completion
-  retires all exact run heartbeats only after terminal executor release proof.
+- ordinary page/network/Chrome/route/client-block/lane failures never pause or
+  delete a correctly bound Heartbeat. Preserve repeat-on state and let a later
+  wake recheck the exact auto-resume condition without asking whether to retry;
+- user mission changes update canonical state and the same operation Heartbeat
+  only when its stable template/cadence/target/cutoff changes. Stop/completion
+  retires all exact run Heartbeats only after terminal executor release proof.
 
 Reaching the final scheduled tick starts the stop/release transaction; it does
 not complete it.

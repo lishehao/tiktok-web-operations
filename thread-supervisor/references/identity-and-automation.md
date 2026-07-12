@@ -209,9 +209,10 @@ authority envelope, deadline, and executor role.
 1. Freeze new dispatch, set `executor_owner_state=REPLACEMENT_IN_PROGRESS`, and
    record the exact error plus `replacement_old_executor_thread_id`.
 2. View every automation recorded in this run and, when inventory is available,
-   search for the same run ID targeting the old executor. Pause/delete only
-   exact matching automations before replacement. Require
-   `orphan_automation_check=CLEAR`; never mutate another run's automation.
+   search for the same run ID targeting the old executor. Record exact old
+   operation Heartbeat IDs, but do not pause/delete them yet; the replacement
+   transaction must not create a continuation gap. Never mutate another run's
+   automation.
 3. Append the old ID to `retired_executor_thread_ids` as
    `STALE_OWNER_TOMBSTONE`; never mutate the accepted registry generation, send
    to that old ID, or automatically unarchive it again.
@@ -224,11 +225,13 @@ authority envelope, deadline, and executor role.
    against the exact new ID. Record
    `replacement_mission_dispatch_id`; do not perform TikTok mutation until the
    new executor acknowledges the registry and mission.
-6. Recreate/update the run's operation heartbeat to target the exact new ID;
-   verify ID, target, run, repeat, next run, and cutoff by readback. Record
-   `replacement_operation_heartbeat_id`. Re-verify coordinator-target supervisor
-   heartbeat without changing its target.
-7. Require zero automations targeting the old ID and exactly one canonical live
+6. Create a new operation Heartbeat targeting the exact new ID; verify ID,
+   target, run, repeat, next run, and cutoff by readback before changing the
+   canonical binding. Record `replacement_operation_heartbeat_id`. Re-verify the
+   coordinator-target supervisor Heartbeat without changing its target. Only
+   after the new Heartbeat is proven and the registry points to it, pause/delete
+   the exact old-target run Heartbeats.
+7. Require zero active automations targeting the old ID and exactly one canonical live
    executor. Set `orphan_automation_check=CLEAR`,
    `duplicate_canonical_owner_check=CLEAR`, and `executor_owner_state=REPLACED`;
    retain old/new IDs and binding evidence in the registry/ledger.
@@ -291,12 +294,16 @@ automations or `COUNT=1` followed by worker self-renewal.
 6. Require every readback to match kind, status, name, run ID, target, repeat-on
    state when required, next run, local/UTC schedule, and finite cutoff. Store
    IDs/targets only after this proof.
-7. If readback is missing or mismatched, mark `AUTOMATION_TARGET_MISMATCH`,
-   disable continuation, and do not dispatch external work from that heartbeat.
+7. If readback is missing or mismatched, mark `AUTOMATION_TARGET_MISMATCH` and
+   do not dispatch external work from that heartbeat. Preserve any previously
+   verified timer. Create and verify one correct replacement first; only then
+   atomically switch the registry binding and retire the invalid timer.
 
-If the current transaction itself created a misbound heartbeat and no firing is
-possible or in flight, delete that exact automation immediately and report the
-failed transaction. Never delete or retarget a pre-existing automation with a
+If the current transaction itself created a misbound Heartbeat, create and read
+back one correctly bound replacement before deleting the misbound timer. If the
+replacement cannot be verified, keep any previously verified continuation
+timer active; isolate the misbound timer from external work and report the
+scheduler blocker. Never delete or retarget a pre-existing automation with a
 different manager; report it to the user or its verified manager.
 
 ## Heartbeat update and deletion
@@ -312,9 +319,30 @@ If any check fails, do not mutate the automation. Return
 `AUTOMATION_OWNERSHIP_MISMATCH` with expected and actual IDs.
 
 When updating, preserve stable fields and change only cadence, active watchlist,
-notification policy, or stop time authorized by the user/domain envelope. When
-the run retires, the verified coordinator deletes or pauses only its registered
-heartbeat and clears the automation fields from its registry.
+notification policy, target replacement, or stop time authorized by the
+user/domain envelope. A page, action, network, Chrome, route/client-block,
+renderer, callback, or lane failure is never a reason to pause/delete a correctly
+bound run Heartbeat. When replacing an invalid timer, prove the new timer and
+switch the registry binding before retiring the old one. When the run retires
+after terminal release, the verified coordinator deletes or pauses only its
+registered Heartbeat and clears the automation fields from its registry.
+
+### Heartbeat survival decision table
+
+| Event | Timer action |
+|-|-|
+| Network timeout/reset/DNS change | Keep operation and supervisor Heartbeats repeat-on; later wake runs bounded recovery |
+| `ERR_BLOCKED_BY_CLIENT`, route fault, blank renderer, Chrome disconnect | Keep timers; preserve exact failure and auto-resume condition |
+| One action lane fails persistence | Keep all timers; suspend only that lane |
+| Mutation submission is uncertain | Keep timers; never retry that submission; other safe lanes may continue under domain policy |
+| CAPTCHA/login/rate limit/current warning | Keep timers; later wake may perform only the safe state recheck until cleared |
+| Heartbeat is misbound/duplicate/misconfigured | Create and verify correct replacement, switch binding, then retire old timer |
+| User stop, mission deadline, authorized objective complete | Keep timers until terminal external-resource release proof, then retire them |
+
+There is no generic `failure -> delete Heartbeat` transition. A technical
+failure may change work state, retry scope, or user reporting, but not timer
+liveness. Do not ask the user whether to retry an ordinary technical failure;
+retry automatically on the later valid wake within the original mission.
 
 ## Heartbeat firing gate
 
@@ -327,12 +355,17 @@ before reading or acting:
 2. The automation ID equals the registered ID for that role.
 3. The active executor ID, run ID, account/project, authority envelope, and stop
    time match the registry.
-4. The executor is idle and the prior block has a terminal callback.
-5. The circuit is closed and the stop time has not passed.
+4. The executor is either idle/yielded with a valid resume checkpoint, or the
+   wake is supervisor-only. If already running, take no overlapping action.
+5. The stop time has not passed. A lane-local or recoverable technical circuit
+   may remain open; the wake may perform only its recorded safe recheck and then
+   resume unaffected work when the exact condition clears.
 
 If the wakeup lands in the wrong Thread, do not forward it, operate the external
 system, dispatch the executor, or adopt that automation. Report
-`MISBOUND_HEARTBEAT_NO_ACTION` and stop.
+`MISBOUND_HEARTBEAT_NO_ACTION`. The verified coordinator then performs a no-gap
+replacement: create/read back the correct timer, switch the registry binding,
+and only afterward retire the misbound timer.
 
 ## Heartbeat receipt transaction
 

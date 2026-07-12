@@ -26,8 +26,8 @@ generic registry, callback, heartbeat, and lifecycle mechanics.
 
 | Thread | Owns | Must not do |
 |-|-|-|
-| Current starter task, final title `TikTok 主控台` | One objective: advance or stop the authorized run at the correct time and own every user decision | Navigate or operate TikTok |
-| `execution_thread` — final title `TikTok 执行台` | One objective: execute exactly the current bounded block, record evidence, release Chrome, callback, and idle | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
+| Current starter task, final title `TikTok 主控台` | One objective: keep the authorized mission advancing until stop/completion and own every user decision | Navigate or operate TikTok |
+| `execution_thread` — final title `TikTok 执行台` | One objective: continuously advance the accepted mission, checkpoint recoverably, and release/callback on yield, blocker, or stop | Broaden scope, infer approval, alter strategy, create other Threads, or contact the Skill-development Thread |
 
 Direction, persona, authorization, capability matrix, risk rules, ledger, and
 deadline are role inputs and constraints. They are never additional independent
@@ -79,7 +79,7 @@ Before starting, changing, resuming, or recovering any operating mission, read
 | Healthy handoff followed by `继续`, `开始`, a direction, duration, intensity, or action list | Resolve the latest explicit fields, keep this task as coordinator, create one persistent executor, obtain first operation proof, and begin without reconfirming supplied values. |
 | `找热点`, `做选题`, `研究竞品` | Research only; do not mutate TikTok. |
 | `刷视频`, `看看推荐`, `找能评论的视频` | Browse a bounded sample; do not infer permission for likes, favorites, reposts, follows, or comments. |
-| `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Keep this task as coordinator and dispatch bounded blocks to its one persistent execution Thread with `send_message_to_thread`. |
+| `持续刷`, `定向刷`, `垂直刷`, `养推荐流`, `两个 Thread 运营` | Keep this task as coordinator and run one continuous, resumable, deadline-bounded mission in its persistent execution Thread. |
 | `刷视频并互动`, `点赞收藏评论`, `收藏并 repost`, `去发几个评论` | Find strong core candidates and use only independently verified like, favorite, repost, or proactive-comment lanes covered by the exact standing envelope. Treat Repost as distinct from generic Share. |
 | `评论不用问我`, `自动发短评论` | Activate `autonomous_comment_mode` only for the exact account/audience/voice envelope; enforce the 30-word hard limit and every persistence stop rule. |
 | `发视频`, `上传`, `排期` | Validate the exact asset/settings, confirm, execute one item, and verify. |
@@ -136,16 +136,18 @@ consumption, and comment voice. For a custom direction, ask one necessary
 question when they cannot be safely inferred; do not silently collapse a broad
 topic such as `dogs` into a Chinese- or English-only audience.
 
-When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. Any later explicit direction, duration, intensity, or action change supersedes the corresponding old mission fields and updates the executor authority envelope before the next block without a second confirmation.
+When the healthy user replies `继续` or `开始` without specifics, use North American college/dorm life for 3 hours at standard intensity. If the user supplies only direction or only duration, fill the other field from that default and start without another confirmation. Any later explicit direction, duration, intensity, or action change supersedes the corresponding old mission fields and updates the executor authority envelope at the next safe item boundary without a second confirmation.
 
 ## Operating Stage Gate
 
 Before either Thread acts, read `references/role-and-stage-contract.md`, record
 exactly one current stage, and require the previous stage's exit proof. The main
 console chooses the next bounded outcome; the executor makes only candidate-
-level judgments inside that accepted block. One executor wake means one block,
-one released Chrome session, one callback, then idle. A timer never changes a
-stage or proves completion by itself.
+level judgments inside that accepted mission. One executor activation may finish
+multiple logical training units and Feed checkpoints. It yields only at a natural
+runtime boundary, current blocker, or cutoff, with a durable checkpoint, owned-
+tab release, and callback. A timer never defines unit duration, changes a stage,
+or proves completion by itself.
 
 ## Control Rules
 
@@ -179,27 +181,41 @@ stage or proves completion by itself.
   callbacks, and heartbeat prompts use exact registry/direction/authority/mission
   references and never retype those values as natural-language snapshots.
 - Keep immutable identity separate from versioned direction/authority/mission
-  objects and mutable owner/heartbeat/slot/finalization state. Re-read their
+  objects and mutable owner/heartbeat/progress/resume/finalization state. Re-read their
   accepted hashes plus exact tool target IDs before every dispatch, callback,
   heartbeat, stop, replacement, or archive. Any unresolved reference mismatch
   stops before Chrome and enters one bounded `REGISTRY_RECONCILIATION`; it never
   triggers repeated prompt rewriting.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
-- Run the first real bounded block immediately in the current user turn and
-  accept it only from real proof. For a multi-block timed run, the coordinator
-  then creates two long-running repeat-on Heartbeats: operation targets the exact
-  executor; lower-frequency supervisor targets the exact coordinator. Both have
+- Start the real continuous mission immediately in the current user turn and
+  accept its first search-training proof from real evidence. For a timed run,
+  the coordinator then creates two long-running repeat-on Heartbeats: operation
+  targets the exact executor as a continuation/recovery carrier; lower-frequency
+  supervisor targets the exact coordinator. Both have
   finite `UNTIL`/`operation_stop_at` protection and verified next-run local/UTC
   readback. Never implement continuation as `COUNT=1` plus worker self-renewal.
-- Run exactly one bounded block per executor wake/turn. The executor records
-  `planned|started|completed|blocked|missed`, releases Chrome, callbacks, and
-  idles. It never creates, updates, renews, pauses, or deletes an automation.
-  The coordinator updates the same operation heartbeat when the user changes the
-  mission and retires both exact Heartbeats after final release proof.
-- The supervisor heartbeat is read-only. It verifies real executor wake/new
-  turn/proof and the slot ledger. A missing repeat state, wake, callback, proof,
-  or next run is `SCHEDULER_CONTINUATION_FAILURE`; it reports to `TikTok 主控台`
-  and never touches Chrome or performs mutation.
+- If an operation wake finds the executor already running, do no overlapping
+  work. If it finds the executor yielded/idle before cutoff or a safe automatic
+  retry condition due, resume the same mission from its validated checkpoint.
+  The executor never creates, updates, renews, pauses, or deletes an automation.
+  The coordinator updates Heartbeat configuration only when its stable template,
+  cadence, target, or cutoff changes and retires both exact Heartbeats only after
+  final release proof.
+- The supervisor Heartbeat is read-only. It verifies executor liveness, new
+  turn/proof, recent ledger progress, resume state, repeat binding, next run, and
+  cutoff. A broken continuation chain is `SCHEDULER_CONTINUATION_FAILURE`; it
+  repairs/report through `TikTok 主控台` and never touches Chrome or performs
+  mutation.
+- Keep every correctly bound run Heartbeat repeat-on through ordinary page,
+  network, Chrome, route/client-block, rendering, Feed-transition, and lane
+  failures. A later wake automatically retries the safe failed surface and
+  continues unaffected work. Never ask whether to retry a normal technical
+  failure. Uncertain mutation freezes only that exact action/lane and is never
+  retried; it does not retire any Heartbeat.
+- Retire Heartbeats only after explicit user stop, `operation_stop_at`, objective
+  completion plus terminal executor release, or verified no-gap replacement of
+  a misbound/duplicate/misconfigured timer. Create/read back the replacement,
+  switch the registry binding, then retire the old timer.
 - Set `heartbeat_receipt_policy=always_three_lines`. After both Heartbeats are created and
   every valid supervisor tick, first view/read back the exact registered automations, then
   tell the user in exactly three lines what finished, the verified next local
@@ -278,8 +294,9 @@ transaction`, and `Simple user result` sections in
 `references/operating-model.md`. Do not copy or locally reconstruct those
 schemas in dispatch prompts.
 
-Core invariants remain: callback after every bounded block; every non-
-`completed` result requires coordinator handling; the executor asks no user
-question and becomes idle; ordinary completion is not whole-run completion;
-terminal completion requires verified executor release. Ordinary evidence stays
-in the ledger, and user-facing timed receipts never add a fourth line.
+Core invariants remain: every natural yield, blocker, or terminal event gets a
+durable checkpoint/callback; every non-`completed` result requires coordinator
+handling without deleting Heartbeats; the executor asks no user question;
+ordinary progress is not whole-run completion; terminal completion requires
+verified executor release. Ordinary evidence stays in the ledger, and user-
+facing timed receipts never add a fourth line.

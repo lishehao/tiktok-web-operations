@@ -108,7 +108,7 @@ whether a mutation was in flight, submission certainty, `likely_cause`,
    target-page scope.
 5. Reopen the exact target URL and re-confirm the expected TikTok account,
    login state, explicit warning/challenge state, and submission certainty.
-6. Resume the bounded block only after those checks pass. Record
+6. Resume the active mission from its durable checkpoint only after those checks pass. Record
    `recovered=true`, `account_reverified=true`, and the final scope. A recovered
    transient error does not disable a mutation lane or terminate a long run.
 
@@ -121,8 +121,10 @@ Do not add a fourth line.
 The sequence permits at most two page attempts after the first failure: one
 same-URL retry and, when necessary, one fresh-tab retry/diagnostic sequence.
 Never loop, reload repeatedly, alter proxy/TLS settings, or use another browser.
-If the same failure remains after this sequence, stop the current block, release
-owned tabs, preserve the ledger, and callback the coordinator. CAPTCHA, login or
+If the same failure remains after this sequence, yield the current mission,
+release owned tabs, preserve the ledger and exact auto-resume condition, and
+callback the coordinator. Keep both correctly bound run Heartbeats repeat-on so
+a later wake can retry automatically. CAPTCHA, login or
 account mismatch, explicit warning/restriction, HTTP 429, or uncertain
 submission bypasses ordinary retry and returns immediately as platform risk.
 
@@ -135,7 +137,7 @@ extension/filter rule for `ERR_BLOCKED_BY_CLIENT`; or manually resolve visible
 login/challenge UI. The executor never clears cookies, changes proxy/DNS/TLS,
 disables extensions, switches browsers, or repeats an uncertain mutation.
 
-Never carry a tab ID across turns. At normal executor block start, create a tab with `chrome.tabs.new()` and use that returned object. Reuse a tab only when it is already part of this executor's current control session. `user.openTabs()` plus `user.claimTab()` is allowed only for an explicit user-requested handoff or continuation of a known unclaimed tab; never guess or touch another app task's tab.
+Never carry a tab ID across turns. At normal executor activation/resume, create a tab with `chrome.tabs.new()` and use that returned object. Reuse a tab only when it is already part of this executor's current control session. `user.openTabs()` plus `user.claimTab()` is allowed only for an explicit user-requested handoff or continuation of a known unclaimed tab; never guess or touch another app task's tab.
 
 Resolve the current Chrome Skill/runtime from the current turn's Skill catalog and record the plugin root. Import `<plugin-root>/scripts/browser-client.mjs`; the Skill file lives below `<plugin-root>/skills/control-chrome/`, but the runtime module does not. Never reuse a versioned cache path copied from a prior prompt, ledger, run, or memory. Prefer supported Playwright locators; do not pass DOM-CUA objects/circular structures as coordinates, use unavailable page globals such as `NodeFilter`, or run broad text walkers to diagnose state.
 
@@ -160,7 +162,11 @@ TikTok pages often render in stages. A search or upload page may expose only a s
 
 Do not treat a click, red heart, toast, count animation, or successful network response as final proof of an engagement action. Verify each lane with the action-specific settlement and persistence checks in `engagement-and-analytics.md`.
 
-Apply the bounded recovery budget in `stability-and-circuit-breakers.md`. One bounded recovery sequence is allowed per distinct failure class in a block. Persistent same-class failure after the sequence callbacks the coordinator; the executor never silently exits a long run or self-restarts.
+Apply the bounded recovery budget in `stability-and-circuit-breakers.md`. One
+bounded recovery sequence is allowed per distinct failure class per activation.
+Persistent same-class failure after the sequence checkpoints and callbacks the
+coordinator; the executor never deletes a Heartbeat, silently abandons the
+mission, self-restarts, or asks whether to retry an ordinary technical failure.
 
 ## Capability evidence isolation
 
@@ -184,4 +190,7 @@ Store account handles, test URLs, timestamps, and raw persistence evidence only 
 
 Verify scheduling support in the live TikTok Studio UI. Record both local time and timezone. If a Codex automation is used for a later review, validate the scheduler's actual `next_run_at`; do not assume local-hour RRULE semantics.
 
-Heartbeats are read-only by default. They may inspect account state, comments, analytics, or a scheduled post. They must not publish, reply, edit, or delete without action-time confirmation.
+The supervisor Heartbeat is always read-only. The operation Heartbeat may resume
+the already authorized continuous mission from its validated checkpoint; it
+never expands action authority or retries an uncertain submission. Neither
+Heartbeat is retired for an ordinary technical or lane failure.

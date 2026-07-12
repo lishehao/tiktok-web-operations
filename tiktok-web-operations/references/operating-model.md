@@ -87,16 +87,17 @@ accepts defaults:
    coordinator ID. Verify callback source, payload IDs, profile, and hash.
 9. Dispatch one read-only `stability_smoke_01` to the exact executor ID. Require
    the acceptance criteria in `stability-and-circuit-breakers.md` before any
-   full calibration block or mutation.
-10. Execute and validate the first real bounded block immediately in the current
-    user turn. Do not defer first proof to a timer.
-11. For a multi-block timed run, the verified coordinator creates two recurring
-    automations: `operation_heartbeat` with explicit
+   full calibration mission or mutation.
+10. Start the real mission immediately in the current user turn and validate its
+    first search-training evidence. Do not defer first proof to a timer.
+11. For a timed continuous run, the verified coordinator creates two recurring
+    automations: continuation/recovery `operation_heartbeat` with explicit
     `targetThreadId=executor_thread_id`, and lower-frequency
     `supervisor_heartbeat` with explicit
     `targetThreadId=coordinator_thread_id`. Both are `repeat=on`, use finite
     `UNTIL` or equivalent `operation_stop_at`, and must pass exact ID/target/
-    repeat/next-run/local+UTC/deadline readback. The executor never manages them.
+    repeat/next-run/local+UTC/deadline readback. Their recurrence is not a work
+    quota or a block-duration promise. The executor never manages them.
 12. Keep both tasks unarchived. Pin only `TikTok 主控台`; keep `TikTok 执行台`
     unpinned. Navigate the app to the coordinator when useful.
 
@@ -139,11 +140,12 @@ Use `set_thread_pinned` when available to pin the coordinator and unpin the
 executor. Missing presentation-only pin/navigation tools do not block operation;
 record the unavailable action internally.
 Require `automation_update` when the resolved run is timed and expected to span
-more than one bounded block, or when the user requests unattended continuation.
+more than one model/runtime turn, or when the user requests unattended continuation.
 It must support explicit cross-thread `targetThreadId`, repeat-on recurrence,
 finite stop protection, and view readback. If unavailable, mark scheduled
 continuation degraded and say that multi-hour persistence is unavailable; never
-fake it with `COUNT=1`, worker self-renewal, or a turn kept open.
+fake it with `COUNT=1`, worker self-renewal, or an assumption that one turn will
+remain open for the whole mission.
 
 TikTok operations explicitly require `gpt-5.6-luna` plus `thinking=high` for the
 starter coordinator, executor creation, and operational dispatches. This is a
@@ -158,41 +160,68 @@ Fast Mode unless the tool surface exposes and confirms that field.
 
 Follow `role-and-stage-contract.md` for the coordinator loop, executor
 discretion, risk routing, and mission-change boundary. This mechanics reference
-only enforces the accepted canonical references, one active block, callback
-identity, exact automation binding, and terminal release proof.
+only enforces the accepted canonical references, one active mission, resumable
+checkpoint identity, exact automation binding, and terminal release proof.
 
-## Durable operation scheduler
+## Durable continuation and stop scheduler
 
 Create both logical heartbeats only after coordinator identity, executor
-handshake, stability smoke, and one immediate real block are verified. Store
+handshake, stability smoke, and immediate real mission proof are verified. Store
 their exact IDs, manager/targets, repeat state, next runs, local/UTC schedule,
 `operation_stop_at`, and `heartbeat_receipt_policy=always_three_lines`.
 
-- Operation heartbeat: target the exact executor, `repeat=on`, fixed recurrence,
-  finite `UNTIL` or equivalent cutoff. Every wake maps to one deterministic
-  `slot_id` and at most one bounded block.
+- Operation heartbeat: target the exact executor, `repeat=on`, finite `UNTIL` or
+  equivalent cutoff. It is a continuation/recovery carrier. If the executor is
+  already advancing the mission, the wake records healthy/no-overlap and does
+  no external work. If the executor yielded, became idle before the deadline,
+  or an automatic retry condition is due, it resumes from the latest validated
+  ledger checkpoint. It never defines how long a training unit should take.
 - Supervisor heartbeat: target the exact coordinator, `repeat=on`, lower
-  frequency, same cutoff. It reads thread state, callbacks, and the slot ledger;
-  it never operates TikTok or dispatches an overlapping ad-hoc block.
-- The slot ledger records `planned`, `started`, `completed`, `blocked`, or
-  `missed`, plus scheduled local/UTC time, observed wake turn, callback/proof,
-  and mutation certainty. The executor writes execution states; the coordinator
-  reconciles them read-only.
-- On an operation wake, verify identity/time/slot. If the previous slot is still
-  running or uncertain, record the new slot `missed` and do nothing. At or after
-  stop time, perform no new TikTok action and callback for terminal handling.
-- On a supervisor wake, verify that every due slot has a real executor wake/new
-  turn and proof. Missing repeat state, missing wake, missing proof, or a broken
-  next run is `SCHEDULER_CONTINUATION_FAILURE`; report it to the coordinator and
-  pause scheduled continuation without touching Chrome.
-- User mission changes are applied by the coordinator updating the same
-  operation heartbeat. Stop/completion deletes or pauses both exact heartbeats
-  only after terminal executor release proof.
+  frequency, same cutoff. It reads thread state, callbacks, and progress proof;
+  it never operates TikTok or dispatches over an already running mission.
+- The continuation ledger records wake time, executor state
+  `running|yielded|recovering|blocked|terminal`, last validated progress
+  checkpoint, next retry condition, callback/proof, and mutation certainty.
+  Content training units remain in the raw execution ledger; they are not timer
+  slots.
+- On an operation wake, verify identity, deadline, current executor state, and
+  checkpoint. Resume only when not already running and the exact auto-resume
+  condition permits it. At or after stop time, perform no new TikTok action and
+  enter terminal handling.
+- On a supervisor wake, verify repeat state, next run, recent ledger progress,
+  executor liveness, and terminal cutoff. A missing/broken continuation chain is
+  `SCHEDULER_CONTINUATION_FAILURE`; repair the same run binding without touching
+  Chrome. Do not delete a healthy timer because page work failed.
+- User mission changes are applied by the coordinator to canonical mission
+  references. Update the Heartbeat only when its stable operation template,
+  cadence, target, or cutoff actually changes.
 - Never use `COUNT=1` and depend on the executor to schedule the next wake. Never
   let the executor create, update, renew, pause, or delete an automation.
 - If automation support is unavailable, mark scheduled continuation `DEGRADED`,
-  disclose that multi-hour timing is unavailable, and never fake persistence by
-  keeping a turn open.
+  disclose that durable recovery/stop timing is unavailable, and never fake
+  persistence by assuming one turn will remain open.
+
+### Heartbeat survival invariant
+
+A correctly bound run Heartbeat remains repeat-on and active through ordinary
+page, network, Chrome disconnect, route/client-block, renderer, Feed transition,
+and lane-specific mutation failures. These failures update the run ledger and
+auto-resume condition; they do not delete, pause, or recreate the timer. A later
+wake automatically retries only the safe failed surface and continues unaffected
+lanes without asking the user whether to retry.
+
+Uncertain mutation freezes only that exact target/action or affected mutation
+lane until certainty is resolved. The operation and supervisor Heartbeats remain
+active, read-only search work may continue when safe, and the uncertain action is
+never retried.
+
+Retire a run Heartbeat only after explicit user stop, mission deadline,
+authorized objective completion plus terminal executor release, or verified
+replacement of a misbound/duplicate/misconfigured timer. For timer replacement,
+create and read back the correct replacement first, prove repeat/target/next-run/
+cutoff, atomically update the registry binding, then pause/delete the old timer.
+If replacement validation fails, preserve the old timer when safe and report a
+scheduler blocker; never create a continuation gap.
 
 ### Three-line heartbeat receipt
 
@@ -211,16 +240,16 @@ local tick, normally the earlier of operation or supervisor wake.
 Only then persist/report the time. Use the user's local timezone and include the
 date. Do not show an automation ID.
 
-- Executor running: `本轮完成` states the verified progress/state; `下轮计划`
-  says to wait for its callback and never dispatch overlapping work.
-- Executor idle and healthy: report the one bounded block just dispatched or
-  planned.
+- Executor running: `本轮完成` states verified cumulative progress; `下轮计划`
+  says continuous training remains active and never dispatches overlapping work.
+- Executor yielded/idle before deadline: report the durable checkpoint and the
+  verified continuation wake or immediate resume.
 - Risk/decision pending: report the verified next safety/deadline tick when one
   remains; `本轮完成` contains exact code, `可能原因`, and attempted recovery;
   `下轮计划` contains the minimal user action and says no new TikTok action will
   run meanwhile. Do not add a fourth line.
-- Schedule update/readback failure: use
-  `下次心跳：未建立（调度校验失败）` and safely pause.
+- Schedule update/readback failure: keep any last verified timer active, use
+  `下次心跳：未确认（调度校验失败）`, and plan a no-gap binding repair.
 - Final tick: use `下次心跳：无（进入终止结算）` and plan to obtain final executor
   release proof.
 - Finalized run: use `下次心跳：无（任务已完成）`; the whole-run compact result may
@@ -251,7 +280,9 @@ credential, cookie, browser state, or content history.
   Chrome/TikTok. Do not interrupt an in-progress executor.
 - On ordinary healthy progress emit only the fixed three-line heartbeat receipt.
   A missed callback or non-completed state follows the main-console risk
-  consolidation contract and pauses new dispatch until the user decides there.
+  consolidation contract while both run Heartbeats remain active. Ask the user
+  only when `decision_required=true`; otherwise the next wake rechecks the exact
+  `auto_resume_condition` and continues automatically.
 - At the overlay's final checkpoint, early user stop, or run end, persist
   `CONSUMED`. Do not delete either run heartbeat before terminal executor
   release; retire both during whole-run
@@ -261,14 +292,14 @@ credential, cookie, browser state, or content history.
   callback-only supervision once in `TikTok 主控台`, then treat the one-time window as
   consumed rather than retrying on every future mission.
 
-## Execution envelope
+## Mission execution envelope
 
-Every dispatch is a canonical `block_dispatch/v1` object with exact
+Every run uses a canonical `mission_dispatch/v2` object with exact
 `registry_ref`, `direction_ref`, `authority_ref`, and `mission_ref`, plus the
-bounded block/slot ID, trigger, search clusters, sample parameters, capability
-snapshot reference, circuit state, and callback schema version. Full structured
-objects are retrieved from their accepted artifacts; do not duplicate them as
-hand-written prose in the dispatch.
+mission generation, trigger/resume cursor, search clusters, sample thresholds,
+capability snapshot reference, lane states, and callback schema version. Full
+structured objects are retrieved from their accepted artifacts; do not duplicate
+them as hand-written prose in the dispatch.
 
 Before Chrome, reject an unknown or mismatched reference as
 `registry_mismatch` and run at most one `REGISTRY_RECONCILIATION`. A legitimate
@@ -296,7 +327,7 @@ a Skill-development/bootstrap task as callback target.
 
 ```text
 status: completed | blocked | validation_failed | needs_decision | key_risk
-callback_scope: block | run_terminal
+callback_scope: mission_checkpoint | risk_event | run_terminal
 terminal_event: NONE | EXECUTOR_RELEASED
 release_state: NONE | STOPPED_AND_RELEASED | RELEASE_UNVERIFIED
 run_completion_reason: NONE | deadline_reached | user_stopped | objective_complete | terminal_risk | cancelled
@@ -314,12 +345,11 @@ replacement_old_executor_thread_id:
 replacement_new_executor_thread_id:
 orphan_automation_check: NOT_RUN | CLEAR | FAILED
 duplicate_canonical_owner_check: NOT_RUN | CLEAR | FAILED
-block_id:
-trigger: direct_first_block | direct_manual | operation_heartbeat
-slot_id:
-slot_scheduled_local:
-slot_scheduled_utc:
-slot_state: planned | started | completed | blocked | missed
+segment_id:
+trigger: direct_first_segment | direct_manual | operation_heartbeat | coordinator_resume
+executor_state: running | yielded | recovering | blocked | terminal
+resume_checkpoint_ref:
+resume_condition:
 summary:
 sample_counts:
 search_results_assessed:
@@ -353,10 +383,11 @@ safe_to_continue_read_only: true | false
 decision_required: true | false
 decision_options:
 ledger_path:
-recommended_next_block:
+recommended_mission_adjustment:
 ```
 
-Every non-`completed` callback pauses the affected scope. Set
+Every non-`completed` callback suspends only the affected scope. It never retires
+either correctly bound Heartbeat. Set
 `decision_required=true` only when a human action/choice is needed; its
 `decision_options` contains zero to three coordinator-ready choices, never a
 question addressed to the executor Thread. A current platform wait with an exact

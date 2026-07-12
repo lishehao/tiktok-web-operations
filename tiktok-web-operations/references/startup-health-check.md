@@ -105,7 +105,7 @@ Run checks in order:
    temporary nonce/title and then restore a user-friendly bootstrap title.
 7. Prove a writable private canonical-object store can persist exact UTF-8 bytes
    and SHA-256 references for bootstrap, identity registry, direction,
-   authority, and mission objects. Prove mutable owner/automation/slot state is
+   authority, and mission objects. Prove mutable owner/automation/progress/resume state is
    stored separately. Do not use natural-language summaries as canonical data.
 8. Prove executor creation and operational dispatch support
    `model=gpt-5.6-luna` with `thinking=high`. This TikTok profile is mandatory.
@@ -191,25 +191,28 @@ Follow `role-and-stage-contract.md` for ownership/stages and
    account/tab control, parseable incremental ledger, and zero mutation. For You
    success verifies the optional validation lane; native-feed failure alone
    degrades that lane and does not block search-led operation.
-6. The first real bounded block runs immediately in this user turn and must be
-   accepted from proof; do not wait for the scheduler to establish baseline
-   capability.
-7. If the resolved duration exceeds one bounded block, the verified coordinator
-   now creates two long-running repeat-on heartbeats. The operation heartbeat
-   targets the exact executor ID and has finite `UNTIL`/`operation_stop_at`; the
-   lower-frequency supervisor heartbeat targets the exact coordinator ID and
-   uses the same stop guard. View both exact automation IDs and verify target,
-   repeat-on, next run, local/UTC schedule, and deadline. The executor never
-   creates, renews, updates, or deletes either heartbeat. `COUNT=1` plus worker
-   self-continuation is invalid.
+6. The real continuous mission starts immediately in this user turn and must
+   produce accepted first search-training proof; do not wait for a timer to
+   establish baseline capability.
+7. If the resolved duration may span more than one model/runtime turn, the
+   verified coordinator now creates two long-running repeat-on heartbeats. The
+   operation heartbeat targets the exact executor ID and carries continuation,
+   automatic retry, and deadline recovery with finite `UNTIL`/
+   `operation_stop_at`; the lower-frequency supervisor heartbeat targets the
+   exact coordinator ID and uses the same stop guard. View both exact automation
+   IDs and verify target, repeat-on, next run, local/UTC schedule, and deadline.
+   The executor never creates, renews, updates, pauses, or deletes either
+   heartbeat. `COUNT=1` plus worker self-continuation is invalid.
 8. If durable install state is `PENDING`, the supervisor heartbeat consumes the
    one-time first-hour checks near `+15/+35/+60`, capped by stop time. It reads
-   only executor turns/callbacks and planned/started/completed/blocked/missed slot
-   ledger state; it never touches TikTok.
-9. Only after primary smoke and both required bindings verify may scheduled
-   blocks begin. Keep both tasks persistent and unarchived; pin only the
+   only executor turns/callbacks, recent ledger progress, resume state, and
+   deadline; it never touches TikTok.
+9. Only after primary smoke and both required bindings verify may unattended
+   continuation begin. Keep both tasks persistent and unarchived; pin only the
    coordinator. Missing repeat/wake/proof is
-   `SCHEDULER_CONTINUATION_FAILURE`, not successful persistence.
+   `SCHEDULER_CONTINUATION_FAILURE`, not successful persistence. Page, network,
+   Chrome, route, client-block, or lane failure must leave both correctly bound
+   Heartbeats repeat-on for a later automatic recovery wake.
 
 If creation, registry, callback, or smoke fails, do not casually create another
 task or claim stable operation. A definitive `STALE_OWNER_TOMBSTONE` uses its

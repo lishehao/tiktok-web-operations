@@ -72,22 +72,25 @@ user-visible executor. Neither Thread may call `create_goal`, `update_goal`,
 Chrome. The executor never creates a replacement for itself or manages an
 automation.
 
-An idle Thread is healthy persistent state. Do not use Goal Mode or an executor-
-owned one-shot timer. Treat every executor wake/message as one bounded round: it
-records a slot state, executes at most one block, releases Chrome, callbacks, and
-becomes idle.
+An idle/yielded Thread with a durable resume checkpoint is healthy persistent
+state. Do not use Goal Mode or an executor-owned one-shot timer. During one
+activation the executor may complete multiple logical training units and Feed
+checkpoints. It continues until a natural model/runtime boundary, current
+blocker, or mission cutoff; then it writes a checkpoint, releases Chrome,
+callbacks, and becomes resumable.
 
-For an unattended multi-round run, after the immediate first block is proven,
+For an unattended continuous run, after immediate first mission proof,
 the verified coordinator creates and manages two distinct recurring Heartbeats:
 
 1. `operation_heartbeat`: explicit `targetThreadId=executor_thread_id`,
    `repeat=on`, finite `UNTIL` or equivalent `operation_stop_at` guard. It wakes
-   the executor for one bounded block per slot. It is never `COUNT=1` followed by
-   executor self-renewal.
+   the executor to resume from the last validated checkpoint when idle/yielded
+   or when an automatic retry condition is due. If already running, it does no
+   overlapping work. It is never `COUNT=1` followed by executor self-renewal.
 2. `supervisor_heartbeat`: explicit `targetThreadId=coordinator_thread_id`,
    lower frequency, `repeat=on`, and the same finite stop guard. It is read-only
-   and verifies executor wakes, new turns, callbacks, and the planned/started/
-   completed/blocked/missed slot ledger.
+   and verifies executor liveness, new turns, callbacks, recent progress proof,
+   resume state, and the deadline.
 
 The coordinator creates, views, updates, pauses, and deletes both automations.
 The executor may receive the operation heartbeat but never creates, updates,
@@ -95,11 +98,23 @@ renews, pauses, or deletes either one. After creation, require readback proof of
 each exact automation ID, target, repeat state, next run, local/UTC schedule, and
 deadline. A missing executor wake/proof or broken repeat chain is
 `SCHEDULER_CONTINUATION_FAILURE`; the supervisor reports it to the coordinator
-without touching Chrome or attempting TikTok mutation.
+and repairs the continuation binding without touching Chrome or attempting
+TikTok mutation. A page/action/network/Chrome/route/client-block/lane failure
+never deletes or pauses a correctly bound Heartbeat. The later repeat wake is
+the automatic recovery carrier.
+
+Keep operation and supervisor Heartbeats active through lane-local suspension,
+uncertain mutation, and recoverable infrastructure failure. Do not ask whether
+to retry an ordinary technical failure. The later wake rechecks the recorded
+`auto_resume_condition`; it never retries an uncertain submission. Retire timers
+only after terminal release or after a verified no-gap replacement of an invalid
+timer.
 
 ## First-run stability smoke
 
-Run this read-only block before a new executor performs a full search-training block or any mutation. Search-origin video consumption is the primary runtime gate; For You is an optional validation lane.
+Run this read-only smoke before a new executor starts the continuous
+search-training mission or any mutation. Search-origin video consumption is the
+primary runtime gate; For You is an optional validation lane.
 
 1. Verify the registered IDs, exact account, no unresolved submission owned by this executor, no exact-target/action mutation conflict, and no system-level challenge. Create the dedicated tab and record concurrent same-account activity and recommendation-attribution contamination.
 2. Open one direction-relevant search query and classify the first three visible result cards.
