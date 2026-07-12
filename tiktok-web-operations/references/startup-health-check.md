@@ -1,9 +1,11 @@
 # Startup Health Check And Bootstrap
 
-Use this reference for install, upgrade, or first launch. Phase 1 is read-only,
-ends with a guided user handoff, and creates no executor. Phase 2 begins only
-after the healthy user supplies direction/duration or accepts defaults. The
-starter task itself becomes the coordinator.
+Use this reference for install, upgrade, or first launch. On a setup/install
+request, the first available presentation action is immediately renaming this
+same task `TikTok 启动台`. Phase 1 is read-only, ends with a guided user handoff,
+and creates no executor. After healthy preflight the same task is promoted in
+place to coordinator and immediately renamed `TikTok 主控台`; Phase 2 executor
+creation begins only after direction/duration is resolved.
 
 Use `role-and-stage-contract.md` for the `BOOTSTRAP_STARTER` to
 `TIKTOK_COORDINATOR` transition and stage exit gates. This file owns preflight
@@ -34,6 +36,8 @@ tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_support: READY | UNAVAILABLE
 coordinator_self_registration: PROVABLE | UNAVAILABLE
+bootstrap_title: TIKTOK_STARTUP_CONSOLE | DEGRADED_PRESENTATION
+role_state: BOOTSTRAP_STARTER | TIKTOK_COORDINATOR
 canonical_object_store: WRITABLE | UNAVAILABLE
 bootstrap_ref: NONE | exact ref
 registry_ref: NONE | exact ref
@@ -48,14 +52,10 @@ model_runtime: coordinator=gpt-5.6-luna/high | executor=gpt-5.6-luna/high | UNAV
 fast_mode: ACTIVE | INACTIVE | UNVERIFIED
 automation_support: AVAILABLE | UNAVAILABLE | NOT_REQUESTED
 automation_manager_thread_id: NONE | exact coordinator id
-operation_heartbeat_id: NONE | exact id
-operation_heartbeat_target_thread_id: NONE | exact executor id
-operation_heartbeat_repeat: NONE | ON | OFF
-operation_heartbeat_next_tick_at: NONE | timestamp
-supervisor_heartbeat_id: NONE | exact id
-supervisor_heartbeat_target_thread_id: NONE | exact coordinator id
-supervisor_heartbeat_repeat: NONE | ON | OFF
-supervisor_heartbeat_next_tick_at: NONE | timestamp
+coordinator_heartbeat_id: NONE | exact id
+coordinator_heartbeat_target_thread_id: NONE | exact coordinator id
+coordinator_heartbeat_repeat: NONE | ON | OFF
+coordinator_heartbeat_next_tick_at: NONE | timestamp
 operation_timer_state: NONE | ACTIVE | DEGRADED | COMPLETE
 operation_timer_stop_at: NONE | timestamp
 durable_install_state_path: ${CODEX_HOME:-$HOME/.codex}/state/tiktok-web-operations/install-state.json
@@ -75,6 +75,10 @@ bootstrap_state: PREFLIGHT_HEALTHY_WAITING_FOR_DIRECTION | BLOCKED
 
 Run checks in order:
 
+0. Immediately call the available self-title operation to set
+   `TikTok 启动台`. If rename is unavailable, record
+   `bootstrap_title=DEGRADED_PRESENTATION` and continue; repair the title at the
+   next safe point. Do not create another task to obtain the title.
 1. Download the canonical GitHub archive. Require exactly `README.md`,
    `thread-supervisor/`, and `tiktok-web-operations/`; validate both manifests,
    source identity, Skills, agents metadata, and directly referenced files.
@@ -101,9 +105,10 @@ Run checks in order:
    `send_message_to_thread`, `set_thread_title`, and `set_thread_archived` exist.
    Detect `set_thread_pinned` for automatic main-console pinning; absence is a
    non-blocking presentation limitation.
-6. Prove the current starter task can self-rename and can later resolve its exact
-   ID through unique-title `list_threads` plus `read_thread`. Phase 1 may use a
-   temporary nonce/title and then restore a user-friendly bootstrap title.
+6. Prove the current starter task can resolve its exact ID through the current
+   `TikTok 启动台` identity plus unique nonce `list_threads`/`read_thread` when
+   needed. A temporary registration suffix is allowed only for ID proof and must
+   return to the lifecycle title immediately.
 7. Prove a writable private canonical-object store can persist exact UTF-8 bytes
    and SHA-256 references for bootstrap, identity registry, direction,
    authority, and mission objects. Prove mutable owner/automation/progress/resume state is
@@ -122,9 +127,11 @@ Run checks in order:
    executor's unresolved submission or the exact colliding target/action.
 11. Read local time and create a writable private ledger path. Initialize every
    mutation lane independently without modifying TikTok.
-12. Finalize only the disposable bootstrap tab, release its control session,
-    and record that browser authority is revoked before the starter can become
-    `TikTok 主控台`.
+12. Finalize only the disposable bootstrap tab and release its control session.
+    Record browser authority revoked, promote the same exact task ID from
+    `BOOTSTRAP_STARTER` to `TIKTOK_COORDINATOR`, immediately rename it
+    `TikTok 主控台`, and preserve its history/pin. Rename failure is presentation-
+    only degradation; do not create a replacement main task or block handoff.
 
 Do not use `blocked` for missing preferences, temporary tool transport, another
 Chrome owner, route/page failure, or a capability lane. Retry/degrade internally
@@ -137,7 +144,8 @@ upgraded automatically above.
 
 ## Healthy guided handoff
 
-When Phase 1 is healthy, return only:
+When Phase 1 is healthy, first promote the same task in place to
+`TIKTOK_COORDINATOR` and apply the final title `TikTok 主控台`; then return only:
 
 ```text
 状态健康。当前账号：@handle。
@@ -147,6 +155,13 @@ When Phase 1 is healthy, return only:
 
 Then stop and wait. Do not create the executor, dispatch work, search TikTok,
 mutate TikTok, or claim startup.
+
+If the bundle is already installed and the incoming user message already
+contains a clear operating direction/duration or accepts defaults, use the
+direct-mission fast path: immediately title/promote this same task as
+`TikTok 主控台`, run only reusable quick health checks, resolve the mission, and
+continue to Phase 2 in the same turn. Do not repeat the full setup handoff. A
+rename-tool failure remains non-blocking presentation degradation.
 
 ## Resolve the second user message
 
@@ -176,14 +191,15 @@ move-in/setup, college day-in-my-life/campus routine/GRWM, campus friends/game
 day/tailgate, and finals/dorm survival failures. Exclude admissions, SAT/GPA,
 application advice, pure study motivation, and generic non-campus content.
 
-## Phase 2 — keep this task and create one executor
+## Phase 2 — keep the promoted coordinator and create one executor
 
 Follow `role-and-stage-contract.md` for ownership/stages and
 `operating-model.md` for mechanics:
 
-1. Temporarily rename this task `TikTok 主控台注册 · <run_nonce>`, resolve and
-   verify its exact Thread ID, persist one canonical inert bootstrap envelope,
-   then set the final title to `TikTok 主控台` and pin it.
+1. Reuse the exact same task ID already promoted from `TikTok 启动台` to
+   `TikTok 主控台`; never create another main task. Resolve/verify its ID, persist
+   one canonical inert bootstrap envelope, and pin it. If the final title could
+   not be applied earlier, retry it now without blocking operation.
 2. Create one executor with `gpt-5.6-luna/high`. Its initial prompt embeds only
    the stored bootstrap JSON once and requires it to wait for `SELF_REGISTRY`;
    it must not contain a second prose copy of account/role/authorization/
@@ -206,24 +222,22 @@ Follow `role-and-stage-contract.md` for ownership/stages and
    produce accepted first search-training proof; do not wait for a timer to
    establish baseline capability.
 7. If the resolved duration may span more than one model/runtime turn, the
-   verified coordinator now creates two long-running repeat-on heartbeats. The
-   operation heartbeat targets the exact executor ID and carries continuation,
-   automatic retry, and deadline recovery with finite `UNTIL`/
-   `operation_stop_at`; the lower-frequency supervisor heartbeat targets the
-   exact coordinator ID and uses the same stop guard. View both exact automation
-   IDs and verify target, repeat-on, next run, local/UTC schedule, and deadline.
-   The executor never creates, renews, updates, pauses, or deletes either
-   heartbeat. `COUNT=1` plus worker self-continuation is invalid.
-8. If durable install state is `PENDING`, the supervisor heartbeat consumes the
+   verified coordinator creates one long-running repeat-on
+   `coordinator_heartbeat`, normally hourly, targeting its exact coordinator ID
+   with finite cutoff protection. View it and verify exact ID, target, repeat-on,
+   next run, local/UTC schedule, and deadline. Normal continuation remains
+   executor callback -> immediate coordinator resume. The executor never manages
+   the timer; an executor-targeted operation Heartbeat is invalid.
+8. If durable install state is `PENDING`, the coordinator Heartbeat consumes the
    one-time first-hour checks near `+15/+35/+60`, capped by stop time. It reads
    only executor turns/callbacks, recent ledger progress, resume state, and
    deadline; it never touches TikTok.
-9. Only after primary smoke and both required bindings verify may unattended
+9. Only after primary smoke and the required binding verifies may unattended
    continuation begin. Keep both tasks persistent and unarchived; pin only the
    coordinator. Missing repeat/wake/proof is
    `SCHEDULER_CONTINUATION_FAILURE`, not successful persistence. Page, network,
-   Chrome, route, client-block, or lane failure must leave both correctly bound
-   Heartbeats repeat-on for a later automatic recovery wake.
+   Chrome, route, client-block, or lane failure must leave the correctly bound
+   coordinator Heartbeat repeat-on for a later automatic recovery wake.
 
 If creation, registry, callback, or smoke fails, do not casually create another
 task or claim stable operation. A definitive `STALE_OWNER_TOMBSTONE` uses its

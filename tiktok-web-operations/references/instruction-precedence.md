@@ -80,9 +80,9 @@ When a current blocker exists:
    the shortest observable `auto_resume_condition`.
 3. Do not reinterpret the mission as a lower-intensity or recovery mission.
 4. Do not ask the user to repeat or reconfirm the original instruction.
-5. Recheck only through bounded recovery or the next authorized operation wake.
-   The supervisor Heartbeat never touches Chrome; the operation Heartbeat may
-   resume the executor under the unchanged mission.
+5. Recheck only through bounded recovery or the next coordinator Heartbeat.
+   The Heartbeat never touches Chrome; if it proves the callback chain broke,
+   the coordinator may resume the executor under the unchanged mission.
 6. When the condition visibly clears, account/submission certainty is restored,
    authorization is still active, and time remains, automatically resume the
    original instruction at the next safe mission boundary.

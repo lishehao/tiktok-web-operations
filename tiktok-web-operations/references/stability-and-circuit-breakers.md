@@ -79,35 +79,32 @@ checkpoints. It continues until a natural model/runtime boundary, current
 blocker, or mission cutoff; then it writes a checkpoint, releases Chrome,
 callbacks, and becomes resumable.
 
-For an unattended continuous run, after immediate first mission proof,
-the verified coordinator creates and manages two distinct recurring Heartbeats:
+For an unattended continuous run, normal persistence is callback-driven. One
+executor activation may complete multiple logical units. At a natural runtime
+boundary it checkpoints and callbacks; the coordinator validates and immediately
+resumes the same mission without waiting for a timer.
 
-1. `operation_heartbeat`: explicit `targetThreadId=executor_thread_id`,
-   `repeat=on`, finite `UNTIL` or equivalent `operation_stop_at` guard. It wakes
-   the executor to resume from the last validated checkpoint when idle/yielded
-   or when an automatic retry condition is due. If already running, it does no
-   overlapping work. It is never `COUNT=1` followed by executor self-renewal.
-2. `supervisor_heartbeat`: explicit `targetThreadId=coordinator_thread_id`,
-   lower frequency, `repeat=on`, and the same finite stop guard. It is read-only
-   and verifies executor liveness, new turns, callbacks, recent progress proof,
-   resume state, and the deadline.
+After immediate first mission proof, the verified coordinator creates and
+manages exactly one recurring `coordinator_heartbeat` with explicit
+`targetThreadId=coordinator_thread_id`, `repeat=on`, normally hourly, and finite
+cutoff protection. It is read-only unless it proves the callback chain broke. It
+verifies executor liveness, new turns, callbacks, recent progress proof, resume
+state, and deadline. If the executor is running, it does no overlapping work. If
+the executor is unexpectedly idle/yielded before cutoff, it causes the
+coordinator to resume from the validated checkpoint.
 
-The coordinator creates, views, updates, pauses, and deletes both automations.
-The executor may receive the operation heartbeat but never creates, updates,
-renews, pauses, or deletes either one. After creation, require readback proof of
-each exact automation ID, target, repeat state, next run, local/UTC schedule, and
-deadline. A missing executor wake/proof or broken repeat chain is
-`SCHEDULER_CONTINUATION_FAILURE`; the supervisor reports it to the coordinator
-and repairs the continuation binding without touching Chrome or attempting
-TikTok mutation. A page/action/network/Chrome/route/client-block/lane failure
-never deletes or pauses a correctly bound Heartbeat. The later repeat wake is
-the automatic recovery carrier.
+The executor never creates, updates, renews, pauses, or deletes the automation.
+After creation, require readback proof of exact automation ID, coordinator
+target, repeat state, next run, local/UTC schedule, and deadline. A missing
+callback/proof or broken chain is `SCHEDULER_CONTINUATION_FAILURE`; the
+coordinator repairs the same run without touching Chrome or attempting TikTok
+mutation. Do not create an executor-targeted operation Heartbeat.
 
-Keep operation and supervisor Heartbeats active through lane-local suspension,
-uncertain mutation, and recoverable infrastructure failure. Do not ask whether
-to retry an ordinary technical failure. The later wake rechecks the recorded
-`auto_resume_condition`; it never retries an uncertain submission. Retire timers
-only after terminal release or after a verified no-gap replacement of an invalid
+Keep the coordinator Heartbeat active through lane-local suspension, uncertain
+mutation, and recoverable infrastructure failure. Do not ask whether to retry an
+ordinary technical failure. A later wake rechecks the recorded
+`auto_resume_condition`; it never retries an uncertain submission. Retire the
+timer only after terminal release or a verified no-gap replacement of an invalid
 timer.
 
 ## First-run stability smoke

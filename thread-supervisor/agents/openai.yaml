@@ -1,4 +1,4 @@
 interface:
   display_name: "Thread Supervisor"
   short_description: "Coordinate persistent tasks with callbacks"
-  default_prompt: "Use $thread-supervisor to verify exact coordinator/executor IDs and enforce the calling domain's single-objective role cards, stage exit proofs, callback ownership, and coordinator-managed heartbeat bindings."
+  default_prompt: "Use $thread-supervisor to verify exact coordinator/executor IDs, preserve same-task bootstrap-to-coordinator transitions, and enforce the calling domain's single-objective role cards, stage exit proofs, callback ownership, and declared coordinator-managed heartbeat topology."

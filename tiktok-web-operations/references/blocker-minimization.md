@@ -72,7 +72,7 @@ unrecoverable.
   different irreversible action that the user explicitly requested.
 - For timed rate limits and other observable waits use
   `decision_required=false` plus the exact retry condition/time.
-- Keep both run Heartbeats repeat-on. Follow the no-gap replacement contract for
+- Keep the run's coordinator Heartbeat repeat-on. Follow the no-gap replacement contract for
   a genuinely invalid timer.
 
 ## Audit checks

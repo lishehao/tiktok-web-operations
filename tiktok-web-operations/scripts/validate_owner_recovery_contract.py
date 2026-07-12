@@ -53,9 +53,8 @@ def recovery_plan(state: str) -> dict[str, object]:
             "required_checks": [
                 "record_old_new_ids",
                 "verify_new_mission_dispatch",
-                "create_verify_replacement_automation_first",
-                "switch_registry_binding",
-                "retire_old_target_automation_after_switch",
+                "update_verify_coordinator_heartbeat_executor_binding",
+                "legacy_executor_target_automation_check",
                 "orphan_automation_check",
                 "duplicate_canonical_owner_check",
             ],
@@ -107,7 +106,8 @@ def main() -> None:
         "replacement_old_executor_thread_id",
         "replacement_new_executor_thread_id",
         "replacement_mission_dispatch_id",
-        "replacement_operation_heartbeat_id",
+        "coordinator_heartbeat",
+        "legacy executor-targeted automation",
         "orphan_automation_check",
         "duplicate_canonical_owner_check",
         "at most one replacement",
@@ -147,8 +147,8 @@ def main() -> None:
     assert plans["host_unavailable"]["replacement_count"] == 0
     assert plans["network_timeout"]["replacement_count"] == 0
     assert plans["archived_executor"]["unarchive_old"] is False
-    assert "create_verify_replacement_automation_first" in plans["missing_rollout"]["required_checks"]
-    assert "retire_old_target_automation_after_switch" in plans["missing_rollout"]["required_checks"]
+    assert "update_verify_coordinator_heartbeat_executor_binding" in plans["missing_rollout"]["required_checks"]
+    assert "legacy_executor_target_automation_check" in plans["missing_rollout"]["required_checks"]
     assert "duplicate_canonical_owner_check" in plans["missing_rollout"]["required_checks"]
     print(
         json.dumps(

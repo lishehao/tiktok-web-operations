@@ -24,10 +24,10 @@ def route_event(
     mission_running: bool = False,
     human_needed: bool = False,
 ) -> str:
-    if event == "operation_heartbeat":
-        return "RESUME_MISSION" if actor == "executor" and not mission_running else "NO_ACTION"
-    if event == "supervisor_heartbeat":
-        return "READ_ONLY_SUPERVISE" if actor == "coordinator" else "NO_ACTION"
+    if event == "coordinator_heartbeat":
+        if actor != "coordinator":
+            return "NO_ACTION"
+        return "NO_ACTION" if mission_running else "READ_ONLY_CHECK_AND_RESUME_IF_BROKEN"
     if event == "candidate_outside_scope":
         return "SKIP_WITHIN_MISSION" if actor == "executor" else "NO_ACTION"
     if event == "captcha":
@@ -73,7 +73,7 @@ def main() -> None:
         "RISK_EVENT",
         "EXECUTOR_RELEASED",
         "one accepted mission is active at most",
-        "Heartbeats are durable continuation and supervision signals",
+        "coordinator Heartbeat is a durable supervision/recovery signal",
         "Heartbeat survival invariant",
         "role-and-stage-contract.md",
     )
@@ -98,13 +98,13 @@ def main() -> None:
     assert "## Execution Thread Loop" not in skill_text
 
     scenarios = {
-        "correct_operation_wake": route_event("operation_heartbeat", actor="executor"),
-        "operation_wakes_coordinator": route_event("operation_heartbeat", actor="coordinator"),
-        "operation_wake_while_running": route_event(
-            "operation_heartbeat", actor="executor", mission_running=True
+        "coordinator_wake_idle": route_event("coordinator_heartbeat", actor="coordinator"),
+        "coordinator_wake_running": route_event(
+            "coordinator_heartbeat", actor="coordinator", mission_running=True
         ),
-        "correct_supervisor_wake": route_event("supervisor_heartbeat", actor="coordinator"),
-        "supervisor_wakes_executor": route_event("supervisor_heartbeat", actor="executor"),
+        "coordinator_heartbeat_wakes_executor": route_event(
+            "coordinator_heartbeat", actor="executor"
+        ),
         "executor_candidate_outside_scope": route_event(
             "candidate_outside_scope", actor="executor"
         ),
@@ -121,11 +121,9 @@ def main() -> None:
         ),
     }
     expected = {
-        "correct_operation_wake": "RESUME_MISSION",
-        "operation_wakes_coordinator": "NO_ACTION",
-        "operation_wake_while_running": "NO_ACTION",
-        "correct_supervisor_wake": "READ_ONLY_SUPERVISE",
-        "supervisor_wakes_executor": "NO_ACTION",
+        "coordinator_wake_idle": "READ_ONLY_CHECK_AND_RESUME_IF_BROKEN",
+        "coordinator_wake_running": "NO_ACTION",
+        "coordinator_heartbeat_wakes_executor": "NO_ACTION",
         "executor_candidate_outside_scope": "SKIP_WITHIN_MISSION",
         "executor_captcha": "RELEASE_AND_RISK_EVENT",
         "direction_change_while_running": "QUEUE_SAFE_BOUNDARY_VERSION",

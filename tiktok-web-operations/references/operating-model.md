@@ -32,11 +32,16 @@ contract.
 
 ## Starter self-registration
 
-The coordinator must know its exact Thread ID before creating the executor:
+The setup task must already have made `TikTok 启动台` its first available
+presentation action. After healthy preflight and bootstrap-tab release, prove
+that same task's exact ID, then promote it in place to coordinator; never create
+a second main task. The coordinator identity must be fixed before creating the
+executor:
 
-1. Generate a short unique `run_nonce` and temporarily rename the current task,
+1. Generate a short unique `run_nonce` and, only when needed for exact ID proof,
+   temporarily rename the current task,
    using the self-targeting title operation, to
-   `TikTok 主控台注册 · <run_nonce>`.
+   `TikTok 启动台注册 · <run_nonce>`.
 2. Use `list_threads` with that exact title and require one matching current
    local task in the expected project/directory context.
 3. Use `read_thread` on the returned ID and confirm the current bootstrap state,
@@ -48,10 +53,13 @@ The coordinator must know its exact Thread ID before creating the executor:
    `external_work=forbidden_until_registry_ack`. Do not create an incomplete
    identity registry with `executor_id=NONE`, and do not duplicate bootstrap
    fields in prose.
-6. Rename the verified coordinator to the final title `TikTok 主控台`, pin it,
+6. Rename the same verified coordinator to the final title `TikTok 主控台`, pin it,
    and verify presentation state when the tool exposes it. Final title/pin are
    presentation only and must never replace the registered ID.
-7. If zero or multiple candidates remain, stop with
+7. If the rename tool is unavailable, record presentation degradation, preserve
+   the role transition and exact ID, and retry naming at the next safe point.
+   Do not block operation or create a duplicate main task. If zero or multiple
+   identity candidates remain, stop with
    `BLOCKED_COORDINATOR_ID_UNVERIFIED`. Do not create a disposable coordinator or
    start polling as a silent fallback.
 
@@ -90,14 +98,14 @@ accepts defaults:
    full calibration mission or mutation.
 10. Start the real mission immediately in the current user turn and validate its
     first search-training evidence. Do not defer first proof to a timer.
-11. For a timed continuous run, the verified coordinator creates two recurring
-    automations: continuation/recovery `operation_heartbeat` with explicit
-    `targetThreadId=executor_thread_id`, and lower-frequency
-    `supervisor_heartbeat` with explicit
-    `targetThreadId=coordinator_thread_id`. Both are `repeat=on`, use finite
-    `UNTIL` or equivalent `operation_stop_at`, and must pass exact ID/target/
-    repeat/next-run/local+UTC/deadline readback. Their recurrence is not a work
-    quota or a block-duration promise. The executor never manages them.
+11. For a timed continuous run, the verified coordinator creates exactly one
+    recurring `coordinator_heartbeat` with explicit
+    `targetThreadId=coordinator_thread_id`. It is `repeat=on`, normally hourly,
+    has finite cutoff protection, and must pass exact ID/target/repeat/next-run/
+    local+UTC/deadline readback. Normal continuation is executor callback ->
+    coordinator validation -> immediate coordinator resume; the Heartbeat is
+    only a read-only watchdog and recovery fallback. The executor never manages
+    it, and no executor-targeted operation Heartbeat is created.
 12. Keep both tasks unarchived. Pin only `TikTok 主控台`; keep `TikTok 执行台`
     unpinned. Navigate the app to the coordinator when useful.
 
@@ -124,10 +132,10 @@ or dispatching any registered executor:
   `LIVENESS_UNVERIFIED_TRANSIENT`; retain the owner and do not replace it from
   that evidence;
 - for a tombstone, run the generic stale executor replacement transaction once:
-  remove old-target automations, retire the old ID, create one replacement,
-  verify exact new ID and mission acknowledgement, bind/read back the new
-  operation heartbeat, and prove no orphan automation or duplicate canonical
-  owner remains;
+  retire the old ID, create one replacement, verify exact new ID and mission
+  acknowledgement, update/read back the existing coordinator Heartbeat's
+  executor reference, and prove no legacy executor-targeted automation, orphan
+  automation, or duplicate canonical owner remains;
 - successful same-envelope replacement is internal self-healing. Only a failed
   replacement/handshake/dispatch/binding becomes an orchestration blocker in
   `TikTok 主控台`.
@@ -163,40 +171,42 @@ discretion, risk routing, and mission-change boundary. This mechanics reference
 only enforces the accepted canonical references, one active mission, resumable
 checkpoint identity, exact automation binding, and terminal release proof.
 
-## Durable continuation and stop scheduler
+## Callback continuation and stop watchdog
 
-Create both logical heartbeats only after coordinator identity, executor
+Create one `coordinator_heartbeat` only after coordinator identity, executor
 handshake, stability smoke, and immediate real mission proof are verified. Store
-their exact IDs, manager/targets, repeat state, next runs, local/UTC schedule,
+its exact ID, manager/target, repeat state, next run, local/UTC schedule,
 `operation_stop_at`, and `heartbeat_receipt_policy=always_three_lines`.
 
-- Operation heartbeat: target the exact executor, `repeat=on`, finite `UNTIL` or
-  equivalent cutoff. It is a continuation/recovery carrier. If the executor is
-  already advancing the mission, the wake records healthy/no-overlap and does
-  no external work. If the executor yielded, became idle before the deadline,
-  or an automatic retry condition is due, it resumes from the latest validated
-  ledger checkpoint. It never defines how long a training unit should take.
-- Supervisor heartbeat: target the exact coordinator, `repeat=on`, lower
-  frequency, same cutoff. It reads thread state, callbacks, and progress proof;
-  it never operates TikTok or dispatches over an already running mission.
+- Normal continuation is callback-driven. During one healthy activation the
+  executor finishes multiple logical training units and Feed checkpoints. At a
+  natural runtime boundary it writes a durable checkpoint, releases its owned
+  tab, and callbacks the coordinator. The coordinator validates the callback
+  and immediately resumes the same mission; it does not wait for a Heartbeat.
+- Coordinator heartbeat: target the exact coordinator, `repeat=on`, normally
+  hourly, with finite cutoff protection. It reads thread state, callbacks, and
+  progress proof; it never operates TikTok or dispatches over an already running
+  mission. If it proves the executor unexpectedly idle/yielded before cutoff,
+  a lost callback, or a due automatic retry condition, the coordinator resumes
+  the same mission from the latest validated checkpoint.
 - The continuation ledger records wake time, executor state
   `running|yielded|recovering|blocked|terminal`, last validated progress
   checkpoint, next retry condition, callback/proof, and mutation certainty.
   Content training units remain in the raw execution ledger; they are not timer
   slots.
-- On an operation wake, verify identity, deadline, current executor state, and
-  checkpoint. Resume only when not already running and the exact auto-resume
-  condition permits it. At or after stop time, perform no new TikTok action and
-  enter terminal handling.
-- On a supervisor wake, verify repeat state, next run, recent ledger progress,
-  executor liveness, and terminal cutoff. A missing/broken continuation chain is
+- On a coordinator wake, verify binding, deadline, current executor state,
+  checkpoint, repeat state, next run, recent ledger progress, executor liveness,
+  and terminal cutoff. A missing/broken continuation chain is
   `SCHEDULER_CONTINUATION_FAILURE`; repair the same run binding without touching
-  Chrome. Do not delete a healthy timer because page work failed.
+  Chrome. If the executor is running, record healthy/no-overlap and do nothing.
+  At or after stop time, dispatch only terminal release handling. Do not delete
+  a healthy timer because page work failed.
 - User mission changes are applied by the coordinator to canonical mission
   references. Update the Heartbeat only when its stable operation template,
   cadence, target, or cutoff actually changes.
-- Never use `COUNT=1` and depend on the executor to schedule the next wake. Never
-  let the executor create, update, renew, pause, or delete an automation.
+- Never create an executor-targeted operation Heartbeat, use `COUNT=1`, or
+  depend on the executor to schedule the next wake. Never let the executor
+  create, update, renew, pause, or delete an automation.
 - If automation support is unavailable, mark scheduled continuation `DEGRADED`,
   disclose that durable recovery/stop timing is unavailable, and never fake
   persistence by assuming one turn will remain open.
@@ -211,9 +221,9 @@ wake automatically retries only the safe failed surface and continues unaffected
 lanes without asking the user whether to retry.
 
 Uncertain mutation freezes only that exact target/action or affected mutation
-lane until certainty is resolved. The operation and supervisor Heartbeats remain
-active, read-only search work may continue when safe, and the uncertain action is
-never retried.
+lane until certainty is resolved. The coordinator Heartbeat remains active,
+read-only search work may continue when safe, and the uncertain action is never
+retried.
 
 Retire a run Heartbeat only after explicit user stop, mission deadline,
 authorized objective completion plus terminal executor release, or verified
@@ -225,7 +235,7 @@ scheduler blocker; never create a continuation gap.
 
 ### Three-line heartbeat receipt
 
-After both heartbeats are created and every valid supervisor heartbeat, provide a visible receipt
+After the coordinator Heartbeat is created and every valid wake, provide a visible receipt
 even when progress is healthy:
 
 ```text
@@ -234,9 +244,8 @@ even when progress is healthy:
 下轮计划：<one bounded purpose>
 ```
 
-Before reporting, view both registered heartbeats and verify automation IDs,
-targets, repeat state, next runs, and cutoff. Report the next relevant verified
-local tick, normally the earlier of operation or supervisor wake.
+Before reporting, view the registered Heartbeat and verify automation ID,
+target, repeat state, next run, and cutoff. Report that verified local tick.
 Only then persist/report the time. Use the user's local timezone and include the
 date. Do not show an automation ID.
 
@@ -255,9 +264,9 @@ date. Do not show an automation ID.
 - Finalized run: use `下次心跳：无（任务已完成）`; the whole-run compact result may
   follow, without internal IDs.
 
-The first-install `+15/+35/+60` schedule is implemented by the existing
-supervisor heartbeat during its first hour. It does not modify the operation
-heartbeat cadence and does not create a third automation.
+The first-install `+15/+35/+60` schedule is implemented by temporarily adjusting
+the same coordinator Heartbeat during its first hour. It creates no additional
+automation; after the overlay is consumed, use the normal hourly cadence.
 
 ## First-install supervision window
 
@@ -270,9 +279,9 @@ credential, cookie, browser state, or content history.
 - Phase 1 does not start the clock because no executor exists. On the first real
   operation, after verified handshake and successful stability smoke, set the
   marker to `ACTIVE`, record start/end, and apply the first-hour checkpoint
-  cadence to the run's existing supervisor heartbeat with exact binding proof.
+  cadence to the run's existing coordinator Heartbeat with exact binding proof.
 - Target cumulative checkpoints are approximately `+15`, `+35`, and `+60`
-  minutes from activation. Reuse/update the same exact supervisor heartbeat;
+  minutes from activation. Reuse/update the same exact coordinator Heartbeat;
   never create a separate supervision automation. Cap the last
   checkpoint at `operation_stop_at` when the run is shorter than one hour.
 - On wake, verify run/manager/target/automation identity, read the executor's
@@ -280,12 +289,12 @@ credential, cookie, browser state, or content history.
   Chrome/TikTok. Do not interrupt an in-progress executor.
 - On ordinary healthy progress emit only the fixed three-line heartbeat receipt.
   A missed callback or non-completed state follows the main-console risk
-  consolidation contract while both run Heartbeats remain active. Ask the user
+  consolidation contract while the run Heartbeat remains active. Ask the user
   only when `decision_required=true`; otherwise the next wake rechecks the exact
   `auto_resume_condition` and continues automatically.
 - At the overlay's final checkpoint, early user stop, or run end, persist
-  `CONSUMED`. Do not delete either run heartbeat before terminal executor
-  release; retire both during whole-run
+  `CONSUMED`. Do not delete the run Heartbeat before terminal executor
+  release; retire it during whole-run
   finalization. Never recreate the window for another run, upgrade, reinstall
   over the same managed installation, or task restart.
 - If automation creation/readback is unavailable, persist `DEGRADED`, disclose
@@ -346,7 +355,7 @@ replacement_new_executor_thread_id:
 orphan_automation_check: NOT_RUN | CLEAR | FAILED
 duplicate_canonical_owner_check: NOT_RUN | CLEAR | FAILED
 segment_id:
-trigger: direct_first_segment | direct_manual | operation_heartbeat | coordinator_resume
+trigger: direct_first_segment | direct_manual | executor_callback | coordinator_heartbeat_recovery
 executor_state: running | yielded | recovering | blocked | terminal
 resume_checkpoint_ref:
 resume_condition:
@@ -387,7 +396,7 @@ recommended_mission_adjustment:
 ```
 
 Every non-`completed` callback suspends only the affected scope. It never retires
-either correctly bound Heartbeat. Set
+the correctly bound coordinator Heartbeat. Set
 `decision_required=true` only when a human action/choice is needed; its
 `decision_options` contains zero to three coordinator-ready choices, never a
 question addressed to the executor Thread. A current platform wait with an exact
@@ -424,8 +433,8 @@ At `operation_stop_at`, explicit user stop, or objective completion:
    `release_state=STOPPED_AND_RELEASED`.
 4. The coordinator validates callback source/payload IDs, final ledger path,
    release proof, cumulative browse/mutation counts, and zero unresolved action.
-   It then sets `EXECUTOR_RELEASED`, pauses/deletes its exact operation and
-   supervisor heartbeats,
+   It then sets `EXECUTOR_RELEASED`, pauses/deletes its exact coordinator
+   Heartbeat,
    sets `operation_timer_state=COMPLETE`, and marks `RUN_COMPLETED`.
 5. The coordinator gives the user one short final result. It does not callback a
    bootstrap or Skill-development task and does not expose internal state names.

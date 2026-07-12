@@ -23,12 +23,23 @@ another file restates a role or phase, this contract wins.
 The user's first task has two sequential identities, never two simultaneous
 missions:
 
-1. `BOOTSTRAP_STARTER`: install/upgrade, run disposable read-only preflight,
-   return the direction/duration handoff, then wait. No executor exists.
-2. `TIKTOK_COORDINATOR`: only after the user's second message and exact
-   self-registration. Before this transition, finalize the bootstrap tab and
-   release browser control. From this point onward the task is `TikTok 主控台`
-   and never touches Chrome/TikTok.
+1. `BOOTSTRAP_STARTER`: on a setup/install request, make the first available
+   presentation action `set_thread_title("TikTok 启动台")`. Its single objective
+   is to establish a healthy installed runtime and setup handoff: install or
+   upgrade, run disposable read-only preflight, probe required capabilities, and
+   resolve safe defaults. It never starts a cultivation/publishing/engagement
+   mission and never creates an executor. If a true human repair is still
+   required, remain `TikTok 启动台` until the recheck passes.
+2. `TIKTOK_COORDINATOR`: after healthy preflight, finalized bootstrap tab, and
+   exact self-registration, the same task ID/history/pin is promoted in place
+   and immediately renamed `TikTok 主控台`. It may wait for direction/duration,
+   but never touches Chrome/TikTok after promotion. Do not create a second main
+   task. If rename is unavailable, record presentation degradation and promote
+   logically without blocking; repair the title at the next safe point.
+
+If the Skill is already installed and the user sends a clear operating mission,
+run the quick reusable health checks, promote/rename the same task directly to
+`TikTok 主控台`, and start in the same turn. Do not repeat the full setup handoff.
 
 `BOOTSTRAP_STARTER` is a temporary stage role, not a third persistent Thread.
 Steady state has exactly two user-visible Threads: one coordinator and one
@@ -109,8 +120,8 @@ Every run occupies exactly one stage. Each transition requires its exit proof.
 
 | Stage | Active owner | Work | Required exit proof | Next |
 |-|-|-|-|-|
-| `S0_PREFLIGHT` | BOOTSTRAP_STARTER | Install/upgrade; disposable Chrome/TikTok read-only checks; tool/model/time/store checks | Healthy handoff; bootstrap tab finalized; browser authority released | `S1_MISSION` |
-| `S1_MISSION` | BOOTSTRAP_STARTER + user | Resolve direction, region/language, duration, action envelope | User's second message resolved into canonical direction/authority/mission inputs | `S2_PAIR_BOOTSTRAP` |
+| `S0_PREFLIGHT` | BOOTSTRAP_STARTER (`TikTok 启动台`) | Immediate title; install/upgrade; disposable Chrome/TikTok read-only checks; tool/model/time/store checks | Healthy handoff; bootstrap tab finalized; browser authority released; same task promoted/renamed `TikTok 主控台` or presentation degradation recorded | `S1_MISSION` |
+| `S1_MISSION` | TIKTOK_COORDINATOR + user | Resolve direction, region/language, duration, action envelope | User instruction/defaults resolved into canonical direction/authority/mission inputs | `S2_PAIR_BOOTSTRAP` |
 | `S2_PAIR_BOOTSTRAP` | 主控台; 执行台 inert | Self-register coordinator; canonical bootstrap; create executor; finalize registry; SELF_REGISTRY/THREAD_READY | Exact IDs/profile/hash/callback target accepted; executor idle; zero external work | `S3_RUNTIME_SMOKE` |
 | `S3_RUNTIME_SMOKE` | 执行台 executes; 主控台 accepts | One read-only stability smoke | Required search-origin proof, account/tab stability, parseable ledger, zero mutation; executor released/idle | `S4_FIRST_SEGMENT` |
 | `S4_FIRST_SEGMENT` | 执行台 executes; 主控台 accepts | Start the real mission immediately and obtain the first search-training proof | `MISSION_CHECKPOINT` or live ledger proof accepted; capability/risk reconciled; no unresolved action | `S5_CONTINUOUS_RUN` or `S7_FINALIZE` |
@@ -156,20 +167,20 @@ The coordinator is the sole writer of new direction/authority/mission versions:
 
 ## Heartbeat meaning
 
-Heartbeats are durable continuation and supervision signals, not roles, agents,
-work quotas, or time-slicing rules:
+The coordinator Heartbeat is a durable supervision/recovery signal, not a role,
+agent, work quota, or time-slicing rule:
 
-- `operation_heartbeat` wakes only `TikTok 执行台`. If it is already advancing
-  the mission, the wake does no overlapping work. If it is idle/yielded or a
-  transient retry condition is due before the deadline, it resumes from the
-  last durable checkpoint.
-- `supervisor_heartbeat` wakes only `TikTok 主控台` to read state and verify the
-  continuation chain.
-- Neither Heartbeat creates a third Thread, owns strategy, or proves work.
-- The executor never manages either Heartbeat. The coordinator never uses the
-  supervisor wake to operate TikTok or dispatch over a running mission.
+- Normal continuation is executor callback -> coordinator validation ->
+  immediate resume. Logical training units do not wait for a timer.
+- `coordinator_heartbeat` wakes only `TikTok 主控台`, normally hourly, to read
+  state and verify the continuation chain. If the executor is running, it does
+  nothing. If the callback chain broke and the executor is unexpectedly idle,
+  it resumes the same mission from the last durable checkpoint.
+- The Heartbeat never creates a third Thread, owns strategy, or proves work.
+- The executor never manages the Heartbeat. The coordinator never uses the wake
+  to operate TikTok or dispatch over a running mission.
 - A wrong target/role produces `MISBOUND_HEARTBEAT_NO_ACTION`.
-- Page, network, Chrome, route, client-block, or lane failure never retires a
+- Page, network, Chrome, route, client-block, or lane failure never retires the
   correctly bound run Heartbeat. Keep it repeat-on so a later wake can recheck
   the exact resume condition. Retire only after user stop, deadline/objective
   finalization, or verified no-gap replacement of an invalid timer.
@@ -221,7 +232,9 @@ either prompt.
 
 ## Audit checklist
 
-- Exactly one coordinator and one executor are canonical.
+- Exactly one coordinator and one executor are canonical after pair bootstrap.
+- Setup made `TikTok 启动台` the first available title action; the same task was
+  promoted to `TikTok 主控台` after healthy exit proof, with no duplicate main.
 - The bootstrap role ended and its disposable tab was finalized before the
   coordinator role began.
 - The coordinator has no Chrome/TikTok/raw-ledger ownership.
@@ -232,6 +245,6 @@ either prompt.
 - Every natural turn/runtime yield, blocker, or terminal event ends with a
   durable checkpoint, owned-tab release, and one callback; logical training
   units inside a healthy turn do not force an artificial pause.
-- Operation/supervisor Heartbeats wake the correct roles and are not treated as
-  agents or completion proof.
+- The coordinator Heartbeat wakes only the coordinator and is not treated as an
+  agent, normal unit boundary, or completion proof.
 - Risks and final completion return only through `TikTok 主控台`.

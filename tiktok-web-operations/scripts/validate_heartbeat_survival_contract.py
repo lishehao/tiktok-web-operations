@@ -34,36 +34,31 @@ def timer_policy(event: str) -> dict[str, object]:
     }
     if event in technical:
         return {
-            "operation": "KEEP_REPEAT_ON",
-            "supervisor": "KEEP_REPEAT_ON",
+            "coordinator": "KEEP_REPEAT_ON",
             "retry": "AUTO_RECHECK_ON_LATER_WAKE",
             "affected_scope": "LANE_OR_SURFACE_ONLY",
         }
     if event == "mutation_uncertain":
         return {
-            "operation": "KEEP_REPEAT_ON",
-            "supervisor": "KEEP_REPEAT_ON",
+            "coordinator": "KEEP_REPEAT_ON",
             "retry": "NEVER_RETRY_UNCERTAIN_SUBMISSION",
             "affected_scope": "EXACT_ACTION_OR_LANE",
         }
     if event == "misbound_timer":
         return {
-            "operation": "REPLACE_NO_GAP",
-            "supervisor": "KEEP_REPEAT_ON_IF_VALID",
+            "coordinator": "REPLACE_NO_GAP",
             "retry": "CREATE_VERIFY_SWITCH_THEN_RETIRE_OLD",
             "affected_scope": "SCHEDULER_BINDING",
         }
     if event in {"user_stop", "deadline", "objective_complete"}:
         return {
-            "operation": "KEEP_UNTIL_EXECUTOR_RELEASED",
-            "supervisor": "KEEP_UNTIL_EXECUTOR_RELEASED",
+            "coordinator": "KEEP_UNTIL_EXECUTOR_RELEASED",
             "retry": "TERMINAL_RELEASE_THEN_RETIRE",
             "affected_scope": "WHOLE_RUN",
         }
     if event == "executor_released":
         return {
-            "operation": "RETIRE",
-            "supervisor": "RETIRE",
+            "coordinator": "RETIRE",
             "retry": "NONE",
             "affected_scope": "WHOLE_RUN",
         }
@@ -74,11 +69,16 @@ def main() -> None:
     missing = [str(path) for path in FILES if not path.is_file()]
     assert not missing, f"missing contract files: {missing}"
     joined = "\n".join(path.read_text() for path in FILES)
+    domain_joined = "\n".join(
+        path.read_text() for path in FILES if ROOT in path.parents or path == ROOT / "SKILL.md"
+    )
 
     required = (
         "Heartbeat survival invariant",
         "failure -> delete Heartbeat",
-        "continuation/recovery carrier",
+        "callback-driven",
+        "coordinator_heartbeat",
+        "no executor-targeted operation Heartbeat",
         "auto_resume_condition",
         "never retries an uncertain submission",
         "create and read back the correct replacement first",
@@ -95,10 +95,12 @@ def main() -> None:
     forbidden = (
         "one bounded block per slot",
         "Run exactly one bounded block per executor wake/turn",
+        "creates two long-running repeat-on Heartbeats",
+        "targetThreadId=executor_thread_id",
         "pause scheduled continuation without touching Chrome",
         "delete that exact automation immediately",
     )
-    present = [term for term in forbidden if term in joined]
+    present = [term for term in forbidden if term in domain_joined]
     assert not present, f"stale scheduler semantics remain: {present}"
 
     events = (
@@ -119,14 +121,13 @@ def main() -> None:
     scenarios = {event: timer_policy(event) for event in events}
 
     for event in events[:7]:
-        assert scenarios[event]["operation"] == "KEEP_REPEAT_ON"
-        assert scenarios[event]["supervisor"] == "KEEP_REPEAT_ON"
+        assert scenarios[event]["coordinator"] == "KEEP_REPEAT_ON"
         assert scenarios[event]["retry"] == "AUTO_RECHECK_ON_LATER_WAKE"
     assert scenarios["mutation_uncertain"]["retry"] == "NEVER_RETRY_UNCERTAIN_SUBMISSION"
     assert scenarios["misbound_timer"]["retry"] == "CREATE_VERIFY_SWITCH_THEN_RETIRE_OLD"
     for event in ("user_stop", "deadline", "objective_complete"):
-        assert scenarios[event]["operation"] == "KEEP_UNTIL_EXECUTOR_RELEASED"
-    assert scenarios["executor_released"]["operation"] == "RETIRE"
+        assert scenarios[event]["coordinator"] == "KEEP_UNTIL_EXECUTOR_RELEASED"
+    assert scenarios["executor_released"]["coordinator"] == "RETIRE"
 
     print(json.dumps({"status": "PASS", "scenarios": scenarios}, sort_keys=True))
 

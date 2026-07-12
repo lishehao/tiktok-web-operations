@@ -127,7 +127,7 @@ Never loop, reload repeatedly, alter proxy/TLS settings, or use another browser.
 If the same failure remains after this sequence, yield only when the current
 runtime turn must end, release owned tabs, and preserve the ledger plus exact
 auto-resume condition. Do not send a standalone risk callback or ask the user.
-Keep both correctly bound run Heartbeats repeat-on so a later wake can retry
+Keep the correctly bound coordinator Heartbeat repeat-on so a later wake can retry
 automatically. Continue another approved route/scope when possible. A timed HTTP
 429 waits and rechecks automatically. Persistent human CAPTCHA/challenge,
 unrecoverable login/account mismatch, explicit account lock/ban, or unavailable
@@ -208,7 +208,8 @@ Store account handles, test URLs, timestamps, and raw persistence evidence only 
 
 Verify scheduling support in the live TikTok Studio UI. Record both local time and timezone. If a Codex automation is used for a later review, validate the scheduler's actual `next_run_at`; do not assume local-hour RRULE semantics.
 
-The supervisor Heartbeat is always read-only. The operation Heartbeat may resume
-the already authorized continuous mission from its validated checkpoint; it
-never expands action authority or retries an uncertain submission. Neither
-Heartbeat is retired for an ordinary technical or lane failure.
+The coordinator Heartbeat is always read-only toward TikTok. If it proves the
+callback chain broke, it may cause the coordinator to resume the already
+authorized continuous mission from its validated checkpoint; it never expands
+action authority or retries an uncertain submission. The Heartbeat is not
+retired for an ordinary technical or lane failure.

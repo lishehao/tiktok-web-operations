@@ -96,19 +96,25 @@ card plus a bounded input contract before dispatch.
 Require the calling domain to declare one authoritative role-and-stage contract:
 each role has one objective plus explicit `owns`, `reads`, `writes`, `outputs`,
 and `never` fields; each stage has one active owner, entry condition, exit proof,
-and next state. A bootstrap role may transition into the coordinator only after
-releasing any external resource the coordinator is forbidden to own. Heartbeats
+and next state. A bootstrap role may use a domain-supplied startup title
+immediately, then transition the same exact task ID/history into the coordinator
+only after releasing any external resource the coordinator is forbidden to own.
+A rename-tool failure is presentation degradation, not an ownership blocker;
+repair it at the next safe point and never create a duplicate coordinator for
+naming. Heartbeats
 are wake signals, never extra roles or stage-completion proof. Thread Supervisor
 enforces that contract but does not restate or broaden it.
 
 - Keep the starter task as coordinator when it can prove its own exact Thread ID.
-  Use the temporary nonce registration title in
+  Apply any caller-supplied `bootstrap_title` as the first available presentation
+  action. Use the temporary nonce registration title in
   `references/identity-and-automation.md`, resolve the exact matching task with
   `list_threads`, confirm it with `read_thread`, record the returned ID, then set
   the caller-supplied `coordinator_title` (generic default `主控台`). Record the
   executor ID returned by `create_thread` before setting the caller-supplied
   `executor_title` (generic default `执行器`). Do not guess an ID from a final
-  title, directory name, stale prompt, or previous run.
+  title, directory name, stale prompt, or previous run. Promotion changes role
+  and final title in place; it never creates a second main task.
 - Treat title, pin, and archive as presentation/lifecycle fields in the registry.
   Apply the calling domain's policy only after exact task identity is verified;
   none of these fields proves ownership.

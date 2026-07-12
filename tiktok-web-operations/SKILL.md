@@ -34,12 +34,15 @@ deadline are role inputs and constraints. They are never additional independent
 objectives. Do not load either Thread with product research, Skill maintenance,
 or another operating mission during an active run.
 
-The starter task first installs the bundled Skills, runs read-only preflight,
-returns the guided direction/duration prompt, and waits. After the user's second
-message, it self-registers its exact Thread ID, becomes the coordinator, creates
-one persistent executor, proves the callback handshake, and obtains first real
-operation proof. It does not archive itself. Never use a subagent, agent tree,
-or agent-path callback for this system.
+On a setup/install request, the starter task's first available presentation
+action is renaming itself `TikTok 启动台`. In that bootstrap role it installs the
+bundled Skills, runs read-only preflight, probes capabilities/defaults, and never
+starts a mission or creates an executor. After healthy preflight and bootstrap-
+tab release, the same exact task ID/history is promoted in place and immediately
+renamed `TikTok 主控台`; it may then return the direction/duration handoff and
+wait. A rename-tool failure is non-blocking presentation degradation and is
+repaired later. Never create a second main task, use a subagent, agent tree, or
+agent-path callback for this system.
 
 Naming follows `<platform> <responsibility>台`. After exact identity proof, pin
 `TikTok 主控台` and explicitly keep `TikTok 执行台` unpinned. Keep the registered
@@ -103,7 +106,8 @@ uncertain submission, or another non-inferable safety decision.
 
 ## Two-Phase Bootstrap
 
-1. **Install, preflight, and ask:** use `version-management.md` to automatically
+1. **Install, preflight, and ask:** immediately rename this same task
+   `TikTok 启动台`, then use `version-management.md` to automatically
    install or upgrade a valid newer bundle, no-op, defer, block, or roll back the complete versioned
    `thread-supervisor` plus `tiktok-web-operations` bundle. Never hot-reload an
    active TikTok runtime or merge old/new files. Version availability alone is
@@ -114,16 +118,19 @@ uncertain submission, or another non-inferable safety decision.
    creation support, dedicated-tab isolation, exact-target mutation-conflict
    detection, local time,
    and a writable ledger. Keep TikTok read-only, finalize only the bootstrap tab,
-   return the guided direction/duration prompt, and wait one user turn.
+   promote the same task in place to coordinator, rename it `TikTok 主控台`,
+   return the guided direction/duration prompt, and wait one user turn. If a
+   human-only repair remains, stay `TikTok 启动台` until recheck succeeds.
 2. **Resolve and operate:** after the healthy user replies, resolve the requested
    direction/persona and duration. Missing direction defaults to North American
-   college/dorm life; missing duration defaults to 3 hours. Rename this task
-   `TikTok 主控台` after temporary nonce-based self-registration, prove its exact
-   ID, pin it, and create only one unpinned `TikTok 执行台`
+   college/dorm life; missing duration defaults to 3 hours. Reuse and prove the
+   exact already-promoted `TikTok 主控台` ID, pin it, and create only one unpinned `TikTok 执行台`
    with Luna/High, exchange both IDs, prove executor-to-coordinator callback,
    dispatch the read-only first-run stability smoke, and require real page proof
    before a full calibration block or mutation. Keep both tasks persistent and
-   unarchived.
+   unarchived. If the Skill was already installed and the first user message is
+   already a clear mission, use quick health reuse, promote/rename the same task,
+   and begin in that same turn without repeating the full setup handoff.
 
 A failed hard dependency stops phase 2 and returns one concrete repair action. Do not silently fall back to a subagent, a different model, a different reasoning effort, or one combined Thread.
 
@@ -201,36 +208,36 @@ or proves completion by itself.
   triggers repeated prompt rewriting.
 - Every `create_thread` and operational `send_message_to_thread` call must specify `gpt-5.6-luna` plus `high`. If the runtime rejects that combination, stop instead of substituting another model.
 - Start the real continuous mission immediately in the current user turn and
-  accept its first search-training proof from real evidence. For a timed run,
-  the coordinator then creates two long-running repeat-on Heartbeats: operation
-  targets the exact executor as a continuation/recovery carrier; lower-frequency
-  supervisor targets the exact coordinator. Both have
-  finite `UNTIL`/`operation_stop_at` protection and verified next-run local/UTC
-  readback. Never implement continuation as `COUNT=1` plus worker self-renewal.
-- If an operation wake finds the executor already running, do no overlapping
-  work. If it finds the executor yielded/idle before cutoff or a safe automatic
-  retry condition due, resume the same mission from its validated checkpoint.
-  The executor never creates, updates, renews, pauses, or deletes an automation.
-  The coordinator updates Heartbeat configuration only when its stable template,
-  cadence, target, or cutoff changes and retires both exact Heartbeats only after
-  final release proof.
-- The supervisor Heartbeat is read-only. It verifies executor liveness, new
-  turn/proof, recent ledger progress, resume state, repeat binding, next run, and
-  cutoff. A broken continuation chain is `SCHEDULER_CONTINUATION_FAILURE`; it
-  repairs/report through `TikTok 主控台` and never touches Chrome or performs
-  mutation.
-- Keep every correctly bound run Heartbeat repeat-on through ordinary page,
+  accept its first search-training proof from real evidence. Normal persistence
+  is callback-driven: one executor activation may finish multiple logical units;
+  after a natural yield the executor callbacks the coordinator, which validates
+  the checkpoint and immediately resumes the same mission without waiting for a
+  timer. For a timed run, create exactly one long-running repeat-on
+  `coordinator_heartbeat` targeting the exact coordinator, normally hourly,
+  with finite cutoff protection and verified next-run local/UTC readback.
+- The coordinator Heartbeat is read-only until it proves a broken callback
+  chain. It verifies executor liveness, new turn/proof, recent ledger progress,
+  resume state, binding, next run, and cutoff. If the executor is running, it
+  does nothing. If the executor is unexpectedly idle/yielded before cutoff, it
+  resumes the same mission through the coordinator from the validated
+  checkpoint. It never touches Chrome or performs mutation.
+- The executor never creates, updates, renews, pauses, or deletes an automation.
+  Do not create an executor-targeted operation Heartbeat, use `COUNT=1`
+  self-renewal, or make a timer the normal boundary between logical units.
+  `SCHEDULER_CONTINUATION_FAILURE` means the callback chain failed and the
+  coordinator Heartbeat must repair the same run without overlapping work.
+- Keep the correctly bound coordinator Heartbeat repeat-on through ordinary page,
   network, Chrome, route/client-block, rendering, Feed-transition, and lane
   failures. A later wake automatically retries the safe failed surface and
   continues unaffected work. Never ask whether to retry a normal technical
   failure. Uncertain mutation freezes only that exact action/lane and is never
   retried; it does not retire any Heartbeat.
-- Retire Heartbeats only after explicit user stop, `operation_stop_at`, objective
+- Retire the coordinator Heartbeat only after explicit user stop, `operation_stop_at`, objective
   completion plus terminal executor release, or verified no-gap replacement of
   a misbound/duplicate/misconfigured timer. Create/read back the replacement,
   switch the registry binding, then retire the old timer.
-- Set `heartbeat_receipt_policy=always_three_lines`. After both Heartbeats are created and
-  every valid supervisor tick, first view/read back the exact registered automations, then
+- Set `heartbeat_receipt_policy=always_three_lines`. After the coordinator Heartbeat is created and
+  every valid tick, first view/read back the exact registered automation, then
   tell the user in exactly three lines what finished, the verified next local
   heartbeat time, and one next bounded plan. Never expose an inferred schedule.
 - On a true first install, persist
@@ -241,12 +248,11 @@ or proves completion by itself.
   capped by `operation_stop_at`. Each checkpoint reads only the registered
   executor's status/callback/ledger, emits only the fixed three-line receipt when
   healthy, and centralizes risk in `TikTok 主控台`. Persist `CONSUMED` at one hour, early stop, or run end,
-  but retain both durable Heartbeats until terminal executor release is
+  but retain the durable coordinator Heartbeat until terminal executor release is
   verified. Never recreate the overlay after an upgrade, restart, or later
   operation. If automation is unavailable, mark `DEGRADED`, disclose once, use
   callbacks only, and still consume it.
-- On heartbeat wakeup require exact automation/run/role binding. Operation wake:
-  `waking_thread_id == targetThreadId == executor_thread_id`. Supervisor wake:
+- On heartbeat wakeup require exact automation/run/role binding:
   `waking_thread_id == targetThreadId == coordinator_thread_id`. A mismatch
   returns `MISBOUND_HEARTBEAT_NO_ACTION`; it must not inspect TikTok or dispatch
   work.

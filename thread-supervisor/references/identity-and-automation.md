@@ -16,6 +16,9 @@ The following fields are mutable runtime state associated with the accepted
 
 ```text
 coordinator_title:
+bootstrap_title: NONE | caller-supplied title
+starter_role_state: BOOTSTRAP | COORDINATOR
+presentation_state: HEALTHY | DEGRADED_RENAME_UNAVAILABLE
 executor_title:
 executor_owner_state: NONE | CANDIDATE_ONLY | LIVE | ARCHIVED_RETIRED | LIVENESS_UNVERIFIED_TRANSIENT | STALE_OWNER_TOMBSTONE | REPLACEMENT_IN_PROGRESS | REPLACED
 executor_generation:
@@ -129,15 +132,21 @@ defaults only when no domain values exist:
 
 ```text
 coordinator_title = 主控台
+bootstrap_title = NONE
 executor_title = 执行器
 coordinator_pinned = false
 executor_pinned = false
 ```
 
-Final titles may collide and must never be used to discover identity. For starter
-self-registration, temporarily rename the task to
-`<coordinator_title>注册 · <run_nonce>`, resolve and verify the exact Thread ID,
-store that ID in the registry, then set `coordinator_title` and its pin state.
+Final titles may collide and must never be used to discover identity. When the
+calling domain supplies `bootstrap_title`, apply it as the first available
+presentation action. For starter self-registration, temporarily rename the task
+to `<bootstrap_title>注册 · <run_nonce>` when a bootstrap title exists, otherwise
+`<coordinator_title>注册 · <run_nonce>`; resolve and verify the exact Thread ID,
+store that ID in the registry, then promote the same task in place and set
+`coordinator_title` plus its pin state. If rename is unavailable, record
+`DEGRADED_RENAME_UNAVAILABLE`, preserve the exact task, and retry at the next
+safe point; never create a duplicate coordinator to obtain the desired title.
 The executor identity is the exact ID returned by `create_thread`; set
 `executor_title` and its pin state only after recording that ID.
 
