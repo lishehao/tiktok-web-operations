@@ -40,6 +40,22 @@ Use the video's language and comment culture. Favor:
 
 Aim for a comment that a real college/dorm-life viewer might genuinely like or reply to because it notices the video's specific payoff. Treat later likes and replies as evidence about voice quality, not as a promised TikTok account-weight mechanism. Do not ask for likes, bait replies, manufacture controversy, or imitate a top comment.
 
+Comment is the highest-priority positive lane. In a normal 35-target round, aim
+for 6 attempts with a flexible 4–8 range and absolute ceiling 10. If fewer than
+four strong candidates exist, record the quality shortfall and continue; never
+fill the range with generic praise or a repeated template.
+
+Use Web Search only after the post and visible comment culture have been read,
+and only when the joke is weak, slang is unclear, or the reference is
+time-sensitive. Allow at most two focused searches per operating round. Search
+for current cultural context, not a line to paste. Never copy a search snippet,
+TikTok/Reddit comment, meme caption, comedian joke, creator wording, or another
+one-liner. Transform the context into an original observation tied to the
+post's exact payoff.
+
+Before submitting, score specificity, context fit, meme resonance, brevity, and
+safety. A high meme score never overrides the 30-word ceiling or safety rules.
+
 The user may request `恶俗`, `损`, or `抽象`. Interpret that as lowbrow, chaotic, slightly rude humor—not unrestricted abuse. Allow shitposting, embarrassment, absurd exaggeration, and consensual-feeling friend-roast energy. Do not produce:
 
 - Targeted harassment, threats, dogpiling, humiliation, dehumanization, or body shaming.

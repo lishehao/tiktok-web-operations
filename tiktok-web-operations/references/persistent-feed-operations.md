@@ -88,6 +88,13 @@ unit completion never triggers a launcher message, task switch, or wait. After
 checkpoint the executor directly starts the next round when safe and before
 cutoff; Heartbeat is only recovery/resume.
 
+Within each round, Comment receives the highest candidate-selection weight:
+target 6 attempts, flexible 4–8, absolute ceiling 10. Keep Like/Favorite/Repost
+coverage active, but spend more contextual reasoning on comment candidates.
+Allow at most two focused Web searches per round under
+`feed-browsing-and-comments.md`; never let Web research replace qualified video
+consumption or produce copied comment text.
+
 ## Default search-training unit
 
 Use one logical training unit for a new, sparse, or visibly off-direction account.

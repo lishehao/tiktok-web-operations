@@ -185,6 +185,36 @@ claim of server persistence or success. Do not perform post-action waiting,
 reload/reopen, profile-tab checks, or account-level verification for these four
 operating lanes.
 
+### Comment-priority policy
+
+Give proactive Comment the highest candidate-selection weight because it can
+produce visible community feedback such as organic likes and replies. Treat that
+feedback as evidence of comment resonance, not proof of TikTok account weight or
+distribution causality.
+
+For a normal 35-target / 25–45-view round, use
+`comment_attempt_target=6`, `comment_attempt_min=4`,
+`comment_attempt_max=8`, with an absolute safety ceiling of 10. This is a quality
+range: if fewer than four genuinely strong candidates exist, record the
+shortfall and do not publish generic filler.
+
+Generate comments in this order:
+
+1. understand the video's exact setup/payoff;
+2. inspect visible live comment culture;
+3. draft an original post-specific joke;
+4. only when the joke is weak, slang is unclear, or the reference is
+   time-sensitive, use Web Search for current meme/slang context;
+5. transform research into a new line—never copy a TikTok comment, search
+   snippet, meme caption, creator wording, or another one-liner.
+
+Limit meme research to at most two focused Web searches per operating round so
+research does not consume the browsing budget. Search is supporting context,
+not a substitute for watching the video. Score drafts for specificity, context
+fit, meme resonance, brevity, and safety. Prefer 2–12 words; 30 words remains the
+hard ceiling. Reject generic praise, engagement bait, repeated templates,
+targeted harassment, protected-trait attacks, and sexualization of minors.
+
 ## Chrome and recovery
 
 - Use only the user's existing Chrome profile and TikTok login. Never enter,

@@ -76,6 +76,12 @@ record the exact no-candidate, current-gate, repetition, safety, or rights reaso
 
 For proactive comments, record later organic likes and substantive replies when visible at normal review checkpoints. Use them to compare joke specificity, audience language, and community fit. Do not treat raw comment-like count as proof of recommendation weight, and do not rewrite comments into engagement bait merely to chase reactions.
 
+Weight Comment above the other positive lanes for candidate-selection effort.
+For a normal 35-target round, target 6 comment attempts, allow 4–8, and never
+exceed 10. A quality shortfall is valid. Selective Web meme/slang research is
+allowed only after live post/comment context and at most twice per round; all
+submitted wording must be original and post-specific.
+
 ## Comment reply packet
 
 Record the post URL, comment text/author, relationship to the account, reason to reply, factual basis, draft, tone, disclosure risk, and whether the reply makes a product claim. Confirm the exact bounded packet before sending.

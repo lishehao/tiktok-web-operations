@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: keep TikTok 启动台 as a reusable stateless fresh-only dispatcher. Each new TikTok 执行台 owns 35-target/25–45-view rounds and makes best-effort Like, Favorite, Repost, and short Comment attempts while each qualified video is open; record attempted/unavailable/hard_blocked without post-action persistence checks."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: keep TikTok 启动台 as a reusable stateless fresh-only dispatcher. Each TikTok 执行台 owns 35-target/25–45-view rounds, makes best-effort positive actions while viewing, and weights original short comments highest with a 6 target/4–8 range and selective no-copy Web meme research."
