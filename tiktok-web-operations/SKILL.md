@@ -93,6 +93,8 @@ Read `references/role-and-stage-contract.md` and
 | Clear mission with a healthy installation | Rename/pin as distributor first. Treat a sufficiently explicit start instruction as canonical profile confirmation and fresh-create/assign without another question. Never reuse an operating task. |
 | `继续` or `开始` after a visible profile proposal | Treat as confirmation of that exact proposal and proceed. |
 | `继续` or `开始` without a visible profile proposal | Produce the packaged default proposal; do not start until the user confirms it. |
+| `用默认设置开始` | Confirm the packaged default profile and dispatch directly without another question. |
+| Direction/duration reply to the setup handoff | Treat it as an operating instruction, fill reversible omissions from defaults, and dispatch without another confirmation round. |
 | Direction only | Complete a structured proposal from that direction and ask for one confirmation. |
 | Duration only | Produce the packaged default direction proposal with that duration and ask for one confirmation. |
 | Browse-only wording | Search/view only; do not infer mutation authority. |
@@ -135,6 +137,12 @@ fields from shown safe defaults and do not add a confirmation round. A detailed
 description that asks for advice/review but not operation remains input only. A bare
 `继续` confirms only a proposal already shown. If no proposal has been shown,
 present the default proposal and wait once.
+
+The setup handoff itself establishes operating context. A reply that supplies a
+direction and optional duration is therefore an explicit operating instruction,
+even if it omits the word “start”; compile the confirmed profile and dispatch.
+The exact reply `用默认设置开始` confirms the packaged defaults and also
+dispatches directly.
 
 Every later fresh dispatch through the reusable launcher repeats this profile
 lock for that new run. Stateless launchers never inherit a prior profile; the

@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.12.20`
+Protocol version: `2026.07.12.21`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -110,6 +110,18 @@ proposal, it asks the distributor to show the default proposal and does not star
 Every later fresh run repeats this lock; the stateless distributor never inherits a
 prior account image.
 
+After setup, use this novice handoff and nothing more:
+
+```text
+TikTok 已准备好，当前账号：@handle。
+下一步只要告诉我：想把账号做成什么方向，以及运营多久。
+例如：“做北美宠物账号，持续 10 小时。”不确定就回复：“用默认设置开始。”
+```
+
+A direction/duration reply to this handoff is an operating instruction and
+dispatches without another confirmation round. `用默认设置开始` confirms the
+packaged defaults and dispatches directly.
+
 If the user has not supplied values:
 
 - direction: North American college/dorm life;
@@ -176,6 +188,8 @@ From the repository root, run both Skill structural validators and all TikTok
 scenario validators. Required scenarios include:
 
 - setup immediate `TikTok 启动台` rename;
+- successful setup shows exactly the three-line novice handoff;
+- direction/duration and `用默认设置开始` replies dispatch without another question;
 - healthy preflight same-task rename to pinned `TikTok 分发台`;
 - pin failure is non-blocking presentation degradation and executors remain unpinned;
 - profile proposal required before executor creation;

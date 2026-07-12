@@ -142,12 +142,21 @@ goes directly to `TikTok 执行台`.
 When no account image was supplied, the already renamed/pinned distributor asks:
 
 ```text
-状态健康。当前账号：@handle。
-你希望这个账号未来以什么身份、面向什么人群、发布什么内容？一句话描述即可，我会整理成完整画像给你确认。
+TikTok 已准备好，当前账号：@handle。
+下一步只要告诉我：想把账号做成什么方向，以及运营多久。
+例如：“做北美宠物账号，持续 10 小时。”不确定就回复：“用默认设置开始。”
 ```
 
-Then present one proposal and wait for `确认`, `继续`, `开始`, explicit final
-corrections, or “按此开始”. Never say operation started before that confirmation.
+Do not append architecture, dependency, capability-matrix, profile-field, or
+policy explanations to this successful handoff. A reply containing direction
+and optional duration is an explicit operating instruction in this context;
+compile reversible omissions from defaults and dispatch without another
+confirmation. `用默认设置开始` confirms all packaged defaults and dispatches
+directly. Never turn either reply into another proposal-confirmation round.
+
+For a bare `继续`/`开始` that is not the exact default command and has no visible
+proposal, show the default proposal and wait once. Never say operation started
+before the applicable confirmation.
 When the initial request contains a usable direction and explicit start/operate
 instruction, compile it as the confirmed profile and dispatch without an extra
 question. If it is detailed but asks only for advice/review, show the structured

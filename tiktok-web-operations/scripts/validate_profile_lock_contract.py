@@ -18,6 +18,8 @@ def transition(event: str) -> str:
         "bare_continue_without_proposal": "SHOW_DEFAULT_PROPOSAL_WAIT",
         "detailed_unconfirmed": "SHOW_STRUCTURED_PROPOSAL_WAIT",
         "explicit_operating_mission": "CONFIRMED_FROM_EXPLICIT_MISSION_CREATE_ALLOWED",
+        "handoff_direction_duration_reply": "CONFIRMED_FROM_HANDOFF_REPLY_CREATE_ALLOWED",
+        "exact_default_command": "CONFIRMED_DEFAULT_CREATE_ALLOWED",
         "visible_proposal_confirmed": "FRESH_CREATE_ALLOWED",
         "final_corrections": "CONFIRMED_REVISED_PROFILE_CREATE_ALLOWED",
         "second_fresh_run": "NEW_PROFILE_LOCK_REQUIRED",
@@ -36,11 +38,14 @@ def main():
     scenarios = {e: transition(e) for e in (
         "preflight_only", "bare_continue_without_proposal", "detailed_unconfirmed",
         "explicit_operating_mission",
+        "handoff_direction_duration_reply", "exact_default_command",
         "visible_proposal_confirmed", "final_corrections", "second_fresh_run")}
     assert scenarios["preflight_only"] == "PROFILE_DRAFT_NO_EXECUTOR"
     assert scenarios["bare_continue_without_proposal"] == "SHOW_DEFAULT_PROPOSAL_WAIT"
     assert scenarios["visible_proposal_confirmed"] == "FRESH_CREATE_ALLOWED"
     assert scenarios["explicit_operating_mission"] == "CONFIRMED_FROM_EXPLICIT_MISSION_CREATE_ALLOWED"
+    assert scenarios["handoff_direction_duration_reply"] == "CONFIRMED_FROM_HANDOFF_REPLY_CREATE_ALLOWED"
+    assert scenarios["exact_default_command"] == "CONFIRMED_DEFAULT_CREATE_ALLOWED"
     assert scenarios["second_fresh_run"] == "NEW_PROFILE_LOCK_REQUIRED"
     print(json.dumps({"status":"PASS","scenarios":scenarios}, ensure_ascii=False, sort_keys=True))
 
