@@ -60,6 +60,7 @@ unarchives, revives, or reuses a historical same-title executor. During the
 mission it may read/message only the registered executor for assignment,
 callback, dispatch, stop, and release. If fresh creation fails or is uncertain,
 report `FRESH_TASK_CREATION_FAILED|UNKNOWN`; never fall back to an old task.
+Never fallback to a historical owner by title, archive state, or readable summary.
 
 ### TikTok 执行台 (`TIKTOK_EXECUTOR`)
 

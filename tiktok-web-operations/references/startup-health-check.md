@@ -104,7 +104,7 @@ result ends this launch without title search, reuse, unarchive, or replacement.
 
 ## User-facing handoff
 
-When direction is missing, the already renamed/pinned main task says only:
+When direction is missing, use this three-line novice handoff and say only:
 
 ```text
 TikTok 已准备好，当前账号：@handle。

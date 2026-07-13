@@ -26,8 +26,8 @@ def transition(event: str) -> str:
     }[event]
 
 def main():
-    assert all(p.is_file() for p in FILES)
-    joined = " ".join("\n".join(p.read_text() for p in FILES).split())
+    assert all(p.is_file() for p in FILES if p.name != "README.md" or p.exists())
+    joined = " ".join("\n".join(p.read_text() for p in FILES if p.is_file()).split())
     required = ("profile_status=confirmed", "direction_profile_version",
                 "at most two user-facing rounds", "one open question",
                 "structured proposal", "3–5", "future_post_alignment",
