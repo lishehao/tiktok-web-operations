@@ -36,7 +36,7 @@ def main():
                 "callback-first", "phase timer", "ACTIVE_WATCHDOG",
                 "COOLDOWN_WAKE", "60-minute", "one-occurrence",
                 "update", "in place", "finite", "INTERVAL", "UNTIL",
-                "next_dispatch_at", "fresh machine",
+                "60 seconds", "next_dispatch_at", "fresh machine",
                 "executor owns zero timers", "SCHEDULER_CONTINUATION_FAILURE",
                 "catch-up bursts")
     missing = [x for x in required if x.lower() not in joined.lower()]

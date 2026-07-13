@@ -212,6 +212,8 @@ Do not rely on a `PAUSED` create persisting. Prove stopped polling from a
 read-back schedule with exactly one future occurrence. If direct creation
 rejects `DTSTART` or bare `COUNT=1` yields no future run, use the tool-supported
 finite `INTERVAL+UNTIL` equivalent that produces one future occurrence.
+Set `UNTIL` at least 60 seconds after the intended occurrence; a seconds-wide
+window can be consumed by update latency and leave no future run.
 
 Never derive due time from model-estimated timestamps. Read machine time when
 accepting the callback, compute `next_dispatch_at`, and compare epoch values on

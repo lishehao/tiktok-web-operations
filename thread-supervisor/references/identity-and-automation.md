@@ -79,6 +79,8 @@ it to `ACTIVE`. Prove stopped polling by enumerating exactly one future run from
 readback. If immediate create rejects `DTSTART` or bare `COUNT=1` reports no
 future run, encode the same semantics with finite
 `INTERVAL=<minutes>;UNTIL=<just after one interval>` and verify it.
+Keep `UNTIL` at least 60 seconds beyond the intended occurrence to absorb
+automation-update latency, then enumerate the one remaining future run.
 
 After dispatch, ordinary scheduling is paused and the same timer carries only
 one `ACTIVE_WATCHDOG` at dispatch + 60 minutes. A valid callback updates that

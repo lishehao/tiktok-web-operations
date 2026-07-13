@@ -306,7 +306,8 @@ to `ACTIVE`. Stop polling by encoding exactly one future occurrence and reading
 it back. Use the tool's supported one-occurrence form; when immediate create
 rejects `DTSTART` or bare `COUNT=1` has no future run, use a finite
 `INTERVAL=<minutes>;UNTIL=<just after one interval>` equivalent. Never claim a
-single wake merely from the request bytes.
+single wake merely from the request bytes. Leave at least 60 seconds between the
+intended occurrence and `UNTIL` so update latency cannot erase the only run.
 
 Use callback-first phase scheduling:
 

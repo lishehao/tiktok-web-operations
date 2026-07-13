@@ -126,7 +126,8 @@ executor owns no timer. Keep its exact ID and update its schedule in place:
 Runtime encoding: do not assume requested `PAUSED` persists, and do not force
 `DTSTART` on immediate create. Prove exactly one future occurrence from readback.
 Use `COUNT=1` only when it has a future run; otherwise use finite
-`INTERVAL+UNTIL` that leaves exactly one future run.
+`INTERVAL+UNTIL` that leaves exactly one future run. Put `UNTIL` at least 60
+seconds after the intended occurrence so update latency cannot close the window.
 
 1. After every `ROUND_DISPATCHED`, stop ordinary polling and arm one
    `ACTIVE_WATCHDOG` for 60 minutes after dispatch, bounded by cutoff.
