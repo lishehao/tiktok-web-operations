@@ -57,7 +57,12 @@ Treat feed signals as hypotheses rather than known algorithm weights:
 | Comment like | Community-context feedback | Independent comment-like persistence gate |
 | Proactive comment or reply | Social participation and voice shaping | Submit once within authority; record attempted; no reload visibility check |
 
-For proactive comments, the gate may instead be an active `autonomous_comment_mode` envelope. This exception does not apply to replies, comment likes, follows, favorites, reposts, post likes, `Not interested`, publishing, profile edits, or DMs.
+For proactive comments, the gate may instead be an active
+`autonomous_comment_mode` envelope. In a cultivation mission, the same envelope
+also covers up to two replies to distinct existing comments on an exceptional
+deep candidate under `feed-browsing-and-comments.md`. It does not cover comment
+likes, follows, favorites, reposts, post likes, `Not interested`, publishing,
+profile edits, or DMs; those retain their own authority.
 
 Autonomous comments require the standing account/direction/language/voice
 envelope, not a reload persistence test. Submit once and record attempted.
@@ -77,14 +82,22 @@ record the exact no-candidate, current-gate, repetition, safety, or rights reaso
 For proactive comments, record later organic likes and substantive replies when visible at normal review checkpoints. Use them to compare joke specificity, audience language, and community fit. Do not treat raw comment-like count as proof of recommendation weight, and do not rewrite comments into engagement bait merely to chase reactions.
 
 Weight Comment above the other positive lanes for candidate-selection effort.
-For a normal 35-target round, target 6 comment attempts, allow 4–8, and never
-exceed 10. A quality shortfall is valid. Selective Web meme/slang research is
+For a normal 35-target round, target 10 total comment attempts, allow 7–12, and
+never exceed 15. Top-level comments and replies share this budget. An
+exceptional strong-core video may receive at most one top-level comment plus up
+to two replies to distinct existing comments; most videos receive no more than
+one comment action. A quality shortfall is valid. Selective Web meme/slang research is
 allowed only after live post/comment context and at most twice per round; all
 submitted wording must be original and post-specific.
 
 ## Comment reply packet
 
-Record the post URL, comment text/author, relationship to the account, reason to reply, factual basis, draft, tone, disclosure risk, and whether the reply makes a product claim. Confirm the exact bounded packet before sending.
+For a cultivation reply covered by the standing comment envelope, record the
+post URL, exact parent comment/author, reason to reply, draft, and safety check;
+no extra confirmation is required. For replies on the account's own content,
+customer-support answers, product claims, or any context outside that envelope,
+also record factual basis, relationship, disclosure risk, and whether the reply
+makes a product claim, then confirm the exact bounded packet before sending.
 
 ## History ledger
 

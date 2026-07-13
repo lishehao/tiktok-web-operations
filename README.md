@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.13.5`
+Protocol version: `2026.07.14.1`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -142,8 +142,11 @@ The primary training path is directed search, not Feed browsing:
    and Comment together and immediately issue justified native actions once. Do
    not postpone interaction until after the viewing round and do not wait/reload/
    reopen/account-check afterward; comments never exceed 30 words.
-5. Comment is the highest-priority lane: target 6 attempts per round, flexible
-   range 4–8, hard ceiling 10. If live context does not yield a strong joke,
+5. Comment is the highest-priority lane: target 10 total comment attempts per
+   round, flexible range 7–12, hard ceiling 15. On an unusually strong video,
+   this may be one top-level joke plus replies to at most two distinct existing
+   comments; never post two or three separate top-level comments on one video.
+   If live context does not yield a strong joke,
    permit at most two focused Web searches per round for current meme/slang
    context, then write an original line rather than copying a result.
 6. After two units or roughly 20–30 qualified views, 5–10 continuous For You
@@ -210,8 +213,9 @@ scenario validators. Required scenarios include:
 - 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;
 - concurrent Like/Favorite/Repost/Comment attempt coverage during viewing, with
   `attempted|unavailable|hard_blocked` reporting and no persistence checks.
-- comment-priority 4–8 target range, selective Web meme research, and no-copy
-  originality/safety checks.
+- comment-priority 7–12 target range, at most three comment mutations on one
+  exceptional video, selective Web meme research, and no-copy originality/
+  safety checks.
 
 The release is complete only when local source, GitHub main/codeload, and the ZIP
 artifact are byte-identical for managed files.

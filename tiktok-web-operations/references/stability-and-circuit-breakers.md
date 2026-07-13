@@ -19,8 +19,10 @@ main task's exact scheduler after executor release is requested.
 
 ## Lane breakers
 
-- Favorite, Repost, Like, proactive comment, comment Like, Not interested,
-  follow, reply, publishing, and profile edit are separate lanes.
+- Favorite, Repost, Like, proactive comment, cultivation reply, comment Like,
+  Not interested, follow, publishing, and profile edit are separate capability
+  sub-lanes. Proactive comment and cultivation reply may share one authorized
+  comment budget; a failure in either remains scoped to the exact action.
 - Missing persistence or post-action proof never disables a lane. Record
   `attempted`; only the exact uncertain target/action is not retried.
 - Two consecutive native For You transition failures disable only held-out Feed

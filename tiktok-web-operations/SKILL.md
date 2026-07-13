@@ -199,9 +199,12 @@ delays, cursor jitter, or fake human behavior.
 
 ## Mutation lanes
 
-Keep Like, Favorite, Repost, proactive comment, comment Like, Not interested,
-follow, reply, generic Share, publishing, and profile changes separate. Each
-authorized lane uses attempt evidence rather than a persistence gate.
+Keep Like, Favorite, Repost, proactive comment, cultivation reply, comment Like,
+Not interested, follow, generic Share, publishing, and profile changes as
+separate capability sub-lanes. A cultivation reply can share the active comment
+authorization and round budget while retaining its own candidate and parent-
+context checks. Each authorized lane uses attempt evidence rather than a
+persistence gate.
 
 - Favorite: click the visible native Favorite control once. Do not wait +3/+10
   seconds, reload/reopen, or seek account-level proof.
@@ -242,15 +245,24 @@ feedback as evidence of comment resonance, not proof of TikTok account weight or
 distribution causality.
 
 For a normal 35-target / 25–45-view round, use
-`comment_attempt_target=6`, `comment_attempt_min=4`,
-`comment_attempt_max=8`, with an absolute safety ceiling of 10. This is a quality
-range: if fewer than four genuinely strong candidates exist, record the
+`comment_attempt_target=10`, `comment_attempt_min=7`,
+`comment_attempt_max=12`, with an absolute safety ceiling of 15. Count both
+top-level proactive comments and replies in this total. This is a quality range:
+if fewer than seven genuinely strong conversational openings exist, record the
 shortfall and do not publish generic filler.
+
+Most qualifying videos receive zero or one top-level comment. On an exceptional
+strong-core video, inspect the live discussion more deeply and allow up to three
+total comment mutations: at most one proactive top-level comment plus at most
+two replies to distinct existing comments. Each reply must add a different,
+post-specific joke or observation. Never post multiple top-level comments,
+self-reply, repeat a template, or use replies merely to reach the round target.
 
 Generate comments in this order:
 
 1. understand the video's exact setup/payoff;
-2. inspect visible live comment culture;
+2. inspect visible live comment culture; on a deep candidate, read roughly
+   8–20 relevant visible comments when readily available;
 3. draft an original post-specific joke;
 4. only when the joke is weak, slang is unclear, or the reference is
    time-sensitive, use Web Search for current meme/slang context;

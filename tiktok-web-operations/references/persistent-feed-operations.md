@@ -99,8 +99,12 @@ The main task's callback-first phase timer dispatches the next bounded round onl
 and the executor is IDLE. The executor never creates or modifies a timer.
 
 Within each round, Comment receives the highest candidate-selection weight:
-target 6 attempts, flexible 4–8, absolute ceiling 10. Keep Like/Favorite/Repost
-coverage active, but spend more contextual reasoning on comment candidates.
+target 10 total comment attempts, flexible 7–12, absolute ceiling 15. Count
+top-level comments and replies together. Most videos receive no more than one
+top-level comment; an exceptional deep candidate may receive one top-level plus
+up to two replies to distinct existing comments, never multiple top-level
+comments. Keep Like/Favorite/Repost coverage active, but spend more contextual
+reasoning on comment candidates.
 Allow at most two focused Web searches per round under
 `feed-browsing-and-comments.md`; never let Web research replace qualified video
 consumption or produce copied comment text.
@@ -219,7 +223,12 @@ Keep these feedback lanes separate:
 - **Explicit negative:** `Not interested` only for clearly harmful-to-direction content. Require exact-post confirmation and a one-action capability test before using it as a lane.
 - **Explicit positive:** post like, favorite, or TikTok Repost only on strong-core content under exact or standing authorization. Click the visible native control once and record `attempted`; do not wait, reload/reopen, inspect profile tabs, or seek account-level proof. Repost is not generic Share, copy-link, or send-to-recipient. Opening the Share sheet is allowed read-only when needed to reveal an explicit Repost control; every other target in the sheet remains excluded.
 - **Community feedback:** comment like is its own capability type. Use it only for a comment that genuinely represents the desired community voice; do not mass-like comment sections.
-- **Social participation:** proactive comments require either exact confirmation or a matching active autonomous-comment envelope; replies still require exact confirmation. Submit once, record `attempted`, and do not reload/reopen to verify.
+- **Social participation:** proactive comments require either exact confirmation
+  or a matching active autonomous-comment envelope. In a cultivation mission,
+  that same envelope may cover up to two replies on an exceptional deep
+  candidate when the reply rules in `feed-browsing-and-comments.md` match.
+  Submit each distinct action once, record `attempted`, and do not reload/reopen
+  to verify.
 
 Do not stack like + favorite + repost + comment on every good post. During each
 qualified view, evaluate all four lanes before leaving the post and execute the

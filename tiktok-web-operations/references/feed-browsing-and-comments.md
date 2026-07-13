@@ -41,9 +41,19 @@ Use the video's language and comment culture. Favor:
 Aim for a comment that a real college/dorm-life viewer might genuinely like or reply to because it notices the video's specific payoff. Treat later likes and replies as evidence about voice quality, not as a promised TikTok account-weight mechanism. Do not ask for likes, bait replies, manufacture controversy, or imitate a top comment.
 
 Comment is the highest-priority positive lane. In a normal 35-target round, aim
-for 6 attempts with a flexible 4–8 range and absolute ceiling 10. If fewer than
-four strong candidates exist, record the quality shortfall and continue; never
+for 10 total comment attempts with a flexible 7–12 range and absolute ceiling
+15. Count top-level comments and replies together. If fewer than seven strong
+conversational openings exist, record the quality shortfall and continue; never
 fill the range with generic praise or a repeated template.
+
+Most videos receive zero or one proactive top-level comment. For an exceptional
+strong-core video with an active, safe discussion, read roughly 8–20 relevant
+visible comments when readily available. The same video may receive up to three
+total comment mutations: at most one top-level comment and at most two replies
+to distinct existing comments. A reply must respond to its own parent context
+and add a materially different joke or observation. Never leave two or three
+separate top-level comments, self-reply, reply twice to the same parent, or use
+thread depth merely to fill the round range.
 
 Use Web Search only after the post and visible comment culture have been read,
 and only when the joke is weak, slang is unclear, or the reference is
@@ -83,13 +93,20 @@ The standing envelope must record:
 - Allowed audience/topic clusters and exclusions.
 - Voice: short, meme-aware, context-specific, non-promotional.
 - Hard maximum: 30 words; prefer 2-12.
-- Eligible action: one proactive top-level comment on a qualifying post.
-- Excluded actions: replies, comment likes, post likes, favorites, reposts, follows, generic shares, `Not interested`, video posts, profile edits, and DMs unless separately authorized.
+- Eligible action: one proactive top-level comment on a qualifying post; for an
+  exceptional deep candidate, up to two context-specific replies to distinct
+  existing comments under the same cultivation authorization.
+- Excluded actions: comment likes, follows, generic shares, `Not interested`,
+  video posts, profile edits, and DMs unless separately authorized. Post likes,
+  favorites, and reposts remain independent authorized lanes.
 - Start time, revocation state, capability state, and hard stops.
 
 In autonomous mode, comment only when the post is `core` to the active audience direction, the setup/payoff is understood, the visible comment culture supports playful participation, and a strong original joke survives the safety checks. Skip rather than ask when the fit is merely adjacent, emotionally sensitive, politically charged, directed at a vulnerable person, unclear, stale, repetitive, or dependent on insulting a real person.
 
-Record the URL and exact final text in the ledger before submitting. Never reuse wording mechanically across posts. Do not optimize for comment volume or stack multiple account actions on the same post.
+Record the URL, parent-comment identity when replying, and exact final text in
+the ledger before submitting. Never reuse wording mechanically across posts.
+Do not optimize for comment volume. Multiple comment actions on one post are
+permitted only by the exceptional-video depth rule above.
 
 ## Draft and send
 
@@ -97,7 +114,7 @@ For each candidate, prepare up to three materially different short options only 
 
 In `per_item_confirmation`, present the exact creator/post URL and exact final text and confirm the bounded batch at action time. In `autonomous_comment_mode`, verify that every standing-envelope field matches; do not request per-comment confirmation. Then:
 
-1. Submit one comment once.
+1. Submit each distinct top-level comment or reply once.
 2. Record `attempted` plus an immediate visible response when readily available.
 3. Do not wait, reload/reopen, or inspect account-level state.
 
