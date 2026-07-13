@@ -30,9 +30,11 @@ next_dispatch_at_utc: NONE | exact machine timestamp
 scheduler_automation_id: NONE | exact returned id
 scheduler_manager_thread_id: exact coordinator id
 scheduler_target_thread_id: exact coordinator id
-scheduler_status: NONE | ACTIVE | UNVERIFIED | DELETED
-scheduler_repeat: NONE | ON
+scheduler_status: NONE | PAUSED | ACTIVE | UNVERIFIED | DELETED
+scheduler_phase: NONE | ACTIVE_WATCHDOG | COOLDOWN_WAKE
+scheduler_occurrence: NONE | ONE
 scheduler_next_run: NONE | exact local/UTC readback
+scheduler_encoding: COUNT_1 | FINITE_INTERVAL_UNTIL_ONE_FUTURE_RUN
 coordinator_ledger_path: exact private path
 executor_ledger_path: exact private path
 run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
@@ -63,19 +65,28 @@ unrelated TikTok tasks. The executor reads/messages only its exact main task.
 
 ## Scheduler ownership
 
-The main task alone creates, views, and deletes one self-target recurring
-scheduler under the direct user mission authorization. Normally use a
-five-minute recurrence. The executor owns zero timers.
+The main task alone creates, views, updates, and deletes one stable self-target
+phase timer under the direct user mission authorization. The executor owns zero
+timers. Never poll an active executor every five minutes.
 
 Creation proof requires exact automation ID, exact main-task target,
-ACTIVE/repeat-on state, next local/UTC run, and cutoff. A rendered suggestion
+phase/one-occurrence state, next local/UTC run, and cutoff. A rendered suggestion
 card, create request, inferred filename, or missing-ID response is not proof and
 becomes `SCHEDULER_CONTINUATION_FAILURE`.
 
-At every wake require exact main/run/timer binding and use fresh machine UTC.
-No-op when executor is active, no accepted callback-derived round is pending, or
-current time is before `next_dispatch_at`. When due, dispatch one round and clear
-the pending flag. Never send catch-up bursts or create a new timer per round.
+Do not use a requested `PAUSED` status as proof; direct creation may normalize
+it to `ACTIVE`. Prove stopped polling by enumerating exactly one future run from
+readback. If immediate create rejects `DTSTART` or bare `COUNT=1` reports no
+future run, encode the same semantics with finite
+`INTERVAL=<minutes>;UNTIL=<just after one interval>` and verify it.
+
+After dispatch, ordinary scheduling is paused and the same timer carries only
+one `ACTIVE_WATCHDOG` at dispatch + 60 minutes. A valid callback updates that
+same exact automation in place to one `COOLDOWN_WAKE` at `next_dispatch_at`.
+The due cooldown wake dispatches one round and rearms the same timer as the next
+watchdog. A watchdog never dispatches while executor is active. Never send
+catch-up bursts, create/delete a timer per round, or fall back to five-minute
+NOOP polling.
 
 At explicit stop, deadline, completion, or terminal release, stop new dispatch,
 request executor release if needed, delete the exact scheduler, and read back

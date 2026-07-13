@@ -32,10 +32,10 @@ TikTok 主控台 -> CALLBACK_PING/v1
 TikTok 执行台 -> CALLBACK_ACK/v1 -> exact TikTok 主控台
 ```
 
-7. Create one main-task-targeted recurring scheduler Heartbeat under the direct
-   user mission authorization. Normally use a five-minute recurrence. Require
-   exact automation ID, exact main-task target, ACTIVE/repeat-on state, next
-   local/UTC run, and mission cutoff readback. If creation produces only a
+7. Create one stable main-task-targeted phase timer under the direct user
+   mission authorization. Require exact automation ID, exact main-task target,
+   current phase, one-occurrence state, next local/UTC run, and mission cutoff
+   readback. If creation produces only a
    suggestion card or lacks an exact ID/readback, record
    `SCHEDULER_CONTINUATION_FAILURE`; never claim unattended continuation.
 8. Dispatch `round_assignment/v1` for round 1 immediately.
@@ -61,7 +61,7 @@ TikTok 执行台 -> CALLBACK_ACK/v1 -> exact TikTok 主控台
   "coordinator_ledger_path":"<private path>",
   "dedicated_tab_policy":"EXECUTOR_OWNED",
   "callback_policy":"ROUND_BOUNDARY_TO_EXACT_COORDINATOR",
-  "automation_policy":"COORDINATOR_OWNED_FIXED_SCHEDULER"
+  "automation_policy":"COORDINATOR_OWNED_CALLBACK_FIRST_PHASE_TIMER"
 }
 ```
 
@@ -118,22 +118,31 @@ executor_state: IDLE
 Use 15 minutes normally, 10 for read-only/low-yield work, and 20 for mutation-
 or recovery-heavy work. This is workload pacing, not randomized stealth.
 
-## Fixed scheduler
+## Callback-first phase timer
 
-The main task owns one recurring Heartbeat for the mission. The executor owns no
-timer. On every wake, use real machine UTC and exact registry state:
+The main task owns one stable phase-timer automation for the mission. The
+executor owns no timer. Keep its exact ID and update its schedule in place:
 
-1. At/after user stop or `operation_stop_at`, stop dispatch and delete the exact
-   scheduler.
-2. If no accepted callback is pending, executor is active, or
-   `actual_now < next_dispatch_at`, perform no dispatch.
-3. If due and executor is verified idle, send one canonical next-round
-   assignment, persist `ROUND_DISPATCHED`, and clear the pending flag.
-4. Never send catch-up rounds, never infer completion from a title, and never
-   create a replacement timer per round.
+Runtime encoding: do not assume requested `PAUSED` persists, and do not force
+`DTSTART` on immediate create. Prove exactly one future occurrence from readback.
+Use `COUNT=1` only when it has a future run; otherwise use finite
+`INTERVAL+UNTIL` that leaves exactly one future run.
 
-The scheduler prompt holds only stable identity, registry/ledger paths, wake
-rules, and cutoff. Mutable strategy and evidence stay in the main ledger.
+1. After every `ROUND_DISPATCHED`, stop ordinary polling and arm one
+   `ACTIVE_WATCHDOG` for 60 minutes after dispatch, bounded by cutoff.
+2. When the exact callback arrives, compute the 10–20 minute cooldown and update
+   the same timer to one `COOLDOWN_WAKE` at exact `next_dispatch_at`.
+3. At a valid due cooldown wake, verify executor IDLE, send one canonical
+   next-round assignment, persist `ROUND_DISPATCHED`, and rearm the same timer as
+   the next single active-round watchdog.
+4. At a watchdog wake, never dispatch over an active executor. Read only the
+   registered executor: rearm once when progress is recent, request one missing
+   callback/status when idle, or report a genuine stale/unreachable owner.
+5. Never send catch-up rounds, infer completion from a title, poll every five
+   minutes, or create/delete a replacement timer per round.
+
+The timer prompt holds only stable identity, registry/ledger paths, phase rules,
+and cutoff. Mutable phase, strategy, and evidence stay in the main ledger.
 
 ## Failure and finalization
 

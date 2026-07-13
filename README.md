@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.13.3`
+Protocol version: `2026.07.13.4`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -54,9 +54,9 @@ TikTok 启动台
 TikTok 主控台
   -> resolve explicit mission or confirm a missing account image
   -> fresh-create/assign one TikTok 执行台 -> callback handshake
-  -> create/read-back one main-target fixed scheduler Heartbeat
+  -> create/read-back one stable main-target phase timer
   -> dispatch bounded round -> accept callback -> choose cooldown/direction
-  -> scheduler dispatches the next round when due
+  -> callback arms one cooldown wake -> due wake dispatches one next round
 
 TikTok 执行台
   read-only smoke -> search-led operation -> held-out Feed checks
@@ -67,8 +67,8 @@ TikTok 执行台
 ```
 
 The pinned `TikTok 主控台` owns mission strategy, exact executor registry,
-callback acceptance, 10–20 minute cooldown decisions, one fixed recurring
-scheduler Heartbeat, user communication, and finalization. It never operates
+callback acceptance, 10–20 minute cooldown decisions, one callback-first phase
+timer, user communication, and finalization. It never operates
 TikTok. `TikTok 执行台` owns only its dedicated Chrome tab, raw ledger,
 within-round recovery, and one bounded round at a time; it owns no timer.
 
@@ -159,13 +159,15 @@ items. Feed failure disables only validation; healthy search training continues.
 Page/network/Chrome/lane failures are scoped and auto-recovered inside the
 round. A round-ending or human-only blocker callbacks the exact main task.
 
-## Automatic resume receipt
+## Callback-first resume receipt
 
-The main task creates one self-targeted recurring scheduler Heartbeat when the
-mission starts under direct user authorization. Normally it checks every five
-minutes. It no-ops while the executor is active, before `next_dispatch_at`, or
-without an accepted callback-derived pending round. When due, it sends exactly
-one assignment. The executor never creates or modifies a Heartbeat.
+The main task creates one stable self-targeted phase timer under direct user
+authorization. It does not poll every five minutes. After dispatch, normal
+scheduler polling is paused and the same timer holds only one low-frequency
+60-minute watchdog wake. A valid executor callback updates that exact timer in
+place to one cooldown wake at `next_dispatch_at`; the due wake sends exactly one
+assignment and rearms the one watchdog. The executor never creates or modifies
+a Heartbeat, and the main task never creates/deletes a timer per round.
 
 Every accepted callback/coordinator receipt has exactly three lines:
 
@@ -199,9 +201,10 @@ scenario validators. Required scenarios include:
 - one registered executor and one canonical callback path per active mission;
 - executor returns one structured callback after every bounded round;
 - main task selects next clusters, interaction emphasis, and cooldown;
-- one coordinator-owned fixed recurring scheduler with exact readback;
+- one coordinator-owned callback-first phase timer with exact in-place readback;
 - executor owns zero Heartbeats and cannot substitute a timer;
-- scheduler no-op before due, during active execution, or without pending work;
+- no five-minute polling while the executor is active;
+- one cooldown wake after callback plus one 60-minute active-round watchdog;
 - independent lanes and independent runs;
 - network/Chrome recovery with callback only at a bounded-round boundary;
 - 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;

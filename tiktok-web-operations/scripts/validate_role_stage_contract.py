@@ -16,14 +16,15 @@ def route(event: str):
         "preflight_healthy":"SAME_TASK_MAIN_RENAME_PIN",
         "assignment_accepted":"CALLBACK_HANDSHAKE_THEN_ROUND1",
         "round_complete":"EXECUTOR_CALLBACK_IDLE",
-        "callback_accepted":"MAIN_REPLAN_COOLDOWN",
-        "wake_before_due":"MAIN_NOOP",
-        "wake_due_idle":"MAIN_DISPATCH_ONE_ROUND",
+        "callback_accepted":"MAIN_REPLAN_ARM_ONE_COOLDOWN_WAKE",
+        "before_due":"NO_TIMER_WAKE",
+        "wake_due_idle":"MAIN_DISPATCH_ONE_ROUND_REARM_WATCHDOG",
+        "round_dispatched":"ARM_ONE_60_MINUTE_WATCHDOG",
         "candidate_outside_scope":"EXECUTOR_SKIP",
         "network_fault":"EXECUTOR_AUTO_RECOVER_OR_CALLBACK",
         "captcha":"EXECUTOR_CALLBACK_MAIN_ASK_USER",
         "direction_change":"MAIN_VERSION_NEXT_ASSIGNMENT",
-        "deadline":"MAIN_STOP_DELETE_SCHEDULER_RELEASE",
+        "deadline":"MAIN_STOP_DELETE_PHASE_TIMER_RELEASE",
     }[event]
 
 def main():
@@ -37,12 +38,13 @@ def main():
     assert not missing, missing
     events = ("profile_unconfirmed","profile_confirmed","preflight_healthy",
               "assignment_accepted","round_complete","callback_accepted",
-              "wake_before_due","wake_due_idle","candidate_outside_scope",
+              "before_due","wake_due_idle","round_dispatched","candidate_outside_scope",
               "network_fault","captcha","direction_change","deadline")
     scenarios = {e: route(e) for e in events}
     assert scenarios["round_complete"] == "EXECUTOR_CALLBACK_IDLE"
-    assert scenarios["wake_before_due"] == "MAIN_NOOP"
-    assert scenarios["wake_due_idle"] == "MAIN_DISPATCH_ONE_ROUND"
+    assert scenarios["before_due"] == "NO_TIMER_WAKE"
+    assert scenarios["wake_due_idle"] == "MAIN_DISPATCH_ONE_ROUND_REARM_WATCHDOG"
+    assert scenarios["round_dispatched"] == "ARM_ONE_60_MINUTE_WATCHDOG"
     assert scenarios["captcha"] == "EXECUTOR_CALLBACK_MAIN_ASK_USER"
     print(json.dumps({"status":"PASS","steady_role_count":2,"scenarios":scenarios}, sort_keys=True))
 

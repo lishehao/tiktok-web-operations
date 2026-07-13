@@ -11,7 +11,7 @@ This is the authority for TikTok task ownership. TikTok uses
 objective: keep one confirmed mission strategically aligned and continuously
 scheduled until stop, cutoff, or completion.
 owns: install/preflight; profile and mission; exact executor registry; callback
-acceptance; search direction; cooldown; fixed scheduler Heartbeat; user reports;
+acceptance; search direction; cooldown; callback-first phase timer; user reports;
 hard-repair conversation; finalization.
 reads: public/installed bundle, current account proof, exact executor callbacks,
 coordinator ledger, scheduler readback.
@@ -46,11 +46,11 @@ authority; overlap itself.
 | `C0_BOOTSTRAP` | task titled `TikTok 启动台` | install/upgrade, read-only preflight, required user repair | healthy dependencies/account | `C0_MAIN_READY` |
 | `C0_MAIN_READY` | same task | rename `TikTok 主控台`, pin/readback, profile lock | main identity plus confirmed profile | `C1_CREATE` |
 | `C1_CREATE` | main | fresh-create one executor and canonical assignment | exact IDs and `ASSIGNMENT_ACCEPTED` | `C1_HANDSHAKE` |
-| `C1_HANDSHAKE` | main + executor | exact `CALLBACK_PING/ACK` and scheduler create/readback | callback proof plus verified fixed scheduler | `C2_DISPATCH` |
-| `C2_DISPATCH` | main | send exactly one `round_assignment/v1` | `ROUND_DISPATCHED`, executor ACTIVE | main `C3_WAIT`, executor `E1_RUN` |
-| `C3_WAIT` | main | await callback; scheduler wakes may no-op | valid callback or terminal signal | `C4_REPLAN` or `C6_FINALIZE` |
+| `C1_HANDSHAKE` | main + executor | exact `CALLBACK_PING/ACK` and phase-timer create/readback | callback proof plus verified stable timer | `C2_DISPATCH` |
+| `C2_DISPATCH` | main | send exactly one `round_assignment/v1`; arm one 60-minute watchdog | `ROUND_DISPATCHED`, executor ACTIVE, no five-minute polling | main `C3_WAIT`, executor `E1_RUN` |
+| `C3_WAIT` | main | await callback; only one low-frequency watchdog exists | valid callback, watchdog, or terminal signal | `C4_REPLAN` or `C6_FINALIZE` |
 | `C4_REPLAN` | main | accept callback, update strategy, machine-calculate cooldown | `next_dispatch_at`, pending next round, executor IDLE | `C5_COOLDOWN` |
-| `C5_COOLDOWN` | main scheduler | no-op until due; dispatch once when due | next round dispatched or cutoff | `C3_WAIT` or `C6_FINALIZE` |
+| `C5_COOLDOWN` | main timer | one exact due wake; dispatch once and rearm watchdog | next round dispatched or cutoff | `C3_WAIT` or `C6_FINALIZE` |
 | `E0_ACCEPT` | executor | validate assignment and handshake | exact IDs/refs, callback ACK | `E1_RUN` |
 | `E1_RUN` | executor | one 25–45-view search-led round plus interactions | durable checkpoint | `E2_CALLBACK` |
 | `E2_CALLBACK` | executor | send one `round_callback/v1` | accepted send, executor IDLE | wait for `C2_DISPATCH` or stop |
@@ -64,9 +64,10 @@ authority; overlap itself.
 - Accept exactly one callback for the expected run/round sequence.
 - Executor callbacks and becomes idle after every completed round.
 - Main chooses strategy and 10–20 minute cooldown from callback evidence.
-- Main owns exactly one fixed recurring scheduler; executor owns zero timers.
-- Scheduler wakes no-op before due, while executor is active, or with no pending
-  callback-derived round.
+- Main owns exactly one stable callback-first phase timer; executor owns zero timers.
+- Active execution has no five-minute NOOP loop; only one 60-minute watchdog.
+- Callback updates that exact timer to one due cooldown wake; dispatch rearms
+  the same timer as the next watchdog.
 - Use fresh machine UTC for `next_dispatch_at`; never trust model-estimated or
   out-of-order ledger timestamps.
 - Timer readback without exact automation ID/target/status/next run is not proof.
@@ -88,9 +89,10 @@ main asks the user once. Historical failures never block a clean current run.
 - No executor or TikTok work existed before profile confirmation.
 - Exactly one fresh executor ID was registered for the mission.
 - Callback ping/ack succeeded before external work.
-- Main scheduler was created/read back under direct user authorization.
+- Main phase timer was created/read back under direct user authorization.
 - Executor owns one tab/ledger and no automation.
 - Every 25–45-view round ends in one accepted callback and IDLE state.
 - Main chose next clusters, action emphasis, and cooldown from evidence.
-- No dispatch happened before `next_dispatch_at` or while executor ACTIVE.
+- No dispatch happened before `next_dispatch_at` or while executor ACTIVE, and
+  no five-minute executor-active polling occurred.
 - At terminal state, scheduler deletion and executor release were both proven.

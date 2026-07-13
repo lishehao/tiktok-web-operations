@@ -25,8 +25,9 @@ def main():
     assert all(p.is_file() for p in FILES if p.name != "README.md" or p.exists())
     joined = "\n".join(p.read_text() for p in FILES if p.is_file())
     required = ("10–20", "next_dispatch_at", "15 minutes", "fresh machine",
-                "main task", "callback", "executor is IDLE", "no-op",
-                "perform no TikTok", "C5_COOLDOWN")
+                "main task", "callback", "executor is IDLE", "COOLDOWN_WAKE",
+                "ACTIVE_WATCHDOG", "60-minute", "perform no TikTok",
+                "C5_COOLDOWN")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     now = datetime(2026, 7, 13, 1, 58, 30, tzinfo=timezone(timedelta(hours=8)))
@@ -37,8 +38,9 @@ def main():
         "standard": cooldown("standard"),
         "mutation_or_recovery_heavy": cooldown("mutation_or_recovery_heavy"),
         "cross_midnight_utc": next_at(now, 15).isoformat(),
-        "wake_before_due": "NOOP",
+        "before_due": "NO_TIMER_WAKE",
         "wake_due_idle": "DISPATCH_ONE_ROUND",
+        "after_dispatch": "ARM_ONE_60_MINUTE_WATCHDOG",
     }
     assert scenarios["standard"] == 15
     assert scenarios["cross_midnight_utc"] == "2026-07-12T18:13:30+00:00"

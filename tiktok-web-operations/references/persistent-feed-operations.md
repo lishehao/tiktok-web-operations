@@ -95,7 +95,7 @@ a read-only or low-yield round and 20 for a mutation- or recovery-heavy round.
 This is deterministic workload pacing, not randomized human imitation. During
 cooldown, perform no TikTok navigation, viewing, search, or mutation.
 
-The main task's fixed scheduler dispatches the next bounded round only when due
+The main task's callback-first phase timer dispatches the next bounded round only when due
 and the executor is IDLE. The executor never creates or modifies a timer.
 
 Within each round, Comment receives the highest candidate-selection weight:

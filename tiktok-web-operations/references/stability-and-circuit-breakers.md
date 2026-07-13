@@ -1,16 +1,18 @@
 # Stability And Circuit Breakers
 
-The executor owns within-round recovery; the main task owns one fixed scheduler.
+The executor owns within-round recovery; the main task owns one stable phase timer.
 Circuit breakers are lane/surface scoped unless the hard-blocker whitelist is proven.
 
 ## Coordinator continuation invariant
 
 Before external work require callback ping/ack plus one verified main-target
-recurring scheduler. Executor callbacks and becomes idle at every round boundary.
-The main task machine-calculates `next_dispatch_at`; scheduler wakes dispatch one
-round only when due and executor IDLE. An uncertain submission is never retried.
+phase timer. Executor callbacks and becomes idle at every round boundary. The
+main task machine-calculates `next_dispatch_at`; callback updates the same timer
+to one cooldown wake, and due wake dispatches one round only when executor IDLE.
+Active rounds have one 60-minute watchdog, never five-minute polling. An
+uncertain submission is never retried.
 
-For a misbound/duplicate/misconfigured scheduler, do no dispatch. Delete it only
+For a misbound/duplicate/misconfigured phase timer, do no dispatch. Delete it only
 when exact identity is known; never create a per-round substitute. Explicit
 stop, `operation_stop_at`, objective completion, or terminal release deletes the
 main task's exact scheduler after executor release is requested.
@@ -25,8 +27,8 @@ main task's exact scheduler after executor release is requested.
   validation; qualified search training continues.
 - Empty candidates produce a completed no-action checkpoint and cluster
   rotation, never a mission block.
-- Malformed ledger data pauses mutation for bounded repair; it does not alter
-  the main scheduler or require user confirmation.
+- Malformed ledger data pauses mutation for bounded repair; it does not create
+  frequent polling or require user confirmation.
 
 ## Whole-mission hard boundary
 

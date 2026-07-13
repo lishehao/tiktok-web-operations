@@ -180,11 +180,11 @@ Use exactly two persistent tasks for one active mission:
 TikTok 启动台 --healthy same-task transition--> pinned TikTok 主控台
 TikTok 主控台 --bounded round_assignment/v1--> TikTok 执行台
 TikTok 执行台 --ROUND_COMPLETED|BLOCKED|RELEASED callback--> TikTok 主控台
-TikTok 主控台 --fixed scheduler wake after due cooldown--> next round
+TikTok 主控台 --one callback-armed cooldown wake--> next round
 ```
 
 The main task owns profile/mission versions, strategy, exact executor registry,
-callback validation, `next_dispatch_at`, one self-target recurring scheduler,
+callback validation, `next_dispatch_at`, one stable self-target phase timer,
 user decisions, and final reporting. It never owns a TikTok operating tab or
 performs TikTok mutations. The executor owns one dedicated Chrome tab, raw
 evidence, within-round recovery, and one bounded 25–45-view round at a time. It
@@ -196,19 +196,28 @@ becomes idle. The main task accepts it only when coordinator/executor/run/round
 identity and sequence match, then chooses the next three search clusters,
 interaction emphasis, and a 10–20 minute cooldown.
 
-Create the coordinator scheduler once under the user's direct mission
-authorization, normally at five-minute recurrence. Read back exact automation
-ID, self target, ACTIVE/repeat-on state, and next local/UTC run. At each wake:
+Create the coordinator phase timer once under the user's direct mission
+authorization. Read back exact automation ID, self target, current phase,
+one-occurrence state, and next local/UTC run. Update that exact timer in place:
 
-- delete and finalize at user stop or mission cutoff;
-- no-op if executor is active, no callback is pending, or current machine UTC is
-  before `next_dispatch_at`;
-- otherwise send one next-round assignment and mark it dispatched.
+- after round dispatch, stop ordinary polling and arm one 60-minute
+  `ACTIVE_WATCHDOG` wake only;
+- after a valid callback, replace the pending watchdog schedule in place with
+  one `COOLDOWN_WAKE` at exact `next_dispatch_at`;
+- at the due cooldown wake, send one next-round assignment and rearm the same
+  timer as the next 60-minute watchdog;
+- delete and finalize only at user stop, mission cutoff, or terminal release.
+
+Do not rely on a `PAUSED` create persisting. Prove stopped polling from a
+read-back schedule with exactly one future occurrence. If direct creation
+rejects `DTSTART` or bare `COUNT=1` yields no future run, use the tool-supported
+finite `INTERVAL+UNTIL` equivalent that produces one future occurrence.
 
 Never derive due time from model-estimated timestamps. Read machine time when
 accepting the callback, compute `next_dispatch_at`, and compare epoch values on
-wake. Never create a new timer per round or send catch-up bursts. If the timer
-cannot be created/read back, do not claim unattended continuity; report
+wake. Never create/delete a timer per round, keep a five-minute active-worker
+NOOP loop, or send catch-up bursts. If the timer cannot be created, updated, or
+read back, do not claim unattended continuity; report
 `SCHEDULER_CONTINUATION_FAILURE` in the main task while preserving completed
 evidence.
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Thread Supervisor"
   short_description: "Assign and schedule persistent tasks safely"
-  default_prompt: "Use $thread-supervisor to enforce exact main/executor identity, callback handshake and sequence, one coordinator-owned fixed scheduler, bounded worker rounds, and verified release."
+  default_prompt: "Use $thread-supervisor to enforce exact main/executor identity, callback handshake and sequence, one coordinator-owned callback-first phase timer, bounded worker rounds, and verified release."
