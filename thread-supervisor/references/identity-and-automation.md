@@ -1,108 +1,85 @@
 # Thread Identity And Automation Ownership
 
-A title, focused window, list/search result, directory, cached summary, or old
-prompt is not task identity. Use the exact ID returned by `create_thread` and
-exact tool readback.
+A title, list result, directory, cached summary, or old prompt is not task
+identity. Use exact IDs returned by thread and automation tools plus readback.
 
-## Launcher/self-owned executor state
-
-Mutable state associated with `executor_assignment/v1`:
+## TikTok coordinator-worker registry
 
 ```text
-launcher_title: TikTok 启动台 | TikTok 分发台 | DEGRADED_RENAME_UNAVAILABLE
-launcher_pinned: TRUE | DEGRADED_PIN_UNAVAILABLE | UNVERIFIED
-launcher_state: PREFLIGHT | DISTRIBUTOR_READY | ASSIGNING | REUSABLE_IDLE
-launcher_dispatch_sequence: monotonically increasing local count
-pre_dispatch_gate_state: NONE | DRAFT | PROPOSED | CONFIRMED
-pre_dispatch_gate_ref: NONE | exact canonical ref
-dispatch_policy: FRESH_ONLY
-fresh_create_attempts: 0 | 1
-executor_thread_id:
+coordinator_thread_id: exact pinned TikTok 主控台 id
+coordinator_title: TikTok 启动台 | TikTok 主控台 | DEGRADED_RENAME_UNAVAILABLE
+coordinator_pinned: TRUE | DEGRADED_PIN_UNAVAILABLE | UNVERIFIED
+coordinator_state: BOOTSTRAP | READY | DISPATCHING | WAITING_CALLBACK |
+  COOLDOWN | HARD_REPAIR | FINALIZING | RELEASED
+run_id: exact uuid
+profile_ref: exact confirmed canonical ref
+direction_ref: exact canonical ref
+authority_ref: exact canonical ref
+mission_ref: exact canonical ref
+operation_stop_at: exact UTC plus local rendering
+executor_thread_id: exact fresh returned id
 executor_title: TikTok 执行台
-executor_owner_state: NEW | ASSIGNMENT_ACCEPTED | ACTIVE | HARD_REPAIR | RELEASED
-run_id:
-assignment_ref:
-direction_ref:
-authority_ref:
-mission_ref:
-ledger_path:
-automation_topology: self_owned_executor_tick
-automation_manager_thread_id: exact executor id
-pending_wake_id: NONE | tiktok-wake-<run_id>-round-<round_seq> | tiktok-recovery-<run_id>-<recovery_seq>
-pending_wake_target_thread_id: NONE | exact executor id
-pending_wake_occurrences: NONE | 1
-pending_wake_next_at: NONE | exact local/UTC timestamp
-operation_stop_at:
+executor_state: NEW | ACCEPTED | ACTIVE | IDLE | HARD_REPAIR | RELEASED
+callback_handshake: NONE | PING_SENT | ACK_VERIFIED
+expected_round_seq: positive integer
+last_callback_ref: NONE | exact canonical ref
+pending_round_seq: NONE | positive integer
 cooldown_minutes: NONE | integer 10..20
-cooldown_until: NONE | exact local/UTC timestamp
-round_seq: non-negative integer
-recovery_seq: non-negative integer
-resume_cursor:
+callback_accepted_at_utc: NONE | exact machine timestamp
+next_dispatch_at_utc: NONE | exact machine timestamp
+scheduler_automation_id: NONE | exact returned id
+scheduler_manager_thread_id: exact coordinator id
+scheduler_target_thread_id: exact coordinator id
+scheduler_status: NONE | ACTIVE | UNVERIFIED | DELETED
+scheduler_repeat: NONE | ON
+scheduler_next_run: NONE | exact local/UTC readback
+coordinator_ledger_path: exact private path
+executor_ledger_path: exact private path
 run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 ```
 
-The launcher records only the current dispatch's immutable handoff provenance
-until acceptance, then discards run working state and becomes `REUSABLE_IDLE`. It is
-not a manager, callback target, replacement owner, or automation owner.
+## Identity proofs
 
-After domain health proof, the same exact launcher task may become a pinned
-distributor presentation. Verify the exact task ID with `pinned=true` when tool
-readback exists. Pin/title failure is non-blocking degradation and never causes
-a replacement task. Executors remain unpinned.
+- main identity: exact current task ID plus same-ID title/pin readback;
+- executor identity: exact fresh `create_thread` return plus assignment acceptance;
+- callback identity: sender/receiver/run/round IDs match registry and sequence;
+- scheduler identity: exact automation ID plus
+  `targetThreadId == scheduler_manager_thread_id == coordinator_thread_id`;
+- external tab: handle created and recorded by the exact executor.
 
-A later command creates a new run ID and executor. It never resolves, reads, or
-inherits an earlier executor. `launcher_dispatch_sequence` may distinguish
-launcher invocations but is not a cross-run registry, watchlist, or result log.
+Perform `CALLBACK_PING/v1` and `CALLBACK_ACK/v1` before external work. A readable
+executor title or successful outbound send is not callback proof.
 
-A calling domain may require `pre_dispatch_gate_state=CONFIRMED` before creation.
-Thread Supervisor validates the exact gate ref and exit proof; it never infers
-confirmation from defaults, a draft, a historical profile, or a bare continue
-without a visible proposal.
+## Fresh executor creation
 
-## Identity proof
+For a new mission, call `create_thread` once and recognize only its exact new
+returned ID. Do not select a historical same-title task. A failed/unknown create
+does not authorize title search, unarchive, reuse, or a duplicate replacement.
+Record `FRESH_TASK_CREATION_FAILED|UNKNOWN` in the main task.
 
-- executor identity: exact ID returned by creation plus assignment acceptance;
-- automation identity: exact automation ID and view readback;
-- valid self wake:
-  `waking_thread_id == targetThreadId == automation_manager_thread_id == executor_thread_id`;
-- external tab/resource: handle created and recorded by this executor in the
-  current control session.
+After the executor is registered, the main task may read/message that exact task
+for assignment, callback validation, dispatch, and stop. It does not inspect
+unrelated TikTok tasks. The executor reads/messages only its exact main task.
 
-Independent executors never list/read one another, inspect same-account state,
-reuse titles as identity, or claim another resource/timer.
+## Scheduler ownership
 
-## Fresh-only creation failure
+The main task alone creates, views, and deletes one self-target recurring
+scheduler under the direct user mission authorization. Normally use a
+five-minute recurrence. The executor owns zero timers.
 
-For a fresh-only launch, historical owner discovery and recovery do not exist.
-Do not list, search, read, reuse, unarchive, revive, message, archive, replace,
-or modify old executors, including same-title, archived, completed, stale, or
-currently live tasks. They remain untouched history.
+Creation proof requires exact automation ID, exact main-task target,
+ACTIVE/repeat-on state, next local/UTC run, and cutoff. A rendered suggestion
+card, create request, inferred filename, or missing-ID response is not proof and
+becomes `SCHEDULER_CONTINUATION_FAILURE`.
 
-Make one fresh create attempt. If it fails or returns no exact new ID, record
-`FRESH_TASK_CREATION_FAILED|UNKNOWN` and stop this launch. Do not probe task
-lists, retry creation, create a replacement, or fall back to an old ID. If the
-new exact task cannot accept assignment, record `FRESH_TASK_ASSIGNMENT_FAILED`
-and stop without replacement. Owner-liveness/tombstone classification is not a
-TikTok launcher path.
+At every wake require exact main/run/timer binding and use fresh machine UTC.
+No-op when executor is active, no accepted callback-derived round is pending, or
+current time is before `next_dispatch_at`. When due, dispatch one round and clear
+the pending flag. Never send catch-up bursts or create a new timer per round.
 
-## Heartbeat ownership
+At explicit stop, deadline, completion, or terminal release, stop new dispatch,
+request executor release if needed, delete the exact scheduler, and read back
+its absence/deleted state.
 
-In `self_owned_executor_tick`, the executor alone creates, views, consumes, and
-retires its one-shot timers. Create none at assignment acceptance. At a round
-checkpoint require one occurrence, a run/round-unique ID, exact self target,
-next local/UTC wake, and a wake earlier than mission cutoff. Verify readback
-before yield.
-
-If already running, a wake does no overlap. On a valid wake, record consumption,
-delete/retire the expired automation if still present, clear `pending_wake_id`,
-and resume. Uncertain submission is never retried. A misbound or uncertain wake
-does no external work and is not silently replaced in the same checkpoint.
-
-For a recoverable failure that must retry later, use the same one-occurrence
-pattern with a unique recovery sequence. At most one pending wake exists. Stop,
-deadline, or completion deletes only that exact pending wake after resource and
-ledger reconciliation. Never use the distributor as timer owner and never use a
-global `executor-heartbeat` ID.
-
-Domains explicitly selecting coordinator-managed timers use their own contract;
-they do not override a self-owned executor domain.
+Other domains may still use `launcher_self_owned_executor`; do not import that
+topology into TikTok.

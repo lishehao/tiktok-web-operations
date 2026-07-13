@@ -55,14 +55,15 @@ For this topology:
   failure is presentation degradation unless the domain says otherwise; it does
   not justify a second task.
 
-The calling domain may additionally require `fresh_only_dispatch=true`. TikTok
-does. In fresh-only dispatch, each setup/bootstrap/new run generates a new
+The calling domain may additionally require `fresh_only_dispatch=true`. In that
+topology, each setup/bootstrap/new run generates a new
 `run_id`, calls `create_thread` exactly once, and recognizes only the exact new
 ID returned by that call. Historical tasks are not candidates or recovery
 resources.
 
-TikTok declares `launcher_self_owned_executor`; do not apply coordinator rules
-to it.
+TikTok declares `coordinator_worker`. Its setup task becomes the pinned
+`TikTok 主控台`; its exact `TikTok 执行台` callbacks after every bounded round.
+Do not apply launcher/self-owned-timer rules to TikTok.
 
 ## Identity and creation
 
@@ -170,6 +171,46 @@ Apply this section only when the calling domain explicitly selects
 - finalize only after worker resource-release proof.
 
 Do not import these rules into `launcher_self_owned_executor`.
+
+### TikTok coordinator-worker specialization
+
+Use exactly two persistent tasks for one active mission:
+
+```text
+TikTok 启动台 --healthy same-task transition--> pinned TikTok 主控台
+TikTok 主控台 --bounded round_assignment/v1--> TikTok 执行台
+TikTok 执行台 --ROUND_COMPLETED|BLOCKED|RELEASED callback--> TikTok 主控台
+TikTok 主控台 --fixed scheduler wake after due cooldown--> next round
+```
+
+The main task owns profile/mission versions, strategy, exact executor registry,
+callback validation, `next_dispatch_at`, one self-target recurring scheduler,
+user decisions, and final reporting. It never owns a TikTok operating tab or
+performs TikTok mutations. The executor owns one dedicated Chrome tab, raw
+evidence, within-round recovery, and one bounded 25–45-view round at a time. It
+never creates, updates, views, or deletes an automation.
+
+Before external work, prove a real callback handshake using exact task IDs and
+run ID. At round completion the executor sends one canonical callback and
+becomes idle. The main task accepts it only when coordinator/executor/run/round
+identity and sequence match, then chooses the next three search clusters,
+interaction emphasis, and a 10–20 minute cooldown.
+
+Create the coordinator scheduler once under the user's direct mission
+authorization, normally at five-minute recurrence. Read back exact automation
+ID, self target, ACTIVE/repeat-on state, and next local/UTC run. At each wake:
+
+- delete and finalize at user stop or mission cutoff;
+- no-op if executor is active, no callback is pending, or current machine UTC is
+  before `next_dispatch_at`;
+- otherwise send one next-round assignment and mark it dispatched.
+
+Never derive due time from model-estimated timestamps. Read machine time when
+accepting the callback, compute `next_dispatch_at`, and compare epoch values on
+wake. Never create a new timer per round or send catch-up bursts. If the timer
+cannot be created/read back, do not claim unattended continuity; report
+`SCHEDULER_CONTINUATION_FAILURE` in the main task while preserving completed
+evidence.
 
 ## Independent-run invariant
 

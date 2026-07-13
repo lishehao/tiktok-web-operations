@@ -1,13 +1,13 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.13.1`
+Protocol version: `2026.07.13.2`
 
 This repository distributes two version-locked Codex Skills:
 
 - `tiktok-web-operations/` — TikTok strategy, Chrome operation, evidence,
   engagement lanes, recovery, and lifecycle.
-- `thread-supervisor/` — persistent task identity, one-way assignment, and
-  self-owned one-shot wake mechanics.
+- `thread-supervisor/` — persistent task identity, exact callback routing, and
+  coordinator-owned scheduler mechanics.
 
 The system uses the user's existing logged-in Chrome. It does not create
 accounts, enter credentials, bypass challenges, imitate a human with random
@@ -18,7 +18,7 @@ input, promise reach, or claim access to TikTok's private ranking weights.
 Send this to a new Codex task:
 
 ```text
-请通过 HTTPS 打开并完整遵循 https://raw.githubusercontent.com/lishehao/tiktok-web-operations/main/README.md，按 README 安装或升级 TikTok Web Operations，并继续完成其中的预检、分发台就绪与任务交接。
+请通过 HTTPS 打开并完整遵循 https://raw.githubusercontent.com/lishehao/tiktok-web-operations/main/README.md，按 README 安装或升级 TikTok Web Operations，并继续完成其中的预检、主控台就绪与任务交接。
 ```
 
 The agent automatically validates version/source, installs or upgrades both
@@ -49,48 +49,40 @@ because an update exists.
 ```text
 TikTok 启动台
   install/upgrade -> read-only preflight
-  -> same task renames to pinned TikTok 分发台
+  -> same task renames to pinned TikTok 主控台
 
-TikTok 分发台
+TikTok 主控台
   -> resolve explicit mission or confirm a missing account image
-  -> fresh-create/assign one new TikTok 执行台 -> verify acceptance
-  -> reusable stateless idle -> later command creates another fresh executor
+  -> fresh-create/assign one TikTok 执行台 -> callback handshake
+  -> create/read-back one main-target fixed scheduler Heartbeat
+  -> dispatch bounded round -> accept callback -> choose cooldown/direction
+  -> scheduler dispatches the next round when due
 
 TikTok 执行台
   read-only smoke -> search-led operation -> held-out Feed checks
   -> verified interactions -> checkpoint
-  -> create/verify one unique self-target one-shot wake
-  -> 10–20 minute inter-round cooldown -> wake expires -> resume
-  -> self-recovery/checkpoints -> final release
+  -> callback main task and become idle
+  -> next bounded assignment after main-controlled cooldown
+  -> within-round recovery/checkpoints -> final release callback
 ```
 
-There is no long-term `TikTok 主控台`, executor-to-distributor callback,
-coordinator/supervisor timer, centralized monitoring, or cross-run lock.
-Every execution task is independent and uses its own task ID, Chrome tab,
-ledger, and per-round wake IDs. Future user changes and true hard blockers are handled
-directly in `TikTok 执行台`.
+The pinned `TikTok 主控台` owns mission strategy, exact executor registry,
+callback acceptance, 10–20 minute cooldown decisions, one fixed recurring
+scheduler Heartbeat, user communication, and finalization. It never operates
+TikTok. `TikTok 执行台` owns only its dedicated Chrome tab, raw ledger,
+within-round recovery, and one bounded round at a time; it owns no timer.
 
-Every setup/bootstrap/new operating start is fresh-only. The launcher generates
-a new run ID and calls `create_thread` exactly once. It recognizes only that
-call's exact newly returned task ID. It never lists/searches/reads/reuses/
-unarchives/revives/messages/archives/replaces a historical executor, including
-same-title, archived, completed, or live tasks; those remain untouched history.
-If fresh creation fails or its result is uncertain, this launch reports the
-fresh-task creation failure and stops without retry, replacement, or fallback.
+Every new mission fresh-creates exactly one executor and recognizes only that
+create call's returned ID. Historical same-title tasks remain untouched and are
+never fallback owners. During the active mission the main task reads/messages
+only that registered executor; callback and scheduler state are canonical.
 
-The same pinned `TikTok 分发台` may be used repeatedly. `TikTok 启动台` is only
-the temporary setup/repair title before health proof. Every later operating
-command starts another independent fresh-only dispatch and then returns the
-distributor to idle. It retains installation capability but no old executor result,
-mission, registry, ledger, wake timer, tab, risk, or progress. Workers never
-callback, return, or message the launcher.
-
-The launcher uses `gpt-5.6-luna`/high for the executor exactly as required by the
-TikTok Skill. It never substitutes a subagent or Goal Mode.
+The main task creates the executor with `gpt-5.6-luna`/high exactly as required
+by the TikTok Skill. It never substitutes a subagent or Goal Mode.
 
 ## Mission defaults
 
-The distributor uses a profile lock before every fresh dispatch. Preflight may finish,
+The main task uses a profile lock before every fresh mission. Preflight may finish,
 but it must not create an executor, search, watch, or interact until
 `profile_status=confirmed`.
 
@@ -107,9 +99,9 @@ Use at most two user-facing rounds:
 A clear operating instruction that already defines a usable direction and asks
 to start is canonical confirmation; after health, rename/pin first and dispatch
 without another question. A bare `继续` confirms only a proposal already displayed. Without a visible
-proposal, it asks the distributor to show the default proposal and does not start.
-Every later fresh run repeats this lock; the stateless distributor never inherits a
-prior account image.
+proposal, it asks the main task to show the default proposal and does not start.
+Every later new mission repeats this lock; a historical completed profile never
+silently becomes the new mission.
 
 After setup, use this novice handoff and nothing more:
 
@@ -156,26 +148,26 @@ The primary training path is directed search, not Feed browsing:
    context, then write an original line rather than copying a result.
 6. After two units or roughly 20–30 qualified views, 5–10 continuous For You
    items are sampled as held-out validation.
-7. At every completed 25–45-view round, persist a checkpoint and enter a real
-   10–20 minute no-TikTok cooldown. Default to 15 minutes; use 10 for a
-   read-only/low-yield round and 20 for a mutation- or recovery-heavy round.
-   Clear only the cooldown state when due, then continue the next round.
-8. Search clusters are adjusted from rolling evidence and the loop continues
-   until stop/cutoff.
+7. At every completed 25–45-view round, persist a checkpoint and callback the
+   main task. The main task chooses a real 10–20 minute no-TikTok cooldown from
+   evidence, machine-calculates `next_dispatch_at`, adjusts search clusters, and
+   lets its scheduler send one next-round assignment when due.
+8. The loop continues until stop/cutoff; no catch-up bursts are dispatched.
 
 For You movement uses one continuous native feed without reload/reset between
 items. Feed failure disables only validation; healthy search training continues.
-Page/network/Chrome/lane failures are scoped and auto-recovered. If a later retry
-requires yielding, the executor uses the same unique self-owned one-shot pattern.
+Page/network/Chrome/lane failures are scoped and auto-recovered inside the
+round. A round-ending or human-only blocker callbacks the exact main task.
 
 ## Automatic resume receipt
 
-The executor creates no standing recurring Heartbeat. At each completed round it
-creates exactly one unique, self-targeted, single-occurrence Heartbeat named for
-the run and round, then verifies target, one-shot state, and next local/UTC wake
-before yielding. At wake, it records consumption, deletes/retires the expired
-timer if still present, clears the binding, and starts the next round.
-Every timed receipt has exactly three lines:
+The main task creates one self-targeted recurring scheduler Heartbeat when the
+mission starts under direct user authorization. Normally it checks every five
+minutes. It no-ops while the executor is active, before `next_dispatch_at`, or
+without an accepted callback-derived pending round. When due, it sends exactly
+one assignment. The executor never creates or modifies a Heartbeat.
+
+Every accepted callback/coordinator receipt has exactly three lines:
 
 ```text
 本轮完成：<one sentence>
@@ -183,7 +175,8 @@ Every timed receipt has exactly three lines:
 下轮计划：<one bounded purpose>
 ```
 
-No launcher callback or supervisor timer is created.
+At stop/cutoff, the main task deletes its exact scheduler after requesting
+executor release and reconciling the final callback.
 
 ## Validation
 
@@ -193,7 +186,7 @@ scenario validators. Required scenarios include:
 - setup immediate `TikTok 启动台` rename;
 - successful setup shows exactly the three-line novice handoff;
 - direction/duration and `用默认设置开始` replies dispatch without another question;
-- healthy preflight same-task rename to pinned `TikTok 分发台`;
+- healthy preflight same-task rename to pinned `TikTok 主控台`;
 - pin failure is non-blocking presentation degradation and executors remain unpinned;
 - profile proposal required before executor creation;
 - bare continue without a visible proposal cannot start;
@@ -202,16 +195,16 @@ scenario validators. Required scenarios include:
 - archived and live old runs ignored and untouched;
 - a fresh create is required for every new launch;
 - create failure produces no reuse, retry, or replacement;
-- each distributor command performs one fresh dispatch then returns idle;
-- same distributor second command creates another fresh executor;
-- distributor remains reusable stateless idle after every dispatch;
-- no worker-to-launcher return/message/result path;
-- executor self-owned unique one-shot wake per completed round;
-- no callback to launcher;
-- no coordinator/supervisor Heartbeat;
+- exact callback ping/ack before any TikTok work;
+- one registered executor and one canonical callback path per active mission;
+- executor returns one structured callback after every bounded round;
+- main task selects next clusters, interaction emphasis, and cooldown;
+- one coordinator-owned fixed recurring scheduler with exact readback;
+- executor owns zero Heartbeats and cannot substitute a timer;
+- scheduler no-op before due, during active execution, or without pending work;
 - independent lanes and independent runs;
-- network/Chrome recovery without distributor callback;
-- 10–20 minute inter-round cooldown with one run/round-unique one-shot wake;
+- network/Chrome recovery with callback only at a bounded-round boundary;
+- 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;
 - concurrent Like/Favorite/Repost/Comment attempt coverage during viewing, with
   `attempted|unavailable|hard_blocked` reporting and no persistence checks.
 - comment-priority 4–8 target range, selective Web meme research, and no-copy

@@ -59,10 +59,10 @@ trees, and continue dependency preflight in the same turn.
 Before replacing either Skill, consult only the durable installed-runtime state,
 registered automation bindings, or an exact current runtime ID already supplied
 to this install transaction. This check is solely for hot-reload safety. The
-launcher must not list/search/read historical TikTok tasks to discover owners.
+installer must not list/search/read historical TikTok tasks to discover owners.
 
-Do not hot-reload an active launcher preflight or executor using an installed
-version. Download and validate the incoming bundle, then return
+Do not hot-reload an active coordinator or executor using an installed version.
+Download and validate the incoming bundle, then return
 `DEFERRED_ACTIVE_RUNTIME`. Retry only after the exact affected runtime records
 `RUN_RELEASED`. If durable runtime state is active or cannot safely prove
 release, defer; do not browse task history, infer from titles, or mutate old

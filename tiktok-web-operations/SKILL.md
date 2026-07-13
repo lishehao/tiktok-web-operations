@@ -4,15 +4,15 @@ description: >-
   Run authorized TikTok web operations through the user's logged-in Chrome
   session. Covers one-time setup, persistent search-led recommendation
   calibration, Favorites, TikTok Reposts, short comments, publishing,
-  analytics, recovery, and a launcher-to-self-owned-executor task topology.
+  analytics, recovery, and a coordinator-to-executor callback topology.
 ---
 
 # TikTok Web Operations
 
 Operate TikTok from the user's existing logged-in Chrome with durable evidence.
-For persistent operation use the `launcher_self_owned_executor` topology from
-`$thread-supervisor`: one reusable stateless launcher and one newly created,
-independent execution task per operating instruction.
+For persistent operation use the `coordinator_worker` topology from
+`$thread-supervisor`: the setup task becomes one pinned `TikTok 主控台`; one
+fresh `TikTok 执行台` performs bounded Chrome rounds and callbacks the main task.
 
 ## Operating objectives
 
@@ -33,54 +33,46 @@ record the exact reason.
 
 ## Roles
 
-### TikTok 启动台 → TikTok 分发台 (`TIKTOK_LAUNCHER`)
+### TikTok 启动台 → TikTok 主控台 (`TIKTOK_COORDINATOR`)
 
 Its first available presentation action is renaming the current task
 `TikTok 启动台`. That title is temporary and covers only install/upgrade,
 validation, read-only Chrome/TikTok preflight, and a user repair that prevents
 health proof. Immediately after every required preflight passes, rename the same
-exact task `TikTok 分发台`, attempt to pin that exact task, and verify
+exact task `TikTok 主控台`, attempt to pin that exact task, and verify
 `pinned=true` when readback exists. Rename/pin failure is presentation
 degradation and never blocks dispatch.
 
-The pinned distributor has one objective: resolve the initial mission using
-explicit values plus safe defaults, complete the profile gate only when needed,
-fresh-create exactly one unpinned `TikTok 执行台`, send one canonical assignment,
-verify acceptance, release its disposable tab, then become idle.
+The pinned main task has one objective: own the confirmed profile, mission,
+strategy, executor registry, callback acceptance, inter-round cooldown,
+scheduler Heartbeat, user reports, and finalization. It never operates TikTok or
+owns a Chrome operating tab.
 
-The launcher never becomes `TikTok 主控台`, never creates or owns a Heartbeat,
-never supervises the execution task, never receives callbacks, and never acts as
-a later risk or decision surface. A rename-tool failure is
-`DEGRADED_RENAME_UNAVAILABLE`; it does not block setup.
+After profile confirmation, fresh-create exactly one unpinned `TikTok 执行台`,
+record its exact returned ID, prove a callback handshake, create/read-back one
+coordinator-targeted recurring scheduler Heartbeat under the user's direct
+mission authorization, then dispatch bounded rounds. A rename/pin failure is
+`DEGRADED_RENAME_UNAVAILABLE|PIN_UNAVAILABLE`; it does not block setup.
 
-Idle is reusable, not retired. Whenever the user later sends another new
-operating instruction in this same `TikTok 分发台`, run a quick current health
-check, resolve only that instruction, generate a new `run_id`, fresh-create one
-new executor only after its profile proposal is confirmed, send the one-way
-assignment, and return to idle. Keep no watchlist
-or cross-run result state and never aggregate previous executor output.
-
-Every setup/bootstrap/new operating start is `fresh_only_dispatch=true`. The
-launcher calls `create_thread` once and accepts only that call's newly returned
-exact task ID plus a new `run_id`. It must not list, search, read, reuse,
-unarchive, revive, replace, message, archive, or modify any historical TikTok
-executor. Old tasks remain untouched history whether their title matches, they
-are archived, or they are still live. If fresh creation fails or returns an
-uncertain result, report `FRESH_TASK_CREATION_FAILED|UNKNOWN` for this launch and
-stop; never fall back to an old task or make a replacement create call.
+Every new mission generates a new `run_id` and calls `create_thread` once. The
+main task accepts only that call's exact new executor ID. It never selects,
+unarchives, revives, or reuses a historical same-title executor. During the
+mission it may read/message only the registered executor for assignment,
+callback, dispatch, stop, and release. If fresh creation fails or is uncertain,
+report `FRESH_TASK_CREATION_FAILED|UNKNOWN`; never fall back to an old task.
 
 ### TikTok 执行台 (`TIKTOK_EXECUTOR`)
 
-It has one objective: execute one accepted mission until user stop, deadline, or
-objective completion. It owns its dedicated Chrome tab, direction/authority/
-mission versions after assignment, raw ledger, checkpoints, capability matrix,
-recovery, user reports, and at most one pending self-targeted one-shot wake. Future user
-changes and hard-blocker repair happen directly in this task.
+It has one objective: execute exactly one bounded round assignment at a time.
+It owns its dedicated Chrome tab, raw evidence ledger, within-round recovery,
+candidate decisions, and authorized TikTok actions. At checkpoint, hard repair,
+or terminal release it sends one structured callback to the exact main task and
+becomes idle. It never creates, updates, views, or deletes a Heartbeat.
 
-The executor never calls back the launcher, never reads or supervises other
-TikTok tasks, never claims another task's tab, never creates descendants, and
-never treats another Chrome/TikTok owner as a blocker. Independent runs use
-independent task IDs, ledgers, run/round-unique wake IDs, and Chrome tabs.
+The executor never chooses the next round, cooldown, or mission direction;
+never reads or supervises unrelated TikTok tasks; never claims another task's
+tab; never creates descendants; and never treats another Chrome/TikTok owner as
+a blocker. It accepts work only from its registered main task and exact run ID.
 
 Read `references/role-and-stage-contract.md` and
 `references/operating-model.md` before creating an execution task or Heartbeat.
@@ -89,8 +81,8 @@ Read `references/role-and-stage-contract.md` and
 
 | User request | Behavior |
 |-|-|
-| Installer/setup prompt | Rename to `TikTok 启动台`, automatically install/upgrade, validate, and run preflight; on health rename the same task `TikTok 分发台` and pin it. |
-| Clear mission with a healthy installation | Rename/pin as distributor first. Treat a sufficiently explicit start instruction as canonical profile confirmation and fresh-create/assign without another question. Never reuse an operating task. |
+| Installer/setup prompt | Rename to `TikTok 启动台`, automatically install/upgrade, validate, and run preflight; on health rename the same task `TikTok 主控台` and pin it. |
+| Clear mission with a healthy installation | Rename/pin as main task first. Treat a sufficiently explicit start instruction as canonical profile confirmation and fresh-create one executor without another question. |
 | `继续` or `开始` after a visible profile proposal | Treat as confirmation of that exact proposal and proceed. |
 | `继续` or `开始` without a visible profile proposal | Produce the packaged default proposal; do not start until the user confirms it. |
 | `用默认设置开始` | Confirm the packaged default profile and dispatch directly without another question. |
@@ -144,9 +136,8 @@ even if it omits the word “start”; compile the confirmed profile and dispatc
 The exact reply `用默认设置开始` confirms the packaged defaults and also
 dispatches directly.
 
-Every later fresh dispatch through the reusable launcher repeats this profile
-lock for that new run. Stateless launchers never inherit a prior profile; the
-user must restate it or confirm the newly displayed proposal.
+Every new mission in the pinned main task repeats this profile lock. A completed
+historical mission is evidence only; it never silently becomes the new profile.
 
 Resolve and store:
 
@@ -172,8 +163,8 @@ range of 25–45. This is a work-size boundary, not an exact quota:
 - thumbnails, duplicates, clear drift, and failed loads do not count;
 - after 25 qualified views, finish at the next natural boundary when quality or
   runtime conditions justify it; never exceed 45 before a durable checkpoint;
-- a normal 35-view round may contain multiple search units and never returns to
-  the launcher between units or rounds.
+- a normal 35-view round may contain multiple search units and makes exactly one
+  callback to the main task at its checkpoint.
 
 1. Search three distinct approved clusters.
 2. Assess the first five results per cluster and open every suitable strong-core
@@ -188,20 +179,16 @@ range of 25–45. This is a work-size boundary, not an exact quota:
    engagement to a separate post-view phase.
 5. After two units or roughly 20–30 new qualified views, sample 5–10 sequential
    For You items as held-out validation.
-6. At the end of every completed 25–45-view operating round, persist a durable
-   checkpoint and set `cooldown_until` 10–20 minutes ahead. Use 15 minutes by
-   default, 10 for read-only/low-yield work, and 20 for mutation- or
-   recovery-heavy work. This is workload pacing, never randomized stealth.
-   During cooldown perform no TikTok navigation, viewing, or mutation. Before
-   yielding, create and read back exactly one self-target, single-occurrence
-   Heartbeat with ID `tiktok-wake-<run_id>-round-<round_seq>`. Verify exact ID,
-   target task, run ID, round sequence, one-shot state, next local/UTC wake, and
-   mission cutoff. Resume only from that wake; record it consumed, delete or
-   retire the expired timer if it remains visible, clear the binding, and begin
-   the next round.
-7. Adjust search clusters from rolling evidence and repeat until
-   `operation_stop_at` or user stop. Model/browser latency changes throughput;
-   do not promise a fixed number of units per hour.
+6. At the end of every completed 25–45-view round, persist a durable checkpoint
+   and callback `ROUND_COMPLETED/v1` with counts, cluster evidence, For You mix,
+   lane attempts, resume cursor, blockers, and executor state `IDLE`.
+7. The main task chooses 10–20 minutes of cooldown from that evidence, stores an
+   exact machine-clock `next_dispatch_at`, adjusts the next three search
+   clusters and action emphasis, and lets its fixed scheduler Heartbeat dispatch
+   the next bounded round only when due. Use 15 minutes by default, 10 for
+   read-only/low-yield work, and 20 for mutation- or recovery-heavy work. During
+   cooldown the executor performs no TikTok work. Repeat until
+   `operation_stop_at` or user stop; do not promise fixed hourly throughput.
 
 For You is validation, not the primary training surface. Use one continuous
 native feed; no reload/reset/goto-home between sampled items. Prefer the visible
@@ -282,9 +269,9 @@ targeted harassment, protected-trait attacks, and sexualization of minors.
   store, or bypass credentials.
 - Every executor creates and owns a dedicated tab. Never reuse a tab ID from a
   prompt, prior turn, memory, or another task.
-- The launcher and executor do not list, search, read, inspect, interrupt,
-  message, unarchive, revive, archive, replace, or coordinate with another TikTok task.
-  Another task using Chrome, TikTok, or the same account is not a blocker.
+- The main task reads/messages only its exact registered executor. The executor
+  reads/messages only its exact registered main task. Neither inspects unrelated
+  TikTok tasks. Another task using Chrome, TikTok, or the same account is not a blocker.
 - Classify stale binding/browser disconnect, DNS/network `ERR_*`, proxy/TLS,
   HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render faults separately.
 - In the same logged-in Chrome: record code+URL, bounded retry, create/rebind a
@@ -294,43 +281,39 @@ targeted harassment, protected-trait attacks, and sexualization of minors.
   switch browser, change proxy/TLS, or retry an uncertain mutation.
 
 Ordinary technical, candidate, route, evidence, and single-lane failures are
-local outcomes. Auto-recover, rotate, or checkpoint without asking the user. If
-a later retry requires yielding, create one run/sequence-unique self-target
-single-occurrence recovery wake and validate it before yield. Ask directly in the executor only when the
-user must fix a current persistent login/account mismatch, CAPTCHA/challenge,
-explicit account lock/ban, credential requirement, or unavailable sole allowed
-Chrome control.
+local outcomes. Auto-recover, rotate, or checkpoint without asking the user. A
+failure that ends the bounded round callbacks the exact main task with its
+smallest scope. Only the main task asks the user to fix a persistent login/account
+mismatch, CAPTCHA/challenge, explicit account lock/ban, credential requirement,
+or unavailable sole allowed Chrome control.
 
-## Self-owned one-shot wake
+## Coordinator scheduler and callback
 
-Do not create a timer at assignment acceptance. The first round starts
-immediately. At each completed round checkpoint, if `cooldown_until` is before
-`operation_stop_at`, create exactly one heartbeat-kind automation with one
-occurrence (`COUNT=1` or the tool's equivalent), targeted to this exact executor.
-Use a unique ID and display name containing full `run_id` plus `round_seq`; never
-use a global ID such as `executor-heartbeat`.
+Before external work, perform one bounded callback handshake:
+`CALLBACK_PING/v1` from main to executor and `CALLBACK_ACK/v1` back to the exact
+main task. No acceptance means no unattended mission claim.
 
-Read back and verify automation ID, `targetThreadId`, run ID, round sequence,
-single-occurrence state, next local/UTC run, and cutoff before yielding. A
-misbound or uncertain timer is not continuation proof: delete it when identity
-is certain, create no duplicate in the same checkpoint, and report the
-continuation failure in this executor task.
+The main task creates and owns one recurring, self-targeted scheduler Heartbeat
+for the mission, normally every five minutes. Create it once from the user's
+direct mission authorization; require exact automation ID, main-task target,
+`repeat-on`, ACTIVE state, next local/UTC run, and mission cutoff readback. The
+executor never touches it. Do not create a new timer after every round.
 
-On wake, require exact task/run/round/timer binding and a still-open mission.
-Record `ONE_SHOT_WAKE_CONSUMED`; if the expired automation remains visible,
-delete/retire it; clear `pending_wake_id`; then resume. A duplicate/late wake or
-an already-running executor performs no TikTok work. Never callback the
-distributor and never ask it to schedule a timer.
+Each scheduler wake uses a machine-read current UTC time and performs only:
 
-For a recoverable fault that truly requires a later retry, use the same pattern
-with ID `tiktok-recovery-<run_id>-<recovery_seq>` and one occurrence. Never keep
-a standing repeat-on Heartbeat. At most one pending self-owned wake exists per
-executor. At user stop, deadline, completion, or terminal release, delete only
-the executor's exact pending wake if one exists.
+1. stop and delete the exact scheduler at/after `operation_stop_at` or user stop;
+2. no-op when no accepted callback is pending, the executor is active, or
+   `actual_now < next_dispatch_at`;
+3. when due and the executor is verified idle, send exactly one canonical
+   `round_assignment/v1`, mark it dispatched, and await the next callback.
 
-No launcher/coordinator/supervisor timer exists. The executor alone creates,
-views, consumes, and retires its own one-shot automation. Every valid wake and
-normal progress report uses exactly three lines:
+The main task computes `next_dispatch_at` from a fresh machine clock, never from
+model-estimated timestamps. A late wake dispatches once when still before the
+mission cutoff; it never sends catch-up bursts. A misbound/unreadable scheduler
+is `SCHEDULER_CONTINUATION_FAILURE` and cannot be claimed as unattended
+continuation. Timer failure never authorizes the executor to create a substitute.
+
+Every accepted callback and coordinator progress report uses exactly three lines:
 
 ```text
 本轮完成：<one sentence>
@@ -341,14 +324,15 @@ normal progress report uses exactly three lines:
 ## Evidence and completion
 
 Append and validate one JSONL record after every consumed search-origin post,
-each five-card assessment, mutation attempt, For You checkpoint, one-shot create
-readback, and wake consumption. Store raw evidence and resume cursor in the
-executor's ledger; never in the wake prompt.
+each five-card assessment, mutation attempt, For You checkpoint, round callback,
+scheduler wake decision, and next-round dispatch. Store raw browsing evidence in
+the executor ledger and coordinator state/cooldown decisions in the main ledger;
+never put mutable evidence in the Heartbeat prompt.
 
-At deadline, explicit stop, or objective completion: stop new external work,
-resolve no uncertain mutation by repetition, release only owned tabs, reconcile
-the final ledger, delete the exact pending one-shot wake if present, and report in the executor
-task. The launcher remains idle and is not contacted.
+At deadline, explicit stop, or objective completion: the main task stops new
+dispatch, sends a stop instruction if the executor is active, deletes its exact
+scheduler Heartbeat, requires executor tab-release/final-ledger callback, and
+reports the final result. Never repeat an uncertain mutation.
 
 Use Chinese for user reports while preserving exact URLs, handles, hashtags,
 error codes, and UI labels.

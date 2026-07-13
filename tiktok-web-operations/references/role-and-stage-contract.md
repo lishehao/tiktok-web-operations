@@ -1,124 +1,96 @@
 # Role And Stage Contract
 
-This is the authority for TikTok task ownership and lifecycle. The topology is
-`launcher_self_owned_executor`; coordinator/callback topology does not apply.
+This is the authority for TikTok task ownership. TikTok uses
+`coordinator_worker` with one pinned main task and one unpinned executor.
 
 ## Role cards
 
-### TIKTOK_LAUNCHER — temporary `TikTok 启动台`, steady `TikTok 分发台`
+### TIKTOK_COORDINATOR — temporary `TikTok 启动台`, steady `TikTok 主控台`
 
 ```text
-objective: bootstrap health, become the pinned distributor, assign one healthy
-TikTok execution task, then remain reusable idle.
-owns: bundle install/upgrade; read-only preflight; structured account-image
-proposal/confirmation; initial mission resolution;
-one executor creation; one canonical assignment; disposable bootstrap tab.
-reads: public bundle, installed manifests, current login/account, user input.
-writes: launcher handoff record and immutable assignment reference.
-outputs: PROFILE_PROPOSED, EXECUTOR_ASSIGNED, or one concrete bootstrap repair request.
-never: become TikTok 主控台; operate a mission; own/create a Heartbeat; supervise;
-poll after handoff; receive callback; make later decisions; touch executor tabs;
-list/search/read/reuse/message/unarchive/revive/archive/replace historical executors.
+objective: keep one confirmed mission strategically aligned and continuously
+scheduled until stop, cutoff, or completion.
+owns: install/preflight; profile and mission; exact executor registry; callback
+acceptance; search direction; cooldown; fixed scheduler Heartbeat; user reports;
+hard-repair conversation; finalization.
+reads: public/installed bundle, current account proof, exact executor callbacks,
+coordinator ledger, scheduler readback.
+writes: canonical assignments, coordinator checkpoints, next_dispatch_at,
+scheduler decisions, user reports.
+never: operate TikTok; own an operating Chrome tab; mutate content; accept a
+callback from a non-registered task/run/round; dispatch while executor active.
 ```
 
-The first available presentation action is title `TikTok 启动台`. It remains
-that temporary title only while installing, validating, running read-only
-preflight, or waiting for a required user repair. Immediately after health proof,
-rename the same exact task `TikTok 分发台` and attempt to pin it. When readback is
-available, require the same task ID with `pinned=true`. Rename or pin failure is
-presentation degradation, not a dispatch blocker. `TikTok 执行台` is never
-pinned by this workflow.
-
-`L2_IDLE` is a reusable stateless entry state, not retirement. A later user
-operating instruction transitions the same launcher back to `L1_ASSIGN` after a
-quick current health check. It creates a new run/executor exactly as on the
-first dispatch, then returns to `L2_IDLE`. It keeps no executor watchlist,
-results, risk, mission, ledger, Heartbeat, or completion state between dispatches.
-
-Every launch generates a new `run_id` and requires one fresh `create_thread`
-result. Same-title, archived, completed, or live historical executors are all
-ignored and untouched. A failed/uncertain create is a terminal launch failure;
-it never selects an old owner or creates a replacement.
-
-Before every fresh create, the launcher owns one profile lock. It may preflight,
-ask one open question, and present one structured proposal, but it must not
-create an executor or operate TikTok until `profile_status=CONFIRMED`. The
-confirmed profile version is run-local and never inherited by the next dispatch.
+The first presentation action is `TikTok 启动台`. After healthy preflight,
+rename that same exact task `TikTok 主控台`, attempt to pin it, and keep the task
+as the mission's user-facing control surface. Rename/pin failure is non-blocking
+presentation degradation. The executor is never pinned.
 
 ### TIKTOK_EXECUTOR — `TikTok 执行台`
 
 ```text
-objective: continuously execute one accepted mission until stop/completion.
-owns: user conversation after handoff; exact mission versions; dedicated Chrome
-tab; TikTok decisions inside the envelope; raw ledger; capability matrix;
-checkpoints; recovery; at most one pending self-target one-shot wake; finalization.
-reads: canonical assignment, its own ledger tail, current page/platform state.
-writes: its own assignment acceptance, evidence, checkpoint, report, timer state.
-outputs: ASSIGNMENT_ACCEPTED, progress, hard-repair request, or RUN_RELEASED.
-never: callback launcher; read/supervise another TikTok task; use another task's
-tab/ledger/timer; create descendants; broaden user authority; overlap itself.
+objective: complete one bounded round assignment accurately and callback.
+owns: dedicated Chrome tab; TikTok page state; candidate selection; authorized
+actions; raw evidence ledger; within-round recovery; release proof.
+reads: exact assignment, own ledger tail, live platform state.
+writes: evidence/checkpoints and one structured callback per boundary.
+never: own/update/delete Heartbeat; choose cooldown or next strategy; ask the
+user directly; contact another task; run after callback while idle; broaden
+authority; overlap itself.
 ```
-
-After handoff the executor is the only user-facing task for that run. It chooses
-search-cluster rotation from the accepted direction and aggregate evidence,
-selects candidates, drafts comments within the voice/30-word limit, validates
-lanes, handles recovery, and updates its own mission at safe item boundaries
-when the user gives a newer instruction.
 
 ## Stage machine
 
-Every launcher or executor records exactly one applicable stage.
-
 | Stage | Owner | Work | Exit proof | Next |
 |-|-|-|-|-|
-| `L0_BOOTSTRAP` | launcher titled `TikTok 启动台` | immediate title; bundle validation/install; read-only preflight or required user repair | healthy dependencies/login/account | `L0_DISTRIBUTOR_READY` |
-| `L0_DISTRIBUTOR_READY` | same launcher task | rename exact task `TikTok 分发台`; attempt pin; read back `pinned=true` when supported | distributor title/pin proof or non-blocking presentation degradation; bootstrap tab released | `L0_PROFILE_LOCK` |
-| `L0_PROFILE_LOCK` | pinned distributor + user when needed | accept a sufficiently explicit start mission as confirmation; otherwise at most one open question plus structured proposal | `profile_status=CONFIRMED`, positive direction version, exact confirmation evidence; zero executor/search/view/mutation | `L1_ASSIGN` |
-| `L1_ASSIGN` | launcher | use confirmed direction; fresh-create one new executor; send canonical assignment | this create call's exact executor ID, new run ID, confirmed direction ref, assignment hash, `ASSIGNMENT_ACCEPTED`; launcher idle | launcher `L2_IDLE`, executor `E0_SMOKE` |
-| `L2_IDLE` | pinned distributor | reusable stateless wait; no monitoring or operating work | a new explicit operating instruction plus quick health check | `L0_PROFILE_LOCK` for another fresh dispatch, otherwise remain idle |
-| `E0_SMOKE` | executor | one read-only search-origin smoke and ledger append | account/tab stability, parseable ledger, zero mutation | `E1_RUN` |
-| `E1_RUN` | executor | one 25–45-view search-led round, held-out validation, authorized lanes, self-heartbeat | durable round checkpoint | `E1_COOLDOWN` or `E2_HARD_REPAIR`/`E3_FINALIZE` |
-| `E1_COOLDOWN` | executor | create/read-back unique run/round one-shot; 10–20 minutes with zero TikTok work | valid wake consumed, timer expired/retired, pending binding cleared | `E1_RUN` or `E3_FINALIZE` |
-| `E2_HARD_REPAIR` | executor + user | ask directly only for a human-only current blocker | verified clearance | `E1_RUN` or `E3_FINALIZE` |
-| `E3_FINALIZE` | executor | stop work, release owned tab, reconcile ledger, delete exact pending wake if any | `RUN_RELEASED`, no repeated uncertain submission | `E4_COMPLETE` |
-| `E4_COMPLETE` | executor | one final result in its own task | delivered | terminal |
+| `C0_BOOTSTRAP` | task titled `TikTok 启动台` | install/upgrade, read-only preflight, required user repair | healthy dependencies/account | `C0_MAIN_READY` |
+| `C0_MAIN_READY` | same task | rename `TikTok 主控台`, pin/readback, profile lock | main identity plus confirmed profile | `C1_CREATE` |
+| `C1_CREATE` | main | fresh-create one executor and canonical assignment | exact IDs and `ASSIGNMENT_ACCEPTED` | `C1_HANDSHAKE` |
+| `C1_HANDSHAKE` | main + executor | exact `CALLBACK_PING/ACK` and scheduler create/readback | callback proof plus verified fixed scheduler | `C2_DISPATCH` |
+| `C2_DISPATCH` | main | send exactly one `round_assignment/v1` | `ROUND_DISPATCHED`, executor ACTIVE | main `C3_WAIT`, executor `E1_RUN` |
+| `C3_WAIT` | main | await callback; scheduler wakes may no-op | valid callback or terminal signal | `C4_REPLAN` or `C6_FINALIZE` |
+| `C4_REPLAN` | main | accept callback, update strategy, machine-calculate cooldown | `next_dispatch_at`, pending next round, executor IDLE | `C5_COOLDOWN` |
+| `C5_COOLDOWN` | main scheduler | no-op until due; dispatch once when due | next round dispatched or cutoff | `C3_WAIT` or `C6_FINALIZE` |
+| `E0_ACCEPT` | executor | validate assignment and handshake | exact IDs/refs, callback ACK | `E1_RUN` |
+| `E1_RUN` | executor | one 25–45-view search-led round plus interactions | durable checkpoint | `E2_CALLBACK` |
+| `E2_CALLBACK` | executor | send one `round_callback/v1` | accepted send, executor IDLE | wait for `C2_DISPATCH` or stop |
+| `E3_HARD_REPAIR` | executor | stop affected work and callback exact evidence | main/user repair clears state | next assignment or `E4_RELEASE` |
+| `E4_RELEASE` | executor | stop, reconcile ledger, release owned tab, callback | `RUN_RELEASED` | terminal |
+| `C6_FINALIZE` | main | stop dispatch, delete scheduler, require release proof | scheduler absent and executor released | terminal |
 
-A Heartbeat firing never proves a stage exit. Training units inside one round may
-run back to back; completed operating rounds must pass through `E1_COOLDOWN`.
+## Callback and scheduler invariants
 
-## Mission changes and failures
+- Perform a live callback handshake before TikTok work.
+- Accept exactly one callback for the expected run/round sequence.
+- Executor callbacks and becomes idle after every completed round.
+- Main chooses strategy and 10–20 minute cooldown from callback evidence.
+- Main owns exactly one fixed recurring scheduler; executor owns zero timers.
+- Scheduler wakes no-op before due, while executor is active, or with no pending
+  callback-derived round.
+- Use fresh machine UTC for `next_dispatch_at`; never trust model-estimated or
+  out-of-order ledger timestamps.
+- Timer readback without exact automation ID/target/status/next run is not proof.
+- User stop, deadline, or completion deletes the scheduler only after stopping
+  new dispatch and requesting executor release.
 
-- Latest user direction, duration, intensity, or authorized action replaces the
-  corresponding executor mission field at the next safe boundary.
-- Candidate, route, page, network, evidence, and single-lane failures remain in
-  the executor task. Skip, retry, rotate, or checkpoint the smallest scope.
-- An uncertain mutation freezes only its exact target/action and is never
-  repeated.
-- A persistent user-only login/CAPTCHA/account-lock/control repair is asked
-  directly in `TikTok 执行台`; it never returns to the launcher.
-- Stop/deadline/completion is finalized by the executor without callback.
+## Failure routing
+
+Ordinary candidate, route, page, network, evidence, and lane failures stay
+inside the current bounded round. An uncertain mutation freezes only that exact
+target/action. When a failure ends the round, executor callbacks the smallest
+scope. Persistent login/account mismatch, CAPTCHA, explicit lock/ban,
+credential need, or sole Chrome-control failure returns to the main task; the
+main asks the user once. Historical failures never block a clean current run.
 
 ## Audit checklist
 
-- Setup's first presentation action attempted `TikTok 启动台`.
-- Healthy preflight renamed the same exact task `TikTok 分发台` and attempted to
-  pin it; pin failure was non-blocking and no executor was pinned.
-- No executor/search/view/mutation existed before exact profile confirmation.
-- `继续` without a visible proposal produced a proposal, not a dispatch.
-- Launcher made exactly one fresh create attempt, used only its new returned ID,
-  and became idle after acceptance; create failure produced no reuse/replacement.
-- A second launcher instruction creates a second fresh executor with another
-  run ID; the launcher returns to reusable idle without reading either result.
-- Old matching-title, archived, completed, and live executors were ignored and
-  left unchanged.
-- No `TikTok 主控台`, callback target, coordinator timer, or supervisor timer.
-- Executor owns no standing timer and at most one pending run/round-unique
-  self-target one-shot wake plus its dedicated tab.
-- Each completed 25–45-view round records a 10–20 minute cooldown; a verified
-  one-shot wake is consumed/retired before the next round.
-- Runs never inspect, coordinate with, or block on other TikTok tasks.
-- Each executor has one mission, one ledger namespace, and one timer namespace.
-- In cultivation runs, Like/Favorite/Repost/Comment remain independently
-  authorized but concurrently eligible; their best-effort attempts occur while
-  each qualified video is open, never in a later standalone interaction phase.
-  Missing persistence proof does not disable future new-post attempts.
+- Setup attempted `TikTok 启动台`, then same-task `TikTok 主控台` plus pin.
+- No executor or TikTok work existed before profile confirmation.
+- Exactly one fresh executor ID was registered for the mission.
+- Callback ping/ack succeeded before external work.
+- Main scheduler was created/read back under direct user authorization.
+- Executor owns one tab/ledger and no automation.
+- Every 25–45-view round ends in one accepted callback and IDLE state.
+- Main chose next clusters, action emphasis, and cooldown from evidence.
+- No dispatch happened before `next_dispatch_at` or while executor ACTIVE.
+- At terminal state, scheduler deletion and executor release were both proven.

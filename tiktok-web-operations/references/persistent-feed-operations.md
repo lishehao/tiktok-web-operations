@@ -87,20 +87,16 @@ unverified playback do not count.
 After 25 qualified views the executor may end at the next natural boundary when
 inventory quality, runtime yield, or cutoff makes that sensible. At 45 it must
 checkpoint before more browsing. A round may contain multiple training units;
-unit completion never triggers a distributor message, task switch, or wait.
-After the full round checkpoint, set `cooldown_minutes` to 10–20 and
-`cooldown_until` accordingly. Default to 15 minutes; use 10 for a read-only or
-low-yield round and 20 for a mutation- or recovery-heavy round. This is
-deterministic workload pacing, not randomized human imitation. During cooldown,
-perform no TikTok navigation, viewing, search, or mutation.
+unit completion never triggers a callback, task switch, or wait. After the full
+round checkpoint, send one `round_callback/v1` to the exact main task and become
+idle. The main task selects `cooldown_minutes` 10–20 from evidence and computes
+`next_dispatch_at` from a fresh machine clock. Default to 15 minutes; use 10 for
+a read-only or low-yield round and 20 for a mutation- or recovery-heavy round.
+This is deterministic workload pacing, not randomized human imitation. During
+cooldown, perform no TikTok navigation, viewing, search, or mutation.
 
-Before yielding, create exactly one heartbeat-kind, single-occurrence wake with
-ID `tiktok-wake-<run_id>-round-<round_seq>`, target the exact executor task, and
-read back ID/target/run/round/one-shot/next local+UTC/cutoff. If readback is not
-exact, do not claim continuation and do not create a duplicate in the same
-checkpoint. On a valid wake, record `ONE_SHOT_WAKE_CONSUMED`, delete/retire the
-expired timer if still visible, clear its binding, and start the next round.
-Never callback the distributor or keep a repeat-on executor timer.
+The main task's fixed scheduler dispatches the next bounded round only when due
+and the executor is IDLE. The executor never creates or modifies a timer.
 
 Within each round, Comment receives the highest candidate-selection weight:
 target 6 attempts, flexible 4–8, absolute ceiling 10. Keep Like/Favorite/Repost
@@ -125,7 +121,7 @@ unit and do not yield merely because one unit completed.
    after it has become a qualified view. Zero comments remains valid only when
    no contextually strong, non-repetitive candidate exists or the lane is
    currently unavailable; record the reason.
-8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line suspends further mutation until the executor repairs the ledger; it does not alter an already verified pending one-shot wake.
+8. Append and validate one JSONL record after each consumed post and one cluster summary after each five-card assessment. A malformed line suspends further mutation until the executor repairs the ledger; it does not alter the main scheduler.
 9. Run held-out For You validation only after two distinct training units or roughly 20–30 qualified search views, unless the user directly requests an earlier diagnostic in the executor task.
 
 The default unit success metric is qualified search consumption, not search-card relevance and not For You composition.

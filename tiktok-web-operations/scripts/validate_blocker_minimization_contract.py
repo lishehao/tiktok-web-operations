@@ -59,9 +59,9 @@ def main() -> None:
         "Defaults fill missing proposal fields",
         "auto-recheck",
         "freeze exact target/action",
-        "asks the user directly",
-        "never returns to the launcher",
-        "single-occurrence recovery wake",
+        "main task asks the user",
+        "callback",
+        "executor never creates a timer",
     )
     absent = [term for term in required if term.lower() not in joined.lower()]
     assert not absent, f"missing blocker-minimization assertions: {absent}"

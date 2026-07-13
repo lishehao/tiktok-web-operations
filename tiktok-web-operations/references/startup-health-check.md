@@ -1,15 +1,13 @@
-# Startup Health Check And Reusable Fresh Dispatch
+# Startup Health Check And Main-Task Handoff
 
-Use this reference for install, upgrade, or first mission launch. The launcher
-performs preflight and one-way assignment; it never becomes a coordinator.
-After initial setup, the same launcher remains a reusable stateless dispatch
-entry. Later commands use quick current health checks, not historical run state.
+Use this reference for install, upgrade, and mission launch. The same setup task
+becomes the pinned `TikTok 主控台` and remains the mission control surface.
 
 ## Preflight record
 
 ```text
-launcher_title: TikTok 启动台 | TikTok 分发台 | DEGRADED_RENAME_UNAVAILABLE
-dispatcher_pin: TRUE | DEGRADED_PIN_UNAVAILABLE | UNVERIFIED
+coordinator_title: TikTok 启动台 | TikTok 主控台 | DEGRADED_RENAME_UNAVAILABLE
+coordinator_pin: TRUE | DEGRADED_PIN_UNAVAILABLE | UNVERIFIED
 bundle_action: INSTALL | UPGRADE | NOOP | DEFERRED_ACTIVE_RUNTIME | BLOCKED
 bundle_version:
 skill_validation: PASSED | FAILED
@@ -17,16 +15,12 @@ chrome_control: AVAILABLE | RECONNECTED | UNAVAILABLE
 tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_tools: READY | UNAVAILABLE
-fresh_only_dispatch: REQUIRED
-fresh_create_attempts: 0 | 1
-fresh_executor_thread_id: NONE | exact newly returned id
-fresh_create_state: NOT_STARTED | CREATED | FAILED | UNKNOWN
-executor_profile_support: gpt-5.6-luna/high | UNAVAILABLE
-one_shot_wake_support: AVAILABLE | UNAVAILABLE
+callback_tools: READY | UNAVAILABLE
+automation_update: READY | UNAVAILABLE
 canonical_store: WRITABLE | UNAVAILABLE
 dedicated_tab_creation: AVAILABLE | UNAVAILABLE
 local_time:
-ledger_path:
+coordinator_ledger_path:
 dependency_status: READY | HARD_REPAIR_REQUIRED
 profile_status: DRAFT | PROPOSED | CONFIRMED
 direction_profile_version: NONE | positive integer
@@ -35,113 +29,82 @@ profile_confirmation_evidence: NONE | exact user turn/ref
 
 ## Ordered checks
 
-1. First available presentation action: set title `TikTok 启动台`. On tool
-   failure record `DEGRADED_RENAME_UNAVAILABLE` and continue.
+1. First available presentation action: set title `TikTok 启动台`. On failure,
+   record `DEGRADED_RENAME_UNAVAILABLE` and continue.
 2. Download and validate the canonical GitHub bundle; apply
-   `version-management.md`. A valid newer bundle upgrades automatically. Never
-   merge trees or hot-reload an active managed runtime.
+   `version-management.md`. Never mix two bundle versions.
 3. Create one disposable Chrome tab and prove Chrome control. Classify and
    bounded-recover errors using `runtime-and-recovery.md`.
 4. Open TikTok read-only; prove exact logged-in handle and absence of a current
    blocking challenge/warning. Never enter credentials or codes.
-5. Prove task create/read/title/message tools and `automation_update` support.
-   Prove executor creation with `gpt-5.6-luna` and `thinking=high`.
-6. Prove a private canonical object store and writable ledger path. Read local
-   time and calculate finite `operation_stop_at`.
-7. Prove a newly created executor can own a dedicated Chrome tab and create a
-   self-target single-occurrence heartbeat-kind wake with unique caller-supplied
-   ID. Do not create the real timer in preflight.
-8. Finalize only the disposable launcher tab.
-9. After all required health checks pass, rename this exact task
-   `TikTok 分发台`, attempt to pin it, and read back the exact task ID with
-   `pinned=true` when supported. A rename/pin failure is presentation degradation
-   and does not block the profile gate or dispatch. Never pin an executor.
+5. Prove thread create/read/title/message tools and `automation_update` exist.
+   Do not pretend that tool presence proves callback or scheduler behavior.
+6. Prove writable canonical/coordinator/executor ledger paths and calculate a
+   finite `operation_stop_at` from machine time.
+7. Finalize only the disposable setup tab.
+8. After health proof, rename this same task `TikTok 主控台`, attempt to pin it,
+   and read back exact ID plus `pinned=true` when supported. Presentation failure
+   does not block the profile gate. Never pin the executor.
 
-Do not list, inspect, interrupt, archive, or coordinate with other TikTok tasks.
-Another Chrome/TikTok owner is irrelevant to this run's preflight. The installer
-may inspect active managed runtimes only for safe bundle hot-reload fencing; it
-does not use that inspection as operational coordination.
+Do not inspect unrelated TikTok tasks. Another Chrome/TikTok owner is not a
+blocker. Active-runtime inspection is allowed only for version replacement
+safety, not operational coordination.
 
 ## Bootstrap profile lock
 
-After healthy preflight, lock the account image before mission creation. No
-executor, TikTok search, watched video, or outward interaction may exist while
-`profile_status != CONFIRMED`.
+No executor, TikTok search, watched video, or outward interaction may exist
+while `profile_status != CONFIRMED`.
 
 Use at most two user-facing rounds:
 
 1. If direction is missing, ask one open question covering account identity,
-   target audience, and intended future posts. If the user's initial message is
-   already specific, skip this question.
-2. Infer and display one structured proposal with:
-   `persona_name`, `target_audience`, `region_language`, 3–5
-   `content_pillars`, `excluded_topics`, `voice_and_comment_style`,
-   `future_post_alignment`, duration/intensity, and interaction policy. Ask for
-   confirmation or final replacement values. Supplied replacement values count
-   as confirmation unless the user explicitly requests another draft.
+   target audience, and intended future posts. Skip when already clear.
+2. Display one structured proposal with persona, audience, inferred
+   region/language, 3–5 pillars, exclusions, comment voice, future-post
+   alignment, duration/intensity, and interaction policy. User corrections count
+   as confirmation unless another draft is explicitly requested.
 
-Record `profile_status=PROPOSED` and the exact proposal hash before asking. On
-confirmation, persist `profile_status=CONFIRMED`, increment
-`direction_profile_version`, and store exact user evidence. Only then create the
-canonical `direction_ref` used by assignment.
+A detailed request that supplies a usable direction and asks to start/operate is
+canonical confirmation; fill reversible omissions from defaults and do not ask
+again. A bare `继续` confirms only a visible proposal. `用默认设置开始` confirms
+the packaged defaults.
 
-A detailed request that supplies a usable direction and explicitly asks to
-start/operate is canonical confirmation; fill reversible omissions from the
-declared safe defaults and dispatch after the distributor rename/pin without an
-extra question. Advice/review wording without a start request is not
-confirmation. A bare `继续`/`开始`
-confirms only a proposal already visible in this launcher. If none exists,
-display the default proposal and wait.
-
-## Resolve confirmed mission
-
-Apply explicit values first. Safe defaults:
+Safe defaults:
 
 - direction: North American college/dorm life;
 - duration: 3 hours, standard intensity;
-- universal lifestyle region/language: `global English with North American bias`;
-- cultivation lanes: Like/Favorite/Repost/Comment are four independent
-  `best_effort_attempt` lanes with `parallel_engagement=true`;
-- browse-only lanes: all mutations disabled.
+- universal lifestyle region/language: global English with North American bias;
+- cultivation lanes: Like/Favorite/Repost/Comment independently eligible with
+  `parallel_engagement=true`;
+- browse-only wording: all mutations disabled.
 
-Defaults fill missing proposal fields; they never bypass confirmation.
+Defaults fill missing proposal fields; they never bypass profile confirmation.
 
-## Create and hand off
+## Create, handshake, schedule, dispatch
 
 Follow `operating-model.md`:
 
-1. require `profile_status=CONFIRMED` and one exact confirmed
-   `direction_profile_version`; otherwise stop before creation;
-2. generate a new `run_id`; make exactly one fresh `create_thread` attempt for a
-   new `TikTok 执行台` with Luna/High and inert bootstrap;
-3. store only that call's exact newly returned ID;
-4. send one canonical `executor_assignment/v1` referencing the confirmed
-   `direction_ref`;
-5. require `ASSIGNMENT_ACCEPTED` before external work;
-6. release launcher Chrome and record `EXECUTOR_ASSIGNED`;
-7. pinned distributor becomes `L2_IDLE` and performs no later
-   supervision/callback work.
+1. require confirmed profile and exact canonical refs;
+2. generate one new run ID and fresh-create exactly one unpinned
+   `TikTok 执行台`; store only the exact new ID;
+3. send `executor_assignment/v2` and require `ASSIGNMENT_ACCEPTED`;
+4. perform real `CALLBACK_PING/v1` -> `CALLBACK_ACK/v1` to the exact main task;
+5. create one main-target recurring scheduler under the direct user mission
+   authorization and read back exact ID, target, repeat/ACTIVE state, and next
+   local/UTC run;
+6. dispatch round 1 immediately and enter callback wait.
 
-On every later new operating instruction sent to the same launcher, repeat only
-the current dependency/account health checks and the fresh create/assignment
-steps with a new run ID. Do not repeat installation unless version management
-requires it. After acceptance return to `L2_IDLE` again. This is a new dispatch,
-not continuation or aggregation of an old run.
+If callback handshake fails, perform no TikTok external work and report
+`CALLBACK_UNAVAILABLE`. If the scheduler is only suggested or lacks exact
+ID/readback, do not claim multi-hour unattended continuation; report
+`SCHEDULER_CONTINUATION_FAILURE`. Never ask the executor to create a substitute.
 
-The launcher must not list/search/read historical tasks, choose a same-title
-task, reuse/unarchive/revive/message/archive/replace an old executor, or inherit
-an old mission/registry/Heartbeat/tab/ledger. Old archived, completed, and live
-runs remain untouched. A create failure/unknown result ends this launch with one
-fresh-task error report and no fallback or replacement.
-
-The executor then performs the read-only smoke and starts real mission work with
-no standing timer. At its first completed round it creates/read-backs its own
-run/round-unique one-shot wake before cooldown. Future user interaction goes
-directly to `TikTok 执行台`.
+Historical same-title tasks are not candidates. A fresh create failure/unknown
+result ends this launch without title search, reuse, unarchive, or replacement.
 
 ## User-facing handoff
 
-When no account image was supplied, the already renamed/pinned distributor asks:
+When direction is missing, the already renamed/pinned main task says only:
 
 ```text
 TikTok 已准备好，当前账号：@handle。
@@ -149,17 +112,6 @@ TikTok 已准备好，当前账号：@handle。
 例如：“做北美宠物账号，持续 10 小时。”不确定就回复：“用默认设置开始。”
 ```
 
-Do not append architecture, dependency, capability-matrix, profile-field, or
-policy explanations to this successful handoff. A reply containing direction
-and optional duration is an explicit operating instruction in this context;
-compile reversible omissions from defaults and dispatch without another
-confirmation. `用默认设置开始` confirms all packaged defaults and dispatches
-directly. Never turn either reply into another proposal-confirmation round.
-
-For a bare `继续`/`开始` that is not the exact default command and has no visible
-proposal, show the default proposal and wait once. Never say operation started
-before the applicable confirmation.
-When the initial request contains a usable direction and explicit start/operate
-instruction, compile it as the confirmed profile and dispatch without an extra
-question. If it is detailed but asks only for advice/review, show the structured
-proposal and obtain confirmation before dispatch.
+A direction/duration reply dispatches without another confirmation round.
+Do not append architecture, callback, scheduler, registry, or capability
+terminology to this beginner-facing handoff.

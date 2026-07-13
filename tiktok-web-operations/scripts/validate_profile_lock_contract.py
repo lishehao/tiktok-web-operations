@@ -22,7 +22,7 @@ def transition(event: str) -> str:
         "exact_default_command": "CONFIRMED_DEFAULT_CREATE_ALLOWED",
         "visible_proposal_confirmed": "FRESH_CREATE_ALLOWED",
         "final_corrections": "CONFIRMED_REVISED_PROFILE_CREATE_ALLOWED",
-        "second_fresh_run": "NEW_PROFILE_LOCK_REQUIRED",
+        "new_mission": "NEW_PROFILE_LOCK_REQUIRED",
     }[event]
 
 def main():
@@ -32,21 +32,21 @@ def main():
                 "at most two user-facing rounds", "one open question",
                 "structured proposal", "3–5", "future_post_alignment",
                 "no executor creation", "bare `继续`", "confirms only a proposal",
-                "never inherit", "L0_PROFILE_LOCK", "exact confirmation evidence")
+                "never silently", "C0_MAIN_READY", "confirmation")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     scenarios = {e: transition(e) for e in (
         "preflight_only", "bare_continue_without_proposal", "detailed_unconfirmed",
         "explicit_operating_mission",
         "handoff_direction_duration_reply", "exact_default_command",
-        "visible_proposal_confirmed", "final_corrections", "second_fresh_run")}
+        "visible_proposal_confirmed", "final_corrections", "new_mission")}
     assert scenarios["preflight_only"] == "PROFILE_DRAFT_NO_EXECUTOR"
     assert scenarios["bare_continue_without_proposal"] == "SHOW_DEFAULT_PROPOSAL_WAIT"
     assert scenarios["visible_proposal_confirmed"] == "FRESH_CREATE_ALLOWED"
     assert scenarios["explicit_operating_mission"] == "CONFIRMED_FROM_EXPLICIT_MISSION_CREATE_ALLOWED"
     assert scenarios["handoff_direction_duration_reply"] == "CONFIRMED_FROM_HANDOFF_REPLY_CREATE_ALLOWED"
     assert scenarios["exact_default_command"] == "CONFIRMED_DEFAULT_CREATE_ALLOWED"
-    assert scenarios["second_fresh_run"] == "NEW_PROFILE_LOCK_REQUIRED"
+    assert scenarios["new_mission"] == "NEW_PROFILE_LOCK_REQUIRED"
     print(json.dumps({"status":"PASS","scenarios":scenarios}, ensure_ascii=False, sort_keys=True))
 
 if __name__ == "__main__": main()

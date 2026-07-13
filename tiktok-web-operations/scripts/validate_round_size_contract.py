@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate variable 35-target operating rounds without launcher churn."""
+"""Validate variable 35-target rounds with one boundary callback."""
 import json
 from pathlib import Path
 
@@ -20,8 +20,7 @@ def main():
     joined = " ".join("\n".join(p.read_text() for p in FILES).split())
     required = ("targets 35 qualified", "25–45", "25–35", "5–10",
                 "thumbnails", "duplicates", "do not count",
-                "never returns to the launcher between units or rounds",
-                "10–20 minute", "cooldown_until")
+                "callback", "10–20 minute", "next_dispatch_at")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     scenarios = {str(n): boundary(n, natural=(n in {25,35,44})) for n in (0,24,25,34,35,44,45,50)}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate TikTok fresh-only dispatch and no historical owner recovery."""
+"""Validate one fresh executor per mission and no historical owner recovery."""
 import json
 from pathlib import Path
 
@@ -19,18 +19,15 @@ def dispatch(event):
         "fresh_create_failed": {"old":"NOT_INSPECTED","create_attempts":1,"use_old":False,"result":"FRESH_TASK_CREATION_FAILED"},
         "fresh_create_unknown": {"old":"NOT_INSPECTED","create_attempts":1,"use_old":False,"result":"FRESH_TASK_CREATION_UNKNOWN"},
         "fresh_assignment_failed": {"old":"NOT_INSPECTED","create_attempts":1,"use_old":False,"result":"FRESH_TASK_ASSIGNMENT_FAILED"},
-        "same_launcher_second_command": {"old":"NOT_INSPECTED","create_attempts":1,"use_old":False,"result":"SECOND_FRESH_EXECUTOR_NEW_RUN"},
+        "new_mission_after_release": {"old":"NOT_INSPECTED","create_attempts":1,"use_old":False,"result":"NEW_MISSION_FRESH_EXECUTOR"},
     }
     return table[event]
 
 def main():
     assert all(p.is_file() for p in FILES)
     joined = "\n".join(p.read_text() for p in FILES)
-    required = ("fresh_only_dispatch", "exactly once", "FRESH_TASK_CREATION_FAILED",
-                "FRESH_TASK_CREATION_UNKNOWN", "FRESH_TASK_ASSIGNMENT_FAILED",
-                "same-title", "archived", "currently live", "remain untouched history",
-                "do not list", "do not retry creation", "do not fall back",
-                "same launcher", "another independent", "reusable stateless")
+    required = ("fresh-create exactly one", "exactly once", "FRESH_TASK_CREATION_FAILED",
+                "same-title", "historical", "never fallback")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     forbidden = ("at most one clean replacement", "STALE_OWNER_TOMBSTONE",
@@ -39,12 +36,12 @@ def main():
     assert not present, present
     events = ("old_title_match","old_archived","old_live","fresh_success",
               "fresh_create_failed","fresh_create_unknown","fresh_assignment_failed",
-              "same_launcher_second_command")
+              "new_mission_after_release")
     scenarios = {e: dispatch(e) for e in events}
     assert all(s["create_attempts"] == 1 for s in scenarios.values())
     assert all(s["use_old"] is False for s in scenarios.values())
     assert scenarios["fresh_success"]["result"] == "USE_EXACT_NEW_ID"
-    assert scenarios["same_launcher_second_command"]["result"] == "SECOND_FRESH_EXECUTOR_NEW_RUN"
+    assert scenarios["new_mission_after_release"]["result"] == "NEW_MISSION_FRESH_EXECUTOR"
     print(json.dumps({"status":"PASS","scenarios":scenarios}, sort_keys=True))
 
 if __name__ == "__main__": main()

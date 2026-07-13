@@ -1,7 +1,8 @@
 # Runtime And Recovery
 
-Recover inside the executor's own task, Chrome tab, ledger, and self-owned wake.
-Do not contact the launcher or another TikTok task.
+Recover inside the executor's bounded round, owned Chrome tab, and ledger. When
+the round ends or user action is required, callback the exact registered main
+task. Never contact an unrelated TikTok task.
 
 ## Error classes
 
@@ -27,10 +28,9 @@ only after exact code and same-domain/neutral probes.
    dedicated owned tab when needed. Never claim another task's tab.
 5. Probe TikTok home and one neutral HTTPS site in temporary owned tabs.
 6. Reconfirm exact account, target, warnings, and lane state before continuing.
-7. If recovered, continue and mention it only in the next normal three-line
-   receipt. If still transient and a later retry requires yielding, checkpoint
-   `auto_resume_condition`, create/read-back one unique self-target
-   single-occurrence recovery wake, then yield.
+7. If recovered, continue the bounded round. If still transient and the round
+   must yield, checkpoint `auto_resume_condition`, callback the exact main task,
+   and become idle. The executor never creates a recovery timer.
 
 Never switch browser, clear cookies, enter credentials/codes, change proxy/TLS,
 bypass login, or repeat an uncertain mutation.
@@ -38,21 +38,20 @@ bypass login, or repeat an uncertain mutation.
 ## Recovery routing
 
 - Candidate/page/route faults: skip or rotate.
-- Network/Chrome/render faults: bounded retry then self-resume checkpoint.
+- Network/Chrome/render faults: bounded retry then callback checkpoint when the round must yield.
 - Feed movement failure: end only held-out validation.
 - Missing persistence/post-action proof: record attempted and continue; do not
   run verification or suspend future new-post attempts.
 - Timed 429/rate limit: preserve expiry and auto-recheck.
-- Current human-only blocker: release owned tab and ask directly in executor.
+- Current human-only blocker: preserve/release the owned tab safely, callback
+  exact evidence, and let the main task ask the user.
 
-No ordinary recovery changes the distributor, creates a replacement task, or
-waits for user confirmation. It does not alter an already verified pending wake.
+No ordinary recovery creates a replacement task, asks the user, or alters the
+main scheduler.
 
-## Executor wake
+## Scheduler and resumption
 
-Validate exact automation ID, run ID, round/recovery sequence, executor ID,
-target, single-occurrence state, next run, and cutoff. If already running, do no
-overlapping work. If idle before cutoff, record the wake consumed, retire the
-expired timer if still visible, clear the pending binding, and resume from the
-last valid JSONL checkpoint. A wrong, duplicate, or late timer does no external
-work and is handled as specified in `stability-and-circuit-breakers.md`.
+Only the main scheduler wakes for resumption. It validates exact automation,
+main/run IDs, current machine time, executor IDLE state, pending round, and
+cutoff. It sends one new assignment when due. A wrong, early, duplicate, or
+overlapping wake performs no dispatch.
