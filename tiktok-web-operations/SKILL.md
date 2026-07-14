@@ -55,7 +55,7 @@ canonical idle proof until the main task sends the next round. A later
 a due dispatch. Only explicit newer contradictory evidence requires
 reconciliation.
 
-After profile confirmation, fresh-create exactly one unpinned `TikTok 执行台`,
+After profile confirmation for a new mission, fresh-create exactly one unpinned `TikTok 执行台`,
 record its exact returned ID, prove a callback handshake, create/read-back one
 coordinator-targeted callback-first phase timer under the user's direct mission
 authorization, then dispatch bounded rounds. A rename/pin failure is
@@ -68,6 +68,24 @@ mission it may read/message only the registered executor for assignment,
 callback, dispatch, stop, and release. If fresh creation fails or is uncertain,
 report `FRESH_TASK_CREATION_FAILED|UNKNOWN`; never fall back to an old task.
 Never fallback to a historical owner by title, archive state, or readable summary.
+
+Within that active mission, every later round and every user continuation or
+direction adjustment in `TikTok 主控台` reuses the same exact registered
+executor. Update versioned direction/authority/mission refs for the next bounded
+assignment; do not create a task merely because a round ended, the executor is
+IDLE, or the user said `继续`.
+
+Create at most one same-run replacement only when the registry has no exact
+executor ID or that exact registered task is proven `STALE_OWNER_TOMBSTONE`,
+retired, archived, or released before the active mission ends. Temporary
+`notLoaded`, empty/unavailable `read_thread`, host/network unavailability, or a
+transient tool error is not absence and never triggers replacement. A valid
+replacement keeps `run_id`, increments `executor_generation`, records old/new
+IDs, reason, and timestamp, sends a new canonical `executor_assignment/v2` with
+the last accepted resume cursor, repeats `CALLBACK_PING/ACK`, and atomically
+updates the registry before dispatch. If replacement creation or assignment is
+failed/uncertain, do not try again; report one orchestration blocker. After a
+terminal release/cutoff, a later instruction is a new mission with a new run.
 
 ### TikTok 执行台 (`TIKTOK_EXECUTOR`)
 
@@ -91,6 +109,8 @@ Read `references/role-and-stage-contract.md` and
 |-|-|
 | Installer/setup prompt | Rename to `TikTok 启动台`, automatically install/upgrade, validate, and run preflight; on health rename the same task `TikTok 主控台` and pin it. |
 | Clear mission with a healthy installation | Rename/pin as main task first. Treat a sufficiently explicit start instruction as canonical profile confirmation and fresh-create one executor without another question. |
+| Continuation or adjustment while the current mission is active | Keep the current `run_id`; reuse the exact registered executor, version changed refs, and apply them to the next non-overlapping bounded assignment. |
+| New instruction after terminal release/cutoff | Start a new profile/mission boundary with a new `run_id` and fresh executor. |
 | `继续` or `开始` after a visible profile proposal | Treat as confirmation of that exact proposal and proceed. |
 | `继续` or `开始` without a visible profile proposal | Produce the packaged default proposal; do not start until the user confirms it. |
 | `用默认设置开始` | Confirm the packaged default profile and dispatch directly without another question. |
@@ -129,7 +149,7 @@ The proposal contains `persona_name`, `target_audience`, `region_language`,
 `future_post_alignment`, duration/intensity, and interaction policy. Store
 `profile_status=draft|proposed|confirmed` plus
 `direction_profile_version`. Only the exact proposal the user confirmed becomes
-`direction_ref` and may enter `executor_assignment/v1`.
+`direction_ref` and may enter `executor_assignment/v2`.
 
 A detailed initial instruction that supplies a usable direction and explicitly
 asks to start/operate is canonical confirmation; compile missing reversible
@@ -344,8 +364,9 @@ Use callback-first phase scheduling:
 4. A watchdog wake never dispatches while the executor is active. Read only the
    exact executor's recent status: rearm once for 60 minutes when progress is
    recent; request one status/callback when idle without callback; surface a
-   genuine orchestration blocker only when the registered executor is stale or
-   unreachable.
+   genuine orchestration blocker only when strict owner recovery cannot restore
+   an absent or proven stale registered executor. A transient unreadable state
+   is recovery evidence, not permission to create another task.
 5. If any nonterminal wake cannot dispatch because required callback/identity
    proof is missing, preserve the pending round and update the same timer in
    place to one five-minute `STATE_RETRY`. After three consecutive failed

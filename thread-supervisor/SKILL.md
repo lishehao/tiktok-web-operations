@@ -194,6 +194,15 @@ An accepted exact round callback with `executor_state=IDLE` is canonical until
 the next dispatch consumes it. A later `read_thread` call is diagnostic only;
 an unavailable, empty, or `notLoaded` result does not invalidate that proof.
 
+The registered executor is mission-scoped and must be reused for every normal
+round and every active-mission continuation. A new user message, round callback,
+IDLE state, or cooldown never creates another executor. Only a missing exact
+registered ID or an exact registered executor proven stale/retired permits one
+same-run replacement with incremented generation, old/new ID audit, fresh
+assignment acceptance, and callback handshake. Transient read/tool/network
+failures retain the existing owner. Terminally released missions start a new
+run/executor.
+
 Before external work, prove a real callback handshake using exact task IDs and
 run ID. At round completion the executor sends one canonical callback and
 becomes idle. The main task accepts it only when coordinator/executor/run/round

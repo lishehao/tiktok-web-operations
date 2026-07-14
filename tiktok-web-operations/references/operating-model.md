@@ -40,6 +40,39 @@ TikTok 执行台 -> CALLBACK_ACK/v1 -> exact TikTok 主控台
    `SCHEDULER_CONTINUATION_FAILURE`; never claim unattended continuation.
 8. Dispatch `round_assignment/v1` for round 1 immediately.
 
+## Same-mission continuation and owner recovery
+
+The executor is mission-scoped, not round-scoped. After every accepted round
+callback, and whenever the user continues or adjusts an active mission in
+`TikTok 主控台`, reuse the exact registered `executor_thread_id`. Keep the
+`run_id`; version changed direction/authority/mission refs and apply them to the
+next non-overlapping bounded assignment. Do not create a new executor because a
+round completed, a cooldown started, or the executor is IDLE.
+
+The main may create one replacement inside the same run only when:
+
+- the canonical registry has no exact `executor_thread_id`; or
+- the exact registered task is proven `STALE_OWNER_TOMBSTONE` (including
+  `failed to resolve rollout path` / `file does not exist`), retired, archived,
+  or released before the active mission has ended.
+
+`notLoaded`, empty/unavailable `read_thread`, host/network unavailability, and
+transient tool failure are `LIVENESS_UNVERIFIED_TRANSIENT`, not owner absence.
+Keep the same owner and phase timer, rearm bounded recovery, and retry later.
+
+For a permitted replacement: keep `run_id`, increment `executor_generation`,
+record `old_executor_thread_id`, `new_executor_thread_id`, exact reason, and UTC
+timestamp, carry the last accepted resume cursor, issue one new canonical
+`executor_assignment/v2`, and repeat assignment acceptance plus callback
+handshake. Atomically register the new exact ID before dispatch and retire the
+old registry binding. The main-owned timer is updated in place; it is never
+recreated for owner replacement. A failed/unknown replacement create or failed
+assignment ends replacement with one orchestration blocker and no second create.
+
+After `RUN_RELEASED`, cutoff, completion, or explicit terminal stop, a later
+operating instruction is a new mission: repeat the profile boundary as needed,
+generate a new run ID, and fresh-create a new executor.
+
 ## Canonical assignment
 
 `executor_assignment/v2` contains:
@@ -49,6 +82,8 @@ TikTok 执行台 -> CALLBACK_ACK/v1 -> exact TikTok 主控台
   "schema":"executor_assignment/v2",
   "assignment_id":"<uuid>",
   "run_id":"<uuid>",
+  "executor_generation":1,
+  "predecessor_executor_thread_id":null,
   "coordinator_thread_id":"<exact main task id>",
   "executor_thread_id":"<exact returned executor id>",
   "role":"TIKTOK_EXECUTOR",
@@ -57,6 +92,7 @@ TikTok 执行台 -> CALLBACK_ACK/v1 -> exact TikTok 主控台
   "direction_ref":{"id":"...","version":1,"sha256":"..."},
   "authority_ref":{"id":"...","version":1,"sha256":"..."},
   "mission_ref":{"id":"...","version":1,"sha256":"..."},
+  "resume_cursor_ref":null,
   "executor_ledger_path":"<private path>",
   "coordinator_ledger_path":"<private path>",
   "dedicated_tab_policy":"EXECUTOR_OWNED",
@@ -142,7 +178,9 @@ interval.
    optional diagnostic evidence, not a prerequisite.
 4. At a watchdog wake, never dispatch over an active executor. Read only the
    registered executor: rearm once when progress is recent, request one missing
-   callback/status when idle, or report a genuine stale/unreachable owner.
+   callback/status when idle, retain the owner and rearm recovery when liveness
+   is transiently unverified, or enter the one-attempt same-run replacement path
+   only with strict missing/stale-owner proof.
 5. When required callback/identity proof is absent, do not discard the pending
    round. Rearm the same timer for one five-minute `STATE_RETRY`. Optional
    diagnostic-read failure alone does not block dispatch when canonical proof

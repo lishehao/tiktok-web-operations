@@ -80,12 +80,12 @@ Safe defaults:
 
 Defaults fill missing proposal fields; they never bypass profile confirmation.
 
-## Create, handshake, schedule, dispatch
+## Create, reuse, handshake, schedule, dispatch
 
 Follow `operating-model.md`:
 
 1. require confirmed profile and exact canonical refs;
-2. generate one new run ID and fresh-create exactly one unpinned
+2. at a new-mission boundary, generate one new run ID and fresh-create exactly one unpinned
    `TikTok 执行台`; store only the exact new ID;
 3. send `executor_assignment/v2` and require `ASSIGNMENT_ACCEPTED`;
 4. perform real `CALLBACK_PING/v1` -> `CALLBACK_ACK/v1` to the exact main task;
@@ -101,6 +101,20 @@ ID/readback, do not claim multi-hour unattended continuation; report
 
 Historical same-title tasks are not candidates. A fresh create failure/unknown
 result ends this launch without title search, reuse, unarchive, or replacement.
+
+After launch, keep that exact executor for all rounds and all continuation or
+direction messages within the same active mission. Do not repeat profile setup,
+change `run_id`, or call `create_thread` because the executor returned IDLE.
+Version any changed refs and send them with the next bounded assignment.
+
+If the registry lacks an exact executor ID, or the exact registered executor is
+proven `STALE_OWNER_TOMBSTONE`, retired, archived, or released while the mission
+is still active, create at most one replacement for the same `run_id`. Increment
+`executor_generation`, store old/new exact IDs, reason, timestamp, and last
+accepted cursor, then repeat assignment acceptance and callback handshake before
+resuming. `notLoaded`, empty/unavailable task read, host/network failure, or
+transient tool failure never proves absence. A failed or uncertain replacement
+does not permit another create. A post-terminal instruction starts a new mission.
 
 ## User-facing handoff
 

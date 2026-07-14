@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.14.2`
+Protocol version: `2026.07.14.3`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -73,10 +73,20 @@ timer, user communication, and finalization. It never operates
 TikTok. `TikTok 执行台` owns only its dedicated Chrome tab, raw ledger,
 within-round recovery, and one bounded round at a time; it owns no timer.
 
-Every new mission fresh-creates exactly one executor and recognizes only that
-create call's returned ID. Historical same-title tasks remain untouched and are
-never fallback owners. During the active mission the main task reads/messages
-only that registered executor; callback and scheduler state are canonical.
+Every new mission initially fresh-creates exactly one executor and recognizes
+only that create call's returned ID. The same active mission then reuses that
+exact registered executor across every round and every continuation instruction
+sent in `TikTok 主控台`; a round callback is not a reason to create another task.
+Historical same-title tasks remain untouched and are never fallback owners.
+
+Only an absent registered ID or an exact registered executor proven
+`STALE_OWNER_TOMBSTONE`, retired, archived, or released while the mission is
+still active permits one same-run replacement. `notLoaded`, transient task-read,
+host, network, or tool failures do not. Replacement keeps the run ID, increments
+`executor_generation`, records old/new exact IDs and reason, repeats assignment
+acceptance plus callback handshake, and resumes from the last accepted cursor.
+An uncertain replacement create never authorizes a second create. A truly
+terminal/released mission starts a new run and a fresh executor instead.
 
 The main task creates the executor with `gpt-5.6-luna`/high exactly as required
 by the TikTok Skill. It never substitutes a subagent or Goal Mode.
@@ -206,8 +216,13 @@ scenario validators. Required scenarios include:
 - confirmed profile version is the only assignment direction reference;
 - old matching title ignored and untouched;
 - archived and live old runs ignored and untouched;
-- a fresh create is required for every new launch;
-- create failure produces no reuse, retry, or replacement;
+- a fresh create is required at every new-mission boundary;
+- same active-mission continuation and later rounds reuse the exact registered
+  executor rather than creating duplicate tasks;
+- `notLoaded` and transient task/tool/network failures never trigger replacement;
+- an absent exact registered ID or proven stale/retired owner permits at most one
+  same-run replacement with incremented generation and fresh handshake;
+- initial or replacement create uncertainty produces no duplicate create;
 - exact callback ping/ack before any TikTok work;
 - one registered executor and one canonical callback path per active mission;
 - executor returns one structured callback after every bounded round;

@@ -30,9 +30,11 @@ task ID, and `external_work=forbidden_until_assignment_and_callback_acceptance`.
 
 After fresh creation returns an exact ID, create `executor_assignment/v2` with:
 
-- assignment/run/coordinator/executor IDs and execution profile;
+- assignment/run/coordinator/executor IDs, `executor_generation`, optional
+  predecessor executor ID, and execution profile;
 - exact account, `direction_ref`, `authority_ref`, and `mission_ref`;
-- coordinator/executor ledger paths and dedicated-tab policy;
+- coordinator/executor ledger paths, optional accepted resume-cursor ref, and
+  dedicated-tab policy;
 - `callback_policy=ROUND_BOUNDARY_TO_EXACT_COORDINATOR`;
 - `automation_policy=COORDINATOR_OWNED_FIXED_SCHEDULER`.
 
@@ -54,6 +56,13 @@ Direction, authority, and mission are independently versioned by the main task.
 The executor never edits those objects; it reports observations. Mutable
 strategy, cooldown, scheduler ID, and pending round stay in the main ledger.
 Raw browser evidence and target/action deduplication stay in the executor ledger.
+
+Initial generation is 1 with no predecessor. Normal rounds and same-mission
+user continuations preserve the same executor ID and generation. A permitted
+same-run stale/missing-owner replacement increments generation, records exact
+old/new IDs, reason, UTC, and resume cursor, then replaces the canonical binding
+only after assignment acceptance and a fresh callback handshake. Transient
+`notLoaded`/read/tool/network failures never change generation.
 
 ## Reconciliation
 

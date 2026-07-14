@@ -44,6 +44,7 @@ authority; overlap itself.
 | State or resource | Sole writer | Other role may |
 |-|-|-|
 | Profile, mission, next clusters, cooldown | Main | Executor reads assignment |
+| Exact executor ID, generation, same-run replacement record | Main | Executor validates assignment identity |
 | Phase timer and future-wake proof | Main | Executor does not inspect it |
 | Chrome tab, TikTok page, mutations | Executor | Main never touches them |
 | Raw browser evidence and round checkpoint | Executor | Main accepts referenced proof |
@@ -61,13 +62,14 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 |-|-|-|-|-|
 | `C0_BOOTSTRAP` | task titled `TikTok 启动台` | install/upgrade, read-only preflight, required user repair | healthy dependencies/account | `C0_MAIN_READY` |
 | `C0_MAIN_READY` | same task | rename `TikTok 主控台`, pin/readback, profile lock | main identity plus confirmed profile | `C1_CREATE` |
-| `C1_CREATE` | main | fresh-create one executor and canonical assignment | exact IDs and `ASSIGNMENT_ACCEPTED` | `C1_HANDSHAKE` |
+| `C1_CREATE` | main | at a new-mission boundary, fresh-create one executor and canonical assignment | exact IDs, generation 1, and `ASSIGNMENT_ACCEPTED` | `C1_HANDSHAKE` |
+| `C1_RECOVER_EXECUTOR` | main | only for missing exact registered ID or proven stale/retired owner during the active mission, create one same-run replacement | old/new IDs, incremented generation, accepted assignment, fresh callback handshake | resume `C2_DISPATCH`; otherwise orchestration blocker |
 | `C1_HANDSHAKE` | main + executor | exact `CALLBACK_PING/ACK` and phase-timer create/readback | callback proof plus verified stable timer | `C2_DISPATCH` |
 | `C2_DISPATCH` | main | send exactly one `round_assignment/v1`; arm one 60-minute watchdog | `ROUND_DISPATCHED`, executor ACTIVE, no five-minute polling | main `C3_WAIT`, executor `E1_RUN` |
-| `C3_WAIT` | main | await callback; only one low-frequency watchdog exists | valid callback, watchdog, or terminal signal | `C4_REPLAN` or `C6_FINALIZE` |
+| `C3_WAIT` | main | await callback; only one low-frequency watchdog exists | valid callback, watchdog, strict stale/missing-owner proof, or terminal signal | `C4_REPLAN`, `C1_RECOVER_EXECUTOR`, or `C6_FINALIZE` |
 | `C4_REPLAN` | main | accept callback, update strategy, machine-calculate cooldown | `next_dispatch_at`, pending next round, executor IDLE | `C5_COOLDOWN` |
 | `C5_COOLDOWN` | main timer | due wake consumes accepted callback-IDLE proof; dispatch once and rearm watchdog | next round dispatched, retry armed, or cutoff | `C3_WAIT`, `C5_RECOVERY`, or `C6_FINALIZE` |
-| `C5_RECOVERY` | main timer | preserve pending round; retry missing orchestration proof without TikTok work | one verified future retry/recovery wake or recovered dispatch | `C5_COOLDOWN`, `C3_WAIT`, or `C6_FINALIZE` |
+| `C5_RECOVERY` | main timer | preserve pending round; retry missing orchestration proof without TikTok work | one verified future retry/recovery wake, recovered dispatch, or strict stale/missing-owner proof | `C5_COOLDOWN`, `C3_WAIT`, `C1_RECOVER_EXECUTOR`, or `C6_FINALIZE` |
 | `E0_ACCEPT` | executor | validate assignment and handshake | exact IDs/refs, callback ACK | `E1_RUN` |
 | `E1_RUN` | executor | one 25–45-view search-led round plus interactions | durable checkpoint | `E2_CALLBACK` |
 | `E2_CALLBACK` | executor | send one `round_callback/v1` | accepted send, executor IDLE | wait for `C2_DISPATCH` or stop |
@@ -78,6 +80,13 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 ## Callback and scheduler invariants
 
 - Perform a live callback handshake before TikTok work.
+- Reuse the exact registered executor for every round and user continuation in
+  the same active mission; IDLE is a dispatch state, not a creation trigger.
+- Treat `notLoaded`, empty/unavailable task reads, host/network faults, and
+  transient tool errors as retryable diagnostics, never owner absence.
+- Same-run replacement is allowed once only for an absent registered ID or a
+  proven stale/retired executor; keep the run ID, increment generation, record
+  old/new IDs, and repeat assignment plus callback handshake.
 - Accept exactly one callback for the expected run/round sequence.
 - Executor callbacks and becomes idle after every completed round.
 - Main chooses strategy and 10–20 minute cooldown from callback evidence.
@@ -109,7 +118,10 @@ main asks the user once. Historical failures never block a clean current run.
 
 - Setup attempted `TikTok 启动台`, then same-task `TikTok 主控台` plus pin.
 - No executor or TikTok work existed before profile confirmation.
-- Exactly one fresh executor ID was registered for the mission.
+- Exactly one canonical executor ID is registered at a time; its initial
+  generation was fresh-created and reused across normal rounds.
+- Any same-run replacement had strict absence/stale proof, incremented
+  generation, old/new ID audit, one create attempt, and fresh handshake.
 - Callback ping/ack succeeded before external work.
 - Main phase timer was created/read back under direct user authorization.
 - Executor owns one tab/ledger and no automation.

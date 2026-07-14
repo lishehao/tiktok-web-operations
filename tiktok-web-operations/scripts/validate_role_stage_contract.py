@@ -28,6 +28,10 @@ def route(event: str):
         "network_fault":"EXECUTOR_AUTO_RECOVER_OR_CALLBACK",
         "captcha":"EXECUTOR_CALLBACK_MAIN_ASK_USER",
         "direction_change":"MAIN_VERSION_NEXT_ASSIGNMENT",
+        "same_mission_continue":"MAIN_REUSE_EXACT_EXECUTOR",
+        "registered_owner_missing":"MAIN_ONE_SAME_RUN_REPLACEMENT_HANDSHAKE",
+        "task_not_loaded":"MAIN_RETAIN_OWNER_REARM_RECOVERY",
+        "terminal_new_instruction":"MAIN_NEW_RUN_FRESH_EXECUTOR",
         "deadline":"MAIN_STOP_DELETE_PHASE_TIMER_RELEASE",
     }[event]
 
@@ -36,7 +40,7 @@ def main():
     joined = "\n".join(p.read_text() for p in FILES if p.is_file())
     required = ("TIKTOK_COORDINATOR", "TIKTOK_EXECUTOR", "C0_BOOTSTRAP",
                 "C1_HANDSHAKE", "C2_DISPATCH", "C3_WAIT", "C4_REPLAN",
-                "C5_COOLDOWN", "C5_RECOVERY", "C6_FINALIZE", "E1_RUN",
+                "C1_RECOVER_EXECUTOR", "C5_COOLDOWN", "C5_RECOVERY", "C6_FINALIZE", "E1_RUN",
                 "E2_CALLBACK", "E3_HARD_REPAIR", "E4_RELEASE",
                 "Single-writer responsibility matrix", "one bounded round")
     missing = [x for x in required if x.lower() not in joined.lower()]
@@ -48,6 +52,8 @@ def main():
               "wake_due_missing_idle_proof","third_state_retry_failure",
               "active_without_future_run","round_dispatched","candidate_outside_scope",
               "network_fault","captcha","direction_change","deadline")
+    events = events[:-1] + ("same_mission_continue", "registered_owner_missing",
+                           "task_not_loaded", "terminal_new_instruction", "deadline")
     scenarios = {e: route(e) for e in events}
     assert scenarios["round_complete"] == "EXECUTOR_CALLBACK_IDLE"
     assert scenarios["before_due"] == "NO_TIMER_WAKE"
@@ -57,6 +63,10 @@ def main():
     assert scenarios["active_without_future_run"] == "MAIN_EXPIRED_ORPHAN_REPAIR_OR_FINALIZE"
     assert scenarios["round_dispatched"] == "ARM_ONE_60_MINUTE_WATCHDOG"
     assert scenarios["captcha"] == "EXECUTOR_CALLBACK_MAIN_ASK_USER"
+    assert scenarios["same_mission_continue"] == "MAIN_REUSE_EXACT_EXECUTOR"
+    assert scenarios["registered_owner_missing"] == "MAIN_ONE_SAME_RUN_REPLACEMENT_HANDSHAKE"
+    assert scenarios["task_not_loaded"] == "MAIN_RETAIN_OWNER_REARM_RECOVERY"
+    assert scenarios["terminal_new_instruction"] == "MAIN_NEW_RUN_FRESH_EXECUTOR"
     print(json.dumps({"status":"PASS","steady_role_count":2,"scenarios":scenarios}, sort_keys=True))
 
 if __name__ == "__main__": main()
