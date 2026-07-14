@@ -1,10 +1,11 @@
 # Supervisor Reminders
 
-Use only when creating or updating a supervisor heartbeat for unhandled items.
+Use only when creating or updating task-attached scheduled work (called a
+heartbeat by the current tool) for unhandled supervisor items.
 
 ## Before creating
 
-- Read `identity-and-automation.md` and prove the current Thread is the exact
+- Read `identity-and-automation.md` and prove the current task is the exact
   registered coordinator and automation owner.
 - Inspect existing automations first.
 - Reuse/update a matching heartbeat only when its viewed `targetThreadId`, run
@@ -14,19 +15,19 @@ Use only when creating or updating a supervisor heartbeat for unhandled items.
 - Pass explicit `targetThreadId=coordinator_thread_id`, view the returned
   automation ID, and verify the stored binding before treating creation as
   successful.
-- Use the fixed name format `未处理信息提醒 - <cadence> - <Coordinator thread name> - <run_nonce>`.
+- Use the fixed name format `未处理信息提醒 - <cadence> - <Coordinator task name> - <run_nonce>`.
 - If an older matching heartbeat uses a different name, rename it instead of
   creating a duplicate.
 
 Never create or update a heartbeat from an executor, installer,
 Skill-development task, sibling coordinator, or any task that cannot prove it
-is the registered owner. Never retarget another Thread's automation.
+is the registered owner. Never retarget another task's automation.
 
 ## Stable mechanism vs dynamic state
 
 The heartbeat is a stable reminder mechanism. It should answer:
 
-- which coordinator, Thread ID, automation ID, and run ID own this reminder
+- which coordinator, task ID, automation ID, and run ID own this reminder
 - which active watchlist it may inspect
 - what events are worth interrupting the user for
 - when it should stay silent
@@ -40,18 +41,18 @@ because:
 - a management brief changed
 - a current project status line became stale
 
-Put those facts in the coordinator thread, management brief, or the next user
+Put those facts in the coordinator task, management brief, or the next user
 report. Update the automation only when the watchlist, cadence, ownership
-boundary, notification rules, or target coordinator thread changes.
+boundary, notification rules, or target coordinator task changes.
 
 ## "Unhandled" means
 
 - completed callback not yet acknowledged
 - `needs_decision`, `blocked`, `validation_failed`, or `key_risk`
-- active watched thread stalled and requiring user decision
+- active watched task stalled and requiring user decision
 - promised follow-up dispatch not yet sent
 
-Do not report ordinary progress, acknowledged results, inactive context hubs, or retired threads.
+Do not report ordinary progress, acknowledged results, inactive context hubs, or retired tasks.
 
 ## Pending ledger behavior
 
@@ -77,7 +78,7 @@ if one already exists. Do not mirror the live ledger into the automation prompt.
 - Stay silent if nothing is actionable unless the user explicitly asks for all-clear messages.
 - Treat `已读`, `收到`, `看到了`, or a related follow-up as acknowledgement.
 - Do not treat acknowledgement as approval for external APIs, authenticated browsing, production changes, or model spend.
-- Avoid embedding detailed current-state lines such as "Thread X is waiting for Y"
+- Avoid embedding detailed current-state lines such as "Task X is waiting for Y"
   unless they are stable ownership boundaries. Dynamic pending items should be
   discovered from callbacks, the management brief, or the coordinator's recent
   turns at heartbeat runtime.
@@ -92,11 +93,11 @@ Use this output shape:
 
 ```text
 未处理积压:
-- Thread:
+- Task:
   需要你处理:
 
 本次新增:
-- Thread:
+- Task:
   Status:
   需要你决定:
   不处理的影响:
@@ -107,7 +108,7 @@ fallback shape is also acceptable:
 
 ```text
 未处理:
-- Thread:
+- Task:
   Status:
   需要你决定:
   不处理的影响:
