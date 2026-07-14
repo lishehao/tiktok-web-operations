@@ -48,6 +48,13 @@ strategy, executor registry, callback acceptance, inter-round cooldown,
 scheduler Heartbeat, user reports, and finalization. It never operates TikTok or
 owns a Chrome operating tab.
 
+Treat an accepted exact `round_callback/v1` with `executor_state=IDLE` as the
+canonical idle proof until the main task sends the next round. A later
+`read_thread` is diagnostic only: its temporary failure, empty result, or
+`notLoaded` presentation state cannot invalidate the accepted callback or block
+a due dispatch. Only explicit newer contradictory evidence requires
+reconciliation.
+
 After profile confirmation, fresh-create exactly one unpinned `TikTok 执行台`,
 record its exact returned ID, prove a callback handshake, create/read-back one
 coordinator-targeted callback-first phase timer under the user's direct mission
@@ -318,8 +325,9 @@ to `ACTIVE`. Stop polling by encoding exactly one future occurrence and reading
 it back. Use the tool's supported one-occurrence form; when immediate create
 rejects `DTSTART` or bare `COUNT=1` has no future run, use a finite
 `INTERVAL=<minutes>;UNTIL=<just after one interval>` equivalent. Never claim a
-single wake merely from the request bytes. Leave at least 60 seconds between the
-intended occurrence and `UNTIL` so update latency cannot erase the only run.
+single wake merely from the request bytes. Leave at least two minutes between
+the intended occurrence and `UNTIL`, while keeping that buffer shorter than the
+interval so exactly one future occurrence remains.
 
 Use callback-first phase scheduling:
 
@@ -329,22 +337,38 @@ Use callback-first phase scheduling:
 2. When the exact executor callback arrives before the watchdog, accept it,
    compute `next_dispatch_at`, and update the same automation in place to one
    `COOLDOWN_WAKE` at that exact time.
-3. A valid due cooldown wake verifies executor `IDLE`, sends exactly one
-   `round_assignment/v1`, marks it dispatched, and rearms the same automation as
-   the next single 60-minute `ACTIVE_WATCHDOG`.
+3. A valid due cooldown wake uses the accepted callback's persisted `IDLE` proof
+   and sends exactly one `round_assignment/v1` without requiring another live
+   task read. It marks the round dispatched, consumes that idle proof, and
+   rearms the same automation as the next single 60-minute `ACTIVE_WATCHDOG`.
 4. A watchdog wake never dispatches while the executor is active. Read only the
    exact executor's recent status: rearm once for 60 minutes when progress is
    recent; request one status/callback when idle without callback; surface a
    genuine orchestration blocker only when the registered executor is stale or
    unreachable.
-5. At/after `operation_stop_at` or user stop, delete the exact timer.
+5. If any nonterminal wake cannot dispatch because required callback/identity
+   proof is missing, preserve the pending round and update the same timer in
+   place to one five-minute `STATE_RETRY`. After three consecutive failed
+   retries, retain one 15-minute
+   `DEGRADED_RECOVERY` wake and notify once; never delete the timer or ask the
+   executor to create a substitute. Optional diagnostic-read failure alone does
+   not enter this branch when canonical proof already exists.
+6. At/after `operation_stop_at` or user stop, delete the exact timer.
+
+Before returning from every wake prior to cutoff, read back exactly one future
+occurrence. The only valid outcomes are dispatch plus watchdog, pending work
+plus retry/recovery wake, or terminal deletion. Bare `NOOP`, `DONT_NOTIFY`, or
+`status=ACTIVE` without a future occurrence is a scheduler fault. Classify an
+ACTIVE timer whose finite schedule has expired as `EXPIRED_ORPHAN`; repair it in
+place while the mission is live, or delete it during terminal finalization.
 
 The main task computes all wake times from a fresh machine clock, never from
 model-estimated timestamps. A late cooldown wake dispatches once when still
 before the mission cutoff; it never sends catch-up bursts. A misbound,
 unreadable, or non-updatable phase timer is `SCHEDULER_CONTINUATION_FAILURE` and
 cannot be claimed as unattended continuation. Timer failure never authorizes
-the executor to create a substitute or fall back to five-minute polling.
+the executor to create a substitute or fall back to continuous five-minute
+polling.
 
 Every accepted callback and coordinator progress report uses exactly three lines:
 

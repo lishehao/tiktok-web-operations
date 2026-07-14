@@ -190,6 +190,10 @@ performs TikTok mutations. The executor owns one dedicated Chrome tab, raw
 evidence, within-round recovery, and one bounded 25–45-view round at a time. It
 never creates, updates, views, or deletes an automation.
 
+An accepted exact round callback with `executor_state=IDLE` is canonical until
+the next dispatch consumes it. A later `read_thread` call is diagnostic only;
+an unavailable, empty, or `notLoaded` result does not invalidate that proof.
+
 Before external work, prove a real callback handshake using exact task IDs and
 run ID. At round completion the executor sends one canonical callback and
 becomes idle. The main task accepts it only when coordinator/executor/run/round
@@ -204,16 +208,27 @@ one-occurrence state, and next local/UTC run. Update that exact timer in place:
   `ACTIVE_WATCHDOG` wake only;
 - after a valid callback, replace the pending watchdog schedule in place with
   one `COOLDOWN_WAKE` at exact `next_dispatch_at`;
-- at the due cooldown wake, send one next-round assignment and rearm the same
-  timer as the next 60-minute watchdog;
+- at the due cooldown wake, consume accepted callback-IDLE proof, send one next-
+  round assignment, and rearm the same timer as the next 60-minute watchdog;
+- if required orchestration proof is missing, preserve the pending round and
+  rearm the same timer for one five-minute state retry; after three failures,
+  retain one 15-minute degraded-recovery wake and notify once; optional task-
+  read failure alone does not block dispatch when callback proof exists;
 - delete and finalize only at user stop, mission cutoff, or terminal release.
 
 Do not rely on a `PAUSED` create persisting. Prove stopped polling from a
 read-back schedule with exactly one future occurrence. If direct creation
 rejects `DTSTART` or bare `COUNT=1` yields no future run, use the tool-supported
 finite `INTERVAL+UNTIL` equivalent that produces one future occurrence.
-Set `UNTIL` at least 60 seconds after the intended occurrence; a seconds-wide
-window can be consumed by update latency and leave no future run.
+Set `UNTIL` at least two minutes after the intended occurrence while keeping the
+buffer shorter than the interval. A seconds-wide window can be consumed by
+update latency and leave no future run.
+
+Before every nonterminal wake returns, require readback of exactly one future
+occurrence. Bare `NOOP`, silent `DONT_NOTIFY`, or `status=ACTIVE` without a
+future occurrence is invalid. Classify an expired finite schedule that still
+shows ACTIVE as `EXPIRED_ORPHAN`; repair it in place while the mission is live,
+or delete it during terminal finalization.
 
 Never derive due time from model-estimated timestamps. Read machine time when
 accepting the callback, compute `next_dispatch_at`, and compare epoch values on

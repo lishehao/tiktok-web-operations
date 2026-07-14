@@ -8,14 +8,26 @@ Circuit breakers are lane/surface scoped unless the hard-blocker whitelist is pr
 Before external work require callback ping/ack plus one verified main-target
 phase timer. Executor callbacks and becomes idle at every round boundary. The
 main task machine-calculates `next_dispatch_at`; callback updates the same timer
-to one cooldown wake, and due wake dispatches one round only when executor IDLE.
+to one cooldown wake, and due wake dispatches one round from the accepted
+callback's canonical IDLE proof.
 Active rounds have one 60-minute watchdog, never five-minute polling. An
 uncertain submission is never retried.
+
+Before cutoff, every scheduler wake must finish with exactly one verified future
+wake or one dispatched round plus watchdog. Transient `read_thread` failure,
+empty response, or `notLoaded` does not erase accepted callback-IDLE proof. If
+required proof is genuinely missing, preserve the pending round and rearm a
+five-minute state retry; after three failures retain a 15-minute degraded-
+recovery wake and notify once. Never exit with a naked NOOP.
 
 For a misbound/duplicate/misconfigured phase timer, do no dispatch. Delete it only
 when exact identity is known; never create a per-round substitute. Explicit
 stop, `operation_stop_at`, objective completion, or terminal release deletes the
 main task's exact scheduler after executor release is requested.
+
+Treat ACTIVE plus no future occurrence as `EXPIRED_ORPHAN`. While the mission is
+live, repair the same exact timer in place; after cutoff, finalize rather than
+reviving missed work.
 
 ## Lane breakers
 

@@ -39,6 +39,22 @@ user directly; contact another task; run after callback while idle; broaden
 authority; overlap itself.
 ```
 
+## Single-writer responsibility matrix
+
+| State or resource | Sole writer | Other role may |
+|-|-|-|
+| Profile, mission, next clusters, cooldown | Main | Executor reads assignment |
+| Phase timer and future-wake proof | Main | Executor does not inspect it |
+| Chrome tab, TikTok page, mutations | Executor | Main never touches them |
+| Raw browser evidence and round checkpoint | Executor | Main accepts referenced proof |
+| Round status and `IDLE` transition | Executor callback | Main validates and persists it |
+| User decision or human-only repair request | Main | Executor callbacks evidence only |
+
+An accepted exact callback with `executor_state=IDLE` is the sole positive idle
+proof until the next dispatch consumes it. The main may use `read_thread` to
+diagnose a missing callback or explicit conflict, but an unavailable, empty, or
+`notLoaded` read is not contrary evidence and is never a due-dispatch gate.
+
 ## Stage machine
 
 | Stage | Owner | Work | Exit proof | Next |
@@ -50,7 +66,8 @@ authority; overlap itself.
 | `C2_DISPATCH` | main | send exactly one `round_assignment/v1`; arm one 60-minute watchdog | `ROUND_DISPATCHED`, executor ACTIVE, no five-minute polling | main `C3_WAIT`, executor `E1_RUN` |
 | `C3_WAIT` | main | await callback; only one low-frequency watchdog exists | valid callback, watchdog, or terminal signal | `C4_REPLAN` or `C6_FINALIZE` |
 | `C4_REPLAN` | main | accept callback, update strategy, machine-calculate cooldown | `next_dispatch_at`, pending next round, executor IDLE | `C5_COOLDOWN` |
-| `C5_COOLDOWN` | main timer | one exact due wake; dispatch once and rearm watchdog | next round dispatched or cutoff | `C3_WAIT` or `C6_FINALIZE` |
+| `C5_COOLDOWN` | main timer | due wake consumes accepted callback-IDLE proof; dispatch once and rearm watchdog | next round dispatched, retry armed, or cutoff | `C3_WAIT`, `C5_RECOVERY`, or `C6_FINALIZE` |
+| `C5_RECOVERY` | main timer | preserve pending round; retry missing orchestration proof without TikTok work | one verified future retry/recovery wake or recovered dispatch | `C5_COOLDOWN`, `C3_WAIT`, or `C6_FINALIZE` |
 | `E0_ACCEPT` | executor | validate assignment and handshake | exact IDs/refs, callback ACK | `E1_RUN` |
 | `E1_RUN` | executor | one 25–45-view search-led round plus interactions | durable checkpoint | `E2_CALLBACK` |
 | `E2_CALLBACK` | executor | send one `round_callback/v1` | accepted send, executor IDLE | wait for `C2_DISPATCH` or stop |
@@ -68,6 +85,11 @@ authority; overlap itself.
 - Active execution has no five-minute NOOP loop; only one 60-minute watchdog.
 - Callback updates that exact timer to one due cooldown wake; dispatch rearms
   the same timer as the next watchdog.
+- Every nonterminal wake must read back exactly one future occurrence before it
+  exits. Bare NOOP and ACTIVE-without-future-run are invalid.
+- A transient executor read failure never invalidates accepted callback-IDLE
+  proof. Missing proof rearms one five-minute state retry; after three failures,
+  retain one 15-minute degraded-recovery wake and notify once.
 - Use fresh machine UTC for `next_dispatch_at`; never trust model-estimated or
   out-of-order ledger timestamps.
 - Timer readback without exact automation ID/target/status/next run is not proof.
@@ -95,4 +117,6 @@ main asks the user once. Historical failures never block a clean current run.
 - Main chose next clusters, action emphasis, and cooldown from evidence.
 - No dispatch happened before `next_dispatch_at` or while executor ACTIVE, and
   no five-minute executor-active polling occurred.
+- Every pre-cutoff scheduler turn ended with dispatch+watchdog,
+  pending+retry/recovery, or terminal deletion; no naked NOOP existed.
 - At terminal state, scheduler deletion and executor release were both proven.

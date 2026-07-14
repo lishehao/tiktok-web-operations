@@ -52,6 +52,9 @@ main scheduler.
 ## Scheduler and resumption
 
 Only the main scheduler wakes for resumption. It validates exact automation,
-main/run IDs, current machine time, executor IDLE state, pending round, and
-cutoff. It sends one new assignment when due. A wrong, early, duplicate, or
-overlapping wake performs no dispatch.
+main/run IDs, current machine time, accepted callback-IDLE proof, pending round,
+and cutoff. It sends one new assignment when due. A live executor task read is
+diagnostic and cannot negate accepted IDLE proof merely by being unavailable,
+empty, or `notLoaded`. A wrong, early, duplicate, or overlapping wake performs
+no dispatch, but before cutoff it must still read back exactly one future retry,
+recovery, or watchdog occurrence; it never exits with a naked NOOP.

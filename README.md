@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.14.1`
+Protocol version: `2026.07.14.2`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -56,7 +56,8 @@ TikTok 主控台
   -> fresh-create/assign one TikTok 执行台 -> callback handshake
   -> create/read-back one stable main-target phase timer
   -> dispatch bounded round -> accept callback -> choose cooldown/direction
-  -> callback arms one cooldown wake -> due wake dispatches one next round
+  -> callback supplies canonical IDLE proof and arms one cooldown wake
+  -> due wake dispatches one next round without a second mandatory task read
 
 TikTok 执行台
   read-only smoke -> search-led operation -> held-out Feed checks
@@ -172,6 +173,13 @@ place to one cooldown wake at `next_dispatch_at`; the due wake sends exactly one
 assignment and rearms the one watchdog. The executor never creates or modifies
 a Heartbeat, and the main task never creates/deletes a timer per round.
 
+Every wake before cutoff must read back exactly one future occurrence unless it
+has just terminally deleted the timer. A transient task-state read cannot erase
+accepted callback-IDLE proof. If required orchestration proof is missing, the
+same timer keeps the pending round and rearms a five-minute state retry; after
+three failures it retains a 15-minute degraded-recovery wake and notifies once.
+`ACTIVE` with no future occurrence is an expired orphan, not continuity.
+
 Every accepted callback/coordinator receipt has exactly three lines:
 
 ```text
@@ -208,6 +216,10 @@ scenario validators. Required scenarios include:
 - executor owns zero Heartbeats and cannot substitute a timer;
 - no five-minute polling while the executor is active;
 - one cooldown wake after callback plus one 60-minute active-round watchdog;
+- accepted callback-IDLE proof survives unavailable/empty/`notLoaded` task read;
+- every nonterminal wake leaves exactly one future occurrence;
+- missing proof produces bounded state retry and degraded recovery, never naked
+  NOOP or silent scheduler death;
 - independent lanes and independent runs;
 - network/Chrome recovery with callback only at a bounded-round boundary;
 - 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;

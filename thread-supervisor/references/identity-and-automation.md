@@ -10,7 +10,7 @@ coordinator_thread_id: exact pinned TikTok 主控台 id
 coordinator_title: TikTok 启动台 | TikTok 主控台 | DEGRADED_RENAME_UNAVAILABLE
 coordinator_pinned: TRUE | DEGRADED_PIN_UNAVAILABLE | UNVERIFIED
 coordinator_state: BOOTSTRAP | READY | DISPATCHING | WAITING_CALLBACK |
-  COOLDOWN | HARD_REPAIR | FINALIZING | RELEASED
+  COOLDOWN | SCHEDULER_RECOVERY | HARD_REPAIR | FINALIZING | RELEASED
 run_id: exact uuid
 profile_ref: exact confirmed canonical ref
 direction_ref: exact canonical ref
@@ -20,6 +20,8 @@ operation_stop_at: exact UTC plus local rendering
 executor_thread_id: exact fresh returned id
 executor_title: TikTok 执行台
 executor_state: NEW | ACCEPTED | ACTIVE | IDLE | HARD_REPAIR | RELEASED
+executor_idle_proof: NONE | CALLBACK_ACCEPTED
+executor_idle_proof_round_seq: NONE | positive integer
 callback_handshake: NONE | PING_SENT | ACK_VERIFIED
 expected_round_seq: positive integer
 last_callback_ref: NONE | exact canonical ref
@@ -31,10 +33,13 @@ scheduler_automation_id: NONE | exact returned id
 scheduler_manager_thread_id: exact coordinator id
 scheduler_target_thread_id: exact coordinator id
 scheduler_status: NONE | PAUSED | ACTIVE | UNVERIFIED | DELETED
-scheduler_phase: NONE | ACTIVE_WATCHDOG | COOLDOWN_WAKE
+scheduler_phase: NONE | ACTIVE_WATCHDOG | COOLDOWN_WAKE | STATE_RETRY |
+  DEGRADED_RECOVERY
 scheduler_occurrence: NONE | ONE
 scheduler_next_run: NONE | exact local/UTC readback
 scheduler_encoding: COUNT_1 | FINITE_INTERVAL_UNTIL_ONE_FUTURE_RUN
+scheduler_retry_count: nonnegative integer
+scheduler_future_wake_count: 0 | 1
 coordinator_ledger_path: exact private path
 executor_ledger_path: exact private path
 run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
@@ -79,8 +84,8 @@ it to `ACTIVE`. Prove stopped polling by enumerating exactly one future run from
 readback. If immediate create rejects `DTSTART` or bare `COUNT=1` reports no
 future run, encode the same semantics with finite
 `INTERVAL=<minutes>;UNTIL=<just after one interval>` and verify it.
-Keep `UNTIL` at least 60 seconds beyond the intended occurrence to absorb
-automation-update latency, then enumerate the one remaining future run.
+Keep `UNTIL` at least two minutes beyond the intended occurrence and shorter
+than the interval, then enumerate the one remaining future run.
 
 After dispatch, ordinary scheduling is paused and the same timer carries only
 one `ACTIVE_WATCHDOG` at dispatch + 60 minutes. A valid callback updates that
@@ -89,6 +94,17 @@ The due cooldown wake dispatches one round and rearms the same timer as the next
 watchdog. A watchdog never dispatches while executor is active. Never send
 catch-up bursts, create/delete a timer per round, or fall back to five-minute
 NOOP polling.
+
+Accepted callback bytes with `executor_state=IDLE` are the dispatch proof until
+consumed by the next assignment. Live task readback is diagnostic; unavailable,
+empty, and `notLoaded` results are not contradictory evidence. If canonical
+proof is missing, keep the pending round and update the same timer to one five-
+minute `STATE_RETRY`; after three consecutive failures, keep one 15-minute
+`DEGRADED_RECOVERY` wake and notify once.
+
+Before every nonterminal scheduler turn returns, require
+`scheduler_future_wake_count=1`. `ACTIVE` plus zero future occurrences is
+`EXPIRED_ORPHAN`, not healthy. A naked NOOP is forbidden.
 
 At explicit stop, deadline, completion, or terminal release, stop new dispatch,
 request executor release if needed, delete the exact scheduler, and read back

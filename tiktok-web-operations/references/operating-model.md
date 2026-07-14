@@ -113,6 +113,8 @@ callback_accepted_at_utc: exact machine timestamp
 next_dispatch_at_utc: callback_accepted_at_utc + cooldown_minutes
 pending_round_seq: current round + 1
 executor_state: IDLE
+idle_proof: CALLBACK_ACCEPTED
+idle_proof_round_seq: current round
 ```
 
 Use 15 minutes normally, 10 for read-only/low-yield work, and 20 for mutation-
@@ -126,21 +128,34 @@ executor owns no timer. Keep its exact ID and update its schedule in place:
 Runtime encoding: do not assume requested `PAUSED` persists, and do not force
 `DTSTART` on immediate create. Prove exactly one future occurrence from readback.
 Use `COUNT=1` only when it has a future run; otherwise use finite
-`INTERVAL+UNTIL` that leaves exactly one future run. Put `UNTIL` at least 60
-seconds after the intended occurrence so update latency cannot close the window.
+`INTERVAL+UNTIL` that leaves exactly one future run. Put `UNTIL` at least two
+minutes after the intended occurrence and keep the buffer shorter than the
+interval.
 
 1. After every `ROUND_DISPATCHED`, stop ordinary polling and arm one
    `ACTIVE_WATCHDOG` for 60 minutes after dispatch, bounded by cutoff.
 2. When the exact callback arrives, compute the 10–20 minute cooldown and update
    the same timer to one `COOLDOWN_WAKE` at exact `next_dispatch_at`.
-3. At a valid due cooldown wake, verify executor IDLE, send one canonical
-   next-round assignment, persist `ROUND_DISPATCHED`, and rearm the same timer as
-   the next single active-round watchdog.
+3. At a valid due cooldown wake, consume the accepted callback's canonical IDLE
+   proof, send one next-round assignment, persist `ROUND_DISPATCHED`, and rearm
+   the same timer as the next single active-round watchdog. A live task read is
+   optional diagnostic evidence, not a prerequisite.
 4. At a watchdog wake, never dispatch over an active executor. Read only the
    registered executor: rearm once when progress is recent, request one missing
    callback/status when idle, or report a genuine stale/unreachable owner.
-5. Never send catch-up rounds, infer completion from a title, poll every five
-   minutes, or create/delete a replacement timer per round.
+5. When required callback/identity proof is absent, do not discard the pending
+   round. Rearm the same timer for one five-minute `STATE_RETRY`. Optional
+   diagnostic-read failure alone does not block dispatch when canonical proof
+   exists.
+   After three consecutive failures, keep one 15-minute
+   `DEGRADED_RECOVERY` wake and notify once.
+6. Never send catch-up rounds, infer completion from a title, poll an active
+   executor every five minutes, or create/delete a replacement timer per round.
+
+At every wake before cutoff, enforce `future_wake_count=1` on readback. A bare
+NOOP is invalid. `status=ACTIVE` with no future occurrence is
+`EXPIRED_ORPHAN`, not healthy continuity; repair it in place for a live mission
+or delete it during terminal finalization.
 
 The timer prompt holds only stable identity, registry/ledger paths, phase rules,
 and cutoff. Mutable phase, strategy, and evidence stay in the main ledger.
