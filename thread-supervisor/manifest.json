@@ -1,6 +1,6 @@
 {
   "name": "thread-supervisor",
-  "version": "2026.07.14.3",
+  "version": "2026.07.14.4",
   "schema_version": 1,
   "upgrade_strategy": "atomic-replace",
   "repository": "https://github.com/lishehao/tiktok-web-operations",

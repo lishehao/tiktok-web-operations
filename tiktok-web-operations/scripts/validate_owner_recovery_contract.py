@@ -95,8 +95,13 @@ def dispatch(event):
 
 
 def main():
-    assert all(path.is_file() for path in FILES)
-    joined = "\n".join(path.read_text() for path in FILES)
+    # Repository releases include README.md; installed Skills do not. Validate
+    # every Skill-owned file in both contexts and include README when present.
+    assert all(
+        path.is_file() for path in FILES
+        if path.name != "README.md" or path.exists()
+    )
+    joined = "\n".join(path.read_text() for path in FILES if path.is_file())
     required = (
         "mission-scoped", "same active mission", "STALE_OWNER_TOMBSTONE",
         "LIVENESS_UNVERIFIED_TRANSIENT", "executor_generation",
