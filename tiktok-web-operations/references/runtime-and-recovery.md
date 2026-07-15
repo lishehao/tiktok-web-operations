@@ -51,10 +51,12 @@ main scheduler.
 
 ## Scheduler and resumption
 
-Only the main scheduler wakes for resumption. It validates exact automation,
-main/run IDs, current machine time, accepted callback-IDLE proof, pending round,
-and cutoff. It sends one new assignment when due. A live executor task read is
-diagnostic and cannot negate accepted IDLE proof merely by being unavailable,
-empty, or `notLoaded`. A wrong, early, duplicate, or overlapping wake performs
-no dispatch, but before cutoff it must still read back exactly one future retry,
-recovery, or watchdog occurrence; it never exits with a naked NOOP.
+Only the main mission recurring Heartbeat wakes for scheduled resumption. It
+validates exact automation, main/run IDs, current machine time, accepted
+callback-IDLE proof, pending round, and cutoff. It sends one new assignment when
+due. A live executor task read is diagnostic and cannot negate accepted IDLE
+proof merely by being unavailable, empty, or `notLoaded`. A wrong, early,
+duplicate, active-executor, or overlapping tick performs no dispatch and leaves
+the same repeat-on schedule intact. Before cutoff every scheduler turn reads
+back a future next run plus cleanup `UNTIL`; it never depends on `COUNT=1` or
+self-rearming after the current wake.

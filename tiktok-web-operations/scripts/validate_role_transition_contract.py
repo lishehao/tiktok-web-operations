@@ -26,7 +26,7 @@ def main():
     joined = "\n".join(p.read_text() for p in FILES if p.is_file())
     required = ("TikTok 启动台", "TikTok 主控台", "TikTok 执行台",
                 "first available presentation action", "coordinator_worker",
-                "ASSIGNMENT_ACCEPTED", "callback", "phase timer",
+                "ASSIGNMENT_ACCEPTED", "callback", "mission recurring Heartbeat",
                 "pinned=true", "presentation degradation")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing

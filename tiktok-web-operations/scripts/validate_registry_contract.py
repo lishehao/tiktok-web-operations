@@ -19,7 +19,7 @@ def main():
                 "sort_keys=True", "separators=(\",\", \":\")", "assignment_id",
                 "coordinator_thread_id", "executor_thread_id", "direction_ref",
                 "authority_ref", "mission_ref", "ROUND_BOUNDARY_TO_EXACT_COORDINATOR",
-                "COORDINATOR_OWNED_FIXED_SCHEDULER", "round_assignment/v1",
+                "COORDINATOR_OWNED_MISSION_RECURRING_15M", "round_assignment/v1",
                 "round_callback/v1", "gpt-5.6-luna", "thinking\":\"high",
                 "executor_generation", "predecessor_executor_thread_id",
                 "resume_cursor_ref", "old_executor_thread_id",
@@ -36,7 +36,7 @@ def main():
         "mission_ref":{"id":"m","version":1,"sha256":"3"*64},
         "resume_cursor_ref":None,
         "callback_policy":"ROUND_BOUNDARY_TO_EXACT_COORDINATOR",
-        "automation_policy":"COORDINATOR_OWNED_FIXED_SCHEDULER"
+        "automation_policy":"COORDINATOR_OWNED_MISSION_RECURRING_15M"
     }
     reordered = dict(reversed(list(assignment.items())))
     assert canonical(assignment) == canonical(reordered)

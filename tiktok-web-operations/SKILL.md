@@ -65,7 +65,7 @@ reconciliation.
 
 After profile confirmation for a new mission, fresh-create exactly one unpinned `TikTok 执行台`,
 record its exact returned ID, prove a callback handshake, create/read-back one
-coordinator-targeted callback-first phase timer under the user's direct mission
+coordinator-targeted mission recurring Heartbeat under the user's direct mission
 authorization, then dispatch bounded rounds. A rename/pin failure is
 `DEGRADED_RENAME_UNAVAILABLE|PIN_UNAVAILABLE`; it does not block setup.
 
@@ -226,9 +226,10 @@ range of 25–45. This is a work-size boundary, not an exact quota:
    and callback `ROUND_COMPLETED/v1` with counts, cluster evidence, For You mix,
    lane attempts, resume cursor, blockers, and executor state `IDLE`.
 7. The main task chooses 10–20 minutes of cooldown from that evidence, stores an
-   exact machine-clock `next_dispatch_at`, adjusts the next three search
-   clusters and action emphasis, and updates its stable phase timer to dispatch
-   the next bounded round once when due. Use 15 minutes by default, 10 for
+   exact machine-clock `next_dispatch_at`, and adjusts the next three search
+   clusters and action emphasis. Its stable 15-minute recurring Heartbeat
+   dispatches the next bounded round once on the first tick at or after that due
+   time. Use 15 minutes by default, 10 for
    read-only/low-yield work, and 20 for mutation- or recovery-heavy work. During
    cooldown the executor performs no TikTok work. Repeat until
    `operation_stop_at` or user stop; do not promise fixed hourly throughput.
@@ -364,69 +365,66 @@ smallest scope. Only the main task asks the user to fix a persistent login/accou
 mismatch, CAPTCHA/challenge, explicit account lock/ban, credential requirement,
 or unavailable sole allowed Chrome control.
 
-## Coordinator callback and phase timer
+## Coordinator callback and mission scheduler
 
 Before external work, perform one bounded callback handshake:
 `CALLBACK_PING/v1` from main to executor and `CALLBACK_ACK/v1` back to the exact
 main task. No acceptance means no unattended mission claim.
 
-The main task creates and owns one stable, self-targeted phase-timer automation
-for the mission. Create it once from the user's direct mission authorization;
-require exact automation ID, main-task target, current phase, one-occurrence
-state, next local/UTC run, and mission cutoff readback. Update that same exact
-automation in place; never create/delete a timer per round. The executor never
-touches it.
+The main task creates and owns one stable, self-targeted mission scheduler
+Heartbeat. Create it once from the user's direct mission authorization before
+round 1. Configure it as repeat-on every 15 minutes, with a finite `UNTIL` that
+extends at least one full interval beyond `operation_stop_at` so one cleanup
+wake can finalize after the exact no-new-work cutoff. Do not use `COUNT=1`, a
+one-occurrence schedule, a self-rearmed watchdog, or a per-round timer.
+Prefer the tool-supported encoding
+`RRULE:FREQ=MINUTELY;INTERVAL=15;UNTIL=<operation_stop_at plus 15 minutes in UTC>`
+and omit `COUNT` entirely; if the tool requires an equivalent finite repeat-on
+form, preserve the same cadence and cleanup guarantee.
 
-Do not depend on a persisted `PAUSED` label: this runtime may normalize creates
-to `ACTIVE`. Stop polling by encoding exactly one future occurrence and reading
-it back. Use the tool's supported one-occurrence form; when immediate create
-rejects `DTSTART` or bare `COUNT=1` has no future run, use a finite
-`INTERVAL=<minutes>;UNTIL=<just after one interval>` equivalent. Never claim a
-single wake merely from the request bytes. Leave at least two minutes between
-the intended occurrence and `UNTIL`, while keeping that buffer shorter than the
-interval so exactly one future occurrence remains.
+Require readback of the exact automation ID, main-task target, `ACTIVE` status,
+15-minute interval, repeat-on schedule, next local/UTC run, mission cutoff, and
+cleanup `UNTIL`. A rendered suggestion or request bytes are not proof. The
+executor never creates, views, updates, or deletes this Heartbeat.
 
-Use callback-first phase scheduling:
+The recurring schedule is a liveness carrier, not a dispatch instruction. On
+every wake the main task reads a fresh machine clock and applies this gate:
 
-1. After sending a round, stop normal scheduler polling. Arm only one
-   `ACTIVE_WATCHDOG` wake for 60 minutes after dispatch (bounded by
-   `operation_stop_at`). There is no five-minute executor-active NOOP loop.
-2. When the exact executor callback arrives before the watchdog, accept it,
-   compute `next_dispatch_at`, and update the same automation in place to one
-   `COOLDOWN_WAKE` at that exact time.
-3. A valid due cooldown wake uses the accepted callback's persisted `IDLE` proof
-   and sends exactly one `round_assignment/v1` without requiring another live
-   task read. It marks the round dispatched, consumes that idle proof, and
-   rearms the same automation as the next single 60-minute `ACTIVE_WATCHDOG`.
-4. A watchdog wake never dispatches while the executor is active. Read only the
-   exact executor's recent status: rearm once for 60 minutes when progress is
-   recent; request one status/callback when idle without callback; surface a
-   genuine orchestration blocker only when strict owner recovery cannot restore
-   an absent or proven stale registered executor. A transient unreadable state
-   is recovery evidence, not permission to create another task.
-5. If any nonterminal wake cannot dispatch because required callback/identity
-   proof is missing, preserve the pending round and update the same timer in
-   place to one five-minute `STATE_RETRY`. After three consecutive failed
-   retries, retain one 15-minute
-   `DEGRADED_RECOVERY` wake and notify once; never delete the timer or ask the
-   executor to create a substitute. Optional diagnostic-read failure alone does
-   not enter this branch when canonical proof already exists.
-6. At/after `operation_stop_at` or user stop, delete the exact timer.
+1. At/after `operation_stop_at`, send no new work, request executor release when
+   needed, delete the exact Heartbeat, and finalize.
+2. If an accepted exact callback provides unconsumed `executor_state=IDLE`, a
+   pending round exists, and `now >= next_dispatch_at`, dispatch exactly one
+   round and consume that idle proof.
+3. If the cooldown is not yet due, keep the pending round and recurrence. The
+   first tick at or after `next_dispatch_at` may add less than one 15-minute
+   interval to the chosen cooldown.
+4. If the executor is active, do not dispatch or create another timer. Record a
+   quiet scheduler checkpoint, verify the recurrence, and use `DONT_NOTIFY` so
+   a no-change tick does not spam the user.
+5. If the executor is idle without an accepted callback, request one status or
+   callback at most once per missing round; later ticks keep waiting without
+   duplicate messages. Transient unreadable task/tool/network state keeps the
+   registered owner and the recurring Heartbeat.
+6. Strict stale/missing-owner proof may enter the one-attempt same-run owner
+   replacement path. Ordinary callback, Chrome, route, candidate, or mutation
+   failure never deletes or pauses the Heartbeat.
 
-Before returning from every wake prior to cutoff, read back exactly one future
-occurrence. The only valid outcomes are dispatch plus watchdog, pending work
-plus retry/recovery wake, or terminal deletion. Bare `NOOP`, `DONT_NOTIFY`, or
-`status=ACTIVE` without a future occurrence is a scheduler fault. Classify an
-ACTIVE timer whose finite schedule has expired as `EXPIRED_ORPHAN`; repair it in
-place while the mission is live, or delete it during terminal finalization.
+Callback arrival may wake the main task early. Accept and persist the callback,
+choose clusters/cooldown, and set `next_dispatch_at`, but do not rewrite the
+recurring schedule. The next periodic tick is the independent recovery path if
+callback delivery or an earlier main-task turn does not continue.
 
-The main task computes all wake times from a fresh machine clock, never from
-model-estimated timestamps. A late cooldown wake dispatches once when still
-before the mission cutoff; it never sends catch-up bursts. A misbound,
-unreadable, or non-updatable phase timer is `SCHEDULER_CONTINUATION_FAILURE` and
-cannot be claimed as unattended continuation. Timer failure never authorizes
-the executor to create a substitute or fall back to continuous five-minute
-polling.
+Before every nonterminal scheduler turn returns, read back the same exact
+repeat-on automation with a future next run and `UNTIL` beyond the mission
+cutoff. `ACTIVE` with no future occurrence before cutoff is
+`MISSION_SCHEDULER_EXPIRED`; repair that same automation in place to the
+mission recurring schedule before dispatching. A misbound, duplicate,
+unreadable, or non-updatable scheduler is `SCHEDULER_CONTINUATION_FAILURE` and
+cannot be claimed as unattended continuation. Never create a substitute timer
+before a corrected replacement is read back, and never send catch-up bursts.
+`DONT_NOTIFY` is valid only after this recurring readback and only for a
+no-change tick; accepted callbacks, dispatches, hard repair, and finalization use
+the user-facing receipt below.
 
 Every accepted callback and coordinator progress report uses exactly three lines:
 

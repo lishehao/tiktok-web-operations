@@ -1,32 +1,32 @@
 # Stability And Circuit Breakers
 
-The executor owns within-round recovery; the main task owns one stable phase timer.
+The executor owns within-round recovery; the main task owns one stable mission recurring Heartbeat.
 Circuit breakers are lane/surface scoped unless the hard-blocker whitelist is proven.
 
 ## Coordinator continuation invariant
 
 Before external work require callback ping/ack plus one verified main-target
-phase timer. Executor callbacks and becomes idle at every round boundary. The
-main task machine-calculates `next_dispatch_at`; callback updates the same timer
-to one cooldown wake, and due wake dispatches one round from the accepted
-callback's canonical IDLE proof.
-Active rounds have one 60-minute watchdog, never five-minute polling. An
-uncertain submission is never retried.
+15-minute repeat-on scheduler. Executor callbacks and becomes idle at every
+round boundary. The main task machine-calculates `next_dispatch_at`; the first
+recurring tick at or after due dispatches one round from the accepted callback's
+canonical IDLE proof. An uncertain submission is never retried.
 
-Before cutoff, every scheduler wake must finish with exactly one verified future
-wake or one dispatched round plus watchdog. Transient `read_thread` failure,
-empty response, or `notLoaded` does not erase accepted callback-IDLE proof. If
-required proof is genuinely missing, preserve the pending round and rearm a
-five-minute state retry; after three failures retain a 15-minute degraded-
-recovery wake and notify once. Never exit with a naked NOOP.
+Before cutoff, every scheduler turn must finish with the same verified recurring
+Heartbeat and a future next run, whether it dispatches or waits. Transient
+`read_thread` failure, empty response, `notLoaded`, active executor, early
+cooldown, and missing callback proof do not erase accepted state or alter the
+recurrence. Request missing callback/status at most once per round; later ticks
+wait quietly.
 
-For a misbound/duplicate/misconfigured phase timer, do no dispatch. Delete it only
-when exact identity is known; never create a per-round substitute. Explicit
-stop, `operation_stop_at`, objective completion, or terminal release deletes the
-main task's exact scheduler after executor release is requested.
+For a misbound/duplicate/misconfigured scheduler, do no dispatch. Repair the
+exact binding in place; if replacement is unavoidable, verify the corrected
+replacement before disabling the old one. Never create a per-round substitute.
+Explicit stop, `operation_stop_at`, objective completion, or terminal release
+deletes the main task's exact scheduler after executor release is requested.
 
-Treat ACTIVE plus no future occurrence as `EXPIRED_ORPHAN`. While the mission is
-live, repair the same exact timer in place; after cutoff, finalize rather than
+Treat `ACTIVE` plus no future occurrence before cutoff as
+`MISSION_SCHEDULER_EXPIRED`. While the mission is live, repair the same exact
+15-minute repeat-on schedule in place; after cutoff, finalize rather than
 reviving missed work.
 
 ## Lane breakers
@@ -41,8 +41,8 @@ reviving missed work.
   validation; qualified search training continues.
 - Empty candidates produce a completed no-action checkpoint and cluster
   rotation, never a mission block.
-- Malformed ledger data pauses mutation for bounded repair; it does not create
-  frequent polling or require user confirmation.
+- Malformed ledger data pauses mutation for bounded repair; it does not delete,
+  pause, or duplicate the mission scheduler and does not require user confirmation.
 
 ## Whole-mission hard boundary
 

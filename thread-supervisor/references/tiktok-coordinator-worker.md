@@ -9,7 +9,7 @@ two-task coordinator/worker topology. Also read `canonical-registry.md` and
 - Topology
 - Executor identity and reuse
 - Bounded round callbacks
-- Coordinator phase timer
+- Coordinator mission scheduler
 - Release
 
 ## Topology
@@ -18,12 +18,12 @@ two-task coordinator/worker topology. Also read `canonical-registry.md` and
 TikTok 启动台 --healthy same-task transition--> pinned TikTok 主控台
 TikTok 主控台 --bounded round_assignment/v1--> TikTok 执行台
 TikTok 执行台 --ROUND_COMPLETED|BLOCKED|RELEASED callback--> TikTok 主控台
-TikTok 主控台 --one callback-armed cooldown wake--> next round
+TikTok 主控台 --15-minute recurring scheduler tick when due--> next round
 ```
 
 Use exactly two persistent tasks for one active mission. The main task owns
 profile/mission versions, strategy, exact executor registry, callback validation,
-`next_dispatch_at`, one stable self-target phase timer, user decisions, and final
+`next_dispatch_at`, one stable self-target mission recurring Heartbeat, user decisions, and final
 reporting. It never owns a TikTok operating tab or performs TikTok mutations.
 
 The executor owns one dedicated Chrome tab, raw evidence, within-round recovery,
@@ -85,36 +85,37 @@ clusters but may not zero or globally pause Comment. Treat `new cluster match`
 as a per-opened-video candidate decision. Only a newer user revocation,
 browse-only mission, or current explicit Comment hard block may narrow it.
 
-## Coordinator phase timer
+## Coordinator mission scheduler
 
-Create one coordinator-owned self-target phase timer under the user's direct
-mission authorization. Record and read back exact automation ID, target, current
-phase, one-future-occurrence state, next local/UTC run, and cutoff.
+Create one coordinator-owned self-target mission scheduler Heartbeat under the
+user's direct mission authorization. Configure it repeat-on every 15 minutes,
+without `COUNT=1`, and set finite `UNTIL` at least one full interval after the
+exact no-new-work cutoff so a terminal cleanup wake remains possible. Record
+and read back exact automation ID, target, status, interval, repeat-on schedule,
+next local/UTC run, cutoff, and cleanup `UNTIL`.
 
-Reuse that exact timer in place:
+Keep that exact Heartbeat unchanged across ordinary callbacks and rounds:
 
-- After round dispatch, arm one 60-minute `ACTIVE_WATCHDOG` only.
-- After a valid callback, replace the watchdog schedule with one
-  `COOLDOWN_WAKE` at exact `next_dispatch_at`.
-- At the cooldown wake, consume callback-IDLE proof, dispatch one round, and
-  rearm the next watchdog.
-- If required proof is missing, preserve pending work and use one five-minute
-  `STATE_RETRY`. After three failures, retain one 15-minute
-  `DEGRADED_RECOVERY` wake and notify once.
-- Delete and finalize only on user stop, mission cutoff, or terminal release.
+- A callback persists canonical IDLE proof, next clusters, cooldown, and
+  `next_dispatch_at`; it does not rewrite the schedule.
+- Each tick dispatches exactly one round only when unconsumed callback-IDLE
+  proof exists and `now >= next_dispatch_at`.
+- An active executor, early cooldown, missing callback, or transient read/tool/
+  network fault performs no dispatch and leaves the recurrence intact.
+- Request a missing status/callback at most once per round; later ticks wait
+  without duplicate messages. No-change ticks use `DONT_NOTIFY` only after
+  recurring readback succeeds.
+- At/after cutoff, send no new work, request release when needed, delete the
+  exact Heartbeat, and finalize.
 
-Do not rely on requested `PAUSED` state. Prove exactly one future occurrence by
-readback. If direct `DTSTART` or bare `COUNT=1` produces no future run, use the
-tool-supported finite `INTERVAL+UNTIL` encoding with an `UNTIL` buffer of at
-least two minutes but shorter than the interval.
+Before every nonterminal scheduler turn returns, require the same exact
+`ACTIVE`, repeat-on 15-minute Heartbeat with a future run and cleanup `UNTIL`.
+`ACTIVE` with no future run before cutoff is `MISSION_SCHEDULER_EXPIRED`; repair
+the same schedule in place before dispatch.
 
-Before every nonterminal wake returns, require exactly one future occurrence.
-`ACTIVE` with no future occurrence is `EXPIRED_ORPHAN`; repair it in place while
-the mission lives or delete it during terminal finalization.
-
-Read machine time when accepting callbacks and compare epoch values on wake.
-Never derive due time from model-estimated timestamps, create/delete one timer
-per round, run a five-minute active-worker polling loop, or send catch-up bursts.
+Read machine time when accepting callbacks and on every tick. Never derive due
+time from model-estimated timestamps, create/delete one timer per round, use a
+one-occurrence self-rearm chain, or send catch-up bursts.
 
 If timer creation, update, or readback fails, do not claim unattended
 continuity. Report `SCHEDULER_CONTINUATION_FAILURE` while preserving completed

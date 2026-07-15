@@ -95,8 +95,10 @@ a read-only or low-yield round and 20 for a mutation- or recovery-heavy round.
 This is deterministic workload pacing, not randomized human imitation. During
 cooldown, perform no TikTok navigation, viewing, search, or mutation.
 
-The main task's callback-first phase timer dispatches the next bounded round only when due
-and the executor is IDLE. The executor never creates or modifies a timer.
+The main task's 15-minute mission recurring Heartbeat dispatches the next
+bounded round only on the first tick at or after `next_dispatch_at` when the
+executor has unconsumed callback-IDLE proof. The executor never creates or
+modifies a timer, and callback delivery is not the sole continuation path.
 
 Within each round, Comment receives the highest candidate-selection weight:
 target 10 total comment attempts, flexible 7–12, absolute ceiling 15. Count

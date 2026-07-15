@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.15.4`
+Protocol version: `2026.07.15.5`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -54,10 +54,10 @@ TikTok 启动台
 TikTok 主控台
   -> resolve explicit mission or confirm a missing account image
   -> fresh-create/assign one TikTok 执行台 -> callback handshake
-  -> create/read-back one stable main-target phase timer
+  -> create/read-back one stable 15-minute mission recurring Heartbeat
   -> dispatch bounded round -> accept callback -> choose cooldown/direction
-  -> callback supplies canonical IDLE proof and arms one cooldown wake
-  -> due wake dispatches one next round without a second mandatory task read
+  -> callback supplies canonical IDLE proof and sets next_dispatch_at
+  -> first recurring tick at/after due dispatches one next round
 
 TikTok 执行台
   read-only smoke -> search-led operation -> held-out Feed checks
@@ -79,8 +79,8 @@ Executor suggestions are non-binding; the main task alone converts evidence
 into a new assignment.
 
 The pinned `TikTok 主控台` owns mission strategy, exact executor registry,
-callback acceptance, 10–20 minute cooldown decisions, one callback-first phase
-timer, user communication, and finalization. It never operates
+callback acceptance, 10–20 minute cooldown decisions, one mission recurring
+Heartbeat, user communication, and finalization. It never operates
 TikTok. `TikTok 执行台` owns only its dedicated Chrome tab, raw ledger,
 within-round recovery, and one bounded round at a time; it owns no timer.
 
@@ -188,22 +188,32 @@ items. Feed failure disables only validation; healthy search training continues.
 Page/network/Chrome/lane failures are scoped and auto-recovered inside the
 round. A round-ending or human-only blocker callbacks the exact main task.
 
-## Callback-first resume receipt
+## Mission recurring scheduler
 
-The main task creates one stable self-targeted phase timer under direct user
-authorization. It does not poll every five minutes. After dispatch, normal
-scheduler polling is paused and the same timer holds only one low-frequency
-60-minute watchdog wake. A valid executor callback updates that exact timer in
-place to one cooldown wake at `next_dispatch_at`; the due wake sends exactly one
-assignment and rearms the one watchdog. The executor never creates or modifies
-a Heartbeat, and the main task never creates/deletes a timer per round.
+The main task creates one stable self-targeted Heartbeat under direct user
+authorization. It repeats every 15 minutes until a finite cleanup `UNTIL` at
+least one interval after `operation_stop_at`; the exact cutoff still forbids new
+TikTok work. Do not use `COUNT=1`, a one-occurrence schedule, a self-rearmed
+watchdog, or one timer per round.
+The preferred encoding is
+`RRULE:FREQ=MINUTELY;INTERVAL=15;UNTIL=<operation_stop_at plus 15 minutes in UTC>`
+with `COUNT` omitted.
 
-Every wake before cutoff must read back exactly one future occurrence unless it
-has just terminally deleted the timer. A transient task-state read cannot erase
-accepted callback-IDLE proof. If required orchestration proof is missing, the
-same timer keeps the pending round and rearms a five-minute state retry; after
-three failures it retains a 15-minute degraded-recovery wake and notifies once.
-`ACTIVE` with no future occurrence is an expired orphan, not continuity.
+Callbacks remain the primary evidence path, but they are not the only liveness
+path. A valid callback persists canonical IDLE proof, chooses the 10–20 minute
+cooldown, and stores `next_dispatch_at` without rewriting the recurring
+schedule. On each tick the main task dispatches once only when callback-IDLE
+proof is unconsumed and the cooldown is due. Active work, early cooldown,
+missing callback, and transient task/tool/network faults leave the recurrence
+intact and never create duplicate work. No-change ticks stay quiet after
+successful scheduler readback.
+
+Every nonterminal scheduler turn reads back the same exact `ACTIVE`, repeat-on,
+15-minute main-target Heartbeat with a future run and cleanup `UNTIL`. An
+`ACTIVE` schedule with no future run before cutoff is
+`MISSION_SCHEDULER_EXPIRED` and must be repaired in place before dispatch.
+At/after cutoff the main task sends no new work, requests executor release, and
+deletes the exact Heartbeat.
 
 Every accepted callback/coordinator receipt has exactly three lines:
 
@@ -244,14 +254,16 @@ scenario validators. Required scenarios include:
   comment/action decisions in Executor;
 - executor returns one structured callback after every bounded round;
 - main task selects next clusters, interaction emphasis, and cooldown;
-- one coordinator-owned callback-first phase timer with exact in-place readback;
+- one coordinator-owned 15-minute mission recurring Heartbeat with exact
+  repeat-on readback and finite cleanup `UNTIL`;
 - executor owns zero Heartbeats and cannot substitute a timer;
-- no five-minute polling while the executor is active;
-- one cooldown wake after callback plus one 60-minute active-round watchdog;
+- no `COUNT=1`, one-occurrence, self-rearmed watchdog, or per-round timer;
+- callback loss or an unconsumed one-shot cannot break continuation;
+- active executor ticks never overlap or duplicate a round;
 - accepted callback-IDLE proof survives unavailable/empty/`notLoaded` task read;
-- every nonterminal wake leaves exactly one future occurrence;
-- missing proof produces bounded state retry and degraded recovery, never naked
-  NOOP or silent scheduler death;
+- every nonterminal wake leaves the same recurring scheduler with a future run;
+- missing proof preserves pending work and the recurrence, never silent
+  scheduler death;
 - independent lanes and independent runs;
 - network/Chrome recovery with callback only at a bounded-round boundary;
 - 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;

@@ -43,10 +43,10 @@ TikTok 主控台 -> CALLBACK_PING/v1
 TikTok 执行台 -> CALLBACK_ACK/v1 -> exact TikTok 主控台
 ```
 
-7. Create one stable main-task-targeted phase timer under the direct user
-   mission authorization. Require exact automation ID, exact main-task target,
-   current phase, one-occurrence state, next local/UTC run, and mission cutoff
-   readback. If creation produces only a
+7. Create one stable main-task-targeted mission recurring Heartbeat under the
+   direct user mission authorization. Require exact automation ID, exact
+   main-task target, `ACTIVE` repeat-on 15-minute schedule, next local/UTC run,
+   mission cutoff, and cleanup `UNTIL` readback. If creation produces only a
    suggestion card or lacks an exact ID/readback, record
    `SCHEDULER_CONTINUATION_FAILURE`; never claim unattended continuation.
 8. Dispatch `round_assignment/v1` for round 1 immediately.
@@ -69,7 +69,7 @@ The main may create one replacement inside the same run only when:
 
 `notLoaded`, empty/unavailable `read_thread`, host/network unavailability, and
 transient tool failure are `LIVENESS_UNVERIFIED_TRANSIENT`, not owner absence.
-Keep the same owner and phase timer, rearm bounded recovery, and retry later.
+Keep the same owner and mission recurring Heartbeat, preserve pending work, and retry later.
 
 For a permitted replacement: keep `run_id`, increment `executor_generation`,
 record `old_executor_thread_id`, `new_executor_thread_id`, exact reason, and UTC
@@ -108,7 +108,7 @@ generate a new run ID, and fresh-create a new executor.
   "coordinator_ledger_path":"<private path>",
   "dedicated_tab_policy":"EXECUTOR_OWNED",
   "callback_policy":"ROUND_BOUNDARY_TO_EXACT_COORDINATOR",
-  "automation_policy":"COORDINATOR_OWNED_CALLBACK_FIRST_PHASE_TIMER"
+  "automation_policy":"COORDINATOR_OWNED_MISSION_RECURRING_15M"
 }
 ```
 
@@ -208,47 +208,43 @@ idle_proof_round_seq: current round
 Use 15 minutes normally, 10 for read-only/low-yield work, and 20 for mutation-
 or recovery-heavy work. This is workload pacing, not randomized stealth.
 
-## Callback-first phase timer
+## Mission recurring scheduler
 
-The main task owns one stable phase-timer automation for the mission. The
-executor owns no timer. Keep its exact ID and update its schedule in place:
+The main task owns one stable self-targeted scheduler Heartbeat for the mission;
+the executor owns no timer. Create it once before round 1 with a 15-minute
+repeat-on cadence and finite cleanup `UNTIL` at least one full interval after
+`operation_stop_at`. The cutoff remains the exact no-new-work boundary. Do not
+use `COUNT=1`, one-occurrence scheduling, a self-rearmed watchdog, or one timer
+per round.
 
-Runtime encoding: do not assume requested `PAUSED` persists, and do not force
-`DTSTART` on immediate create. Prove exactly one future occurrence from readback.
-Use `COUNT=1` only when it has a future run; otherwise use finite
-`INTERVAL+UNTIL` that leaves exactly one future run. Put `UNTIL` at least two
-minutes after the intended occurrence and keep the buffer shorter than the
-interval.
+Read back exact ID, target, `ACTIVE` status, repeat-on cadence, next local/UTC
+run, cutoff, and cleanup `UNTIL`. The stable prompt holds only identity,
+registry/ledger paths, dispatch gates, and cutoff; mutable phase, strategy, and
+evidence stay in the main ledger.
 
-1. After every `ROUND_DISPATCHED`, stop ordinary polling and arm one
-   `ACTIVE_WATCHDOG` for 60 minutes after dispatch, bounded by cutoff.
-2. When the exact callback arrives, compute the 10–20 minute cooldown and update
-   the same timer to one `COOLDOWN_WAKE` at exact `next_dispatch_at`.
-3. At a valid due cooldown wake, consume the accepted callback's canonical IDLE
-   proof, send one next-round assignment, persist `ROUND_DISPATCHED`, and rearm
-   the same timer as the next single active-round watchdog. A live task read is
-   optional diagnostic evidence, not a prerequisite.
-4. At a watchdog wake, never dispatch over an active executor. Read only the
-   registered executor: rearm once when progress is recent, request one missing
-   callback/status when idle, retain the owner and rearm recovery when liveness
-   is transiently unverified, or enter the one-attempt same-run replacement path
-   only with strict missing/stale-owner proof.
-5. When required callback/identity proof is absent, do not discard the pending
-   round. Rearm the same timer for one five-minute `STATE_RETRY`. Optional
-   diagnostic-read failure alone does not block dispatch when canonical proof
-   exists.
-   After three consecutive failures, keep one 15-minute
-   `DEGRADED_RECOVERY` wake and notify once.
-6. Never send catch-up rounds, infer completion from a title, poll an active
-   executor every five minutes, or create/delete a replacement timer per round.
+1. After every `ROUND_DISPATCHED`, leave the recurring schedule unchanged.
+2. When the exact callback arrives, compute the 10–20 minute cooldown, persist
+   canonical callback-IDLE proof and `next_dispatch_at`, and leave the recurring
+   schedule unchanged.
+3. On every tick, read a fresh machine clock. Dispatch exactly one next-round
+   assignment only when the callback-IDLE proof is unconsumed and
+   `now >= next_dispatch_at`. A live task read remains optional diagnostic
+   evidence, not a prerequisite.
+4. If the executor is active, the cooldown is early, or required proof is
+   missing, perform no dispatch and preserve the recurrence. Request one missing
+   callback/status at most once per round; later ticks wait without duplicates.
+   After successful recurring readback, unchanged ticks use `DONT_NOTIFY`.
+5. Retain the exact owner and scheduler across `notLoaded`, empty read,
+   host/network/tool faults, and ordinary round blockers. Enter same-run owner
+   replacement only with strict missing/stale proof.
+6. At/after cutoff, send no new work, request release when needed, delete the
+   exact Heartbeat, and finalize. Never send catch-up rounds.
 
-At every wake before cutoff, enforce `future_wake_count=1` on readback. A bare
-NOOP is invalid. `status=ACTIVE` with no future occurrence is
-`EXPIRED_ORPHAN`, not healthy continuity; repair it in place for a live mission
-or delete it during terminal finalization.
-
-The timer prompt holds only stable identity, registry/ledger paths, phase rules,
-and cutoff. Mutable phase, strategy, and evidence stay in the main ledger.
+Before every nonterminal scheduler turn returns, require the same exact
+repeat-on Heartbeat with a future next run and cleanup `UNTIL`. `status=ACTIVE`
+with no future occurrence before cutoff is `MISSION_SCHEDULER_EXPIRED`; repair
+the same automation in place before dispatch. A callback or single wake is
+never the sole continuation mechanism.
 
 ## Failure and finalization
 

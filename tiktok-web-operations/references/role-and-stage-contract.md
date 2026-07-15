@@ -13,9 +13,9 @@ scheduled until stop, cutoff, or completion.
 single_job: decide what/when/stop for the next bounded round.
 inputs: latest user instruction; mission/authority; accepted executor callback;
 fresh machine clock.
-boundary_output: one assignment, timer update, hard-repair request, or finalization.
+boundary_output: one assignment, scheduler decision, hard-repair request, or finalization.
 owns: install/preflight; profile and mission; exact executor registry; callback
-acceptance; search direction; cooldown; callback-first phase timer; user reports;
+acceptance; search direction; cooldown; mission recurring Heartbeat; user reports;
 hard-repair conversation; finalization.
 reads: public/installed bundle, current account proof, exact executor callbacks,
 coordinator ledger, scheduler readback.
@@ -54,7 +54,7 @@ another task; run after callback while idle; broaden authority; overlap itself.
 |-|-|-|
 | Profile, mission, next clusters, cooldown | Main | Executor reads assignment; Main cannot narrow current user authority from callback advice |
 | Exact executor ID, generation, same-run replacement record | Main | Executor validates assignment identity |
-| Phase timer and future-wake proof | Main | Executor does not inspect it |
+| Mission recurring Heartbeat and future-run proof | Main | Executor does not inspect it |
 | Chrome tab, TikTok page, mutations | Executor | Main never touches them |
 | Raw browser evidence and round checkpoint | Executor | Main accepts referenced proof |
 | Round status and `IDLE` transition | Executor callback | Main validates and persists it |
@@ -87,12 +87,12 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 | `C0_MAIN_READY` | same task | rename `TikTok 主控台`, pin/readback, profile lock | main identity plus confirmed profile | `C1_CREATE` |
 | `C1_CREATE` | main | at a new-mission boundary, fresh-create one executor and canonical assignment | exact IDs, generation 1, and `ASSIGNMENT_ACCEPTED` | `C1_HANDSHAKE` |
 | `C1_RECOVER_EXECUTOR` | main | only for missing exact registered ID or proven stale/retired owner during the active mission, create one same-run replacement | old/new IDs, incremented generation, accepted assignment, fresh callback handshake | resume `C2_DISPATCH`; otherwise orchestration blocker |
-| `C1_HANDSHAKE` | main + executor | exact `CALLBACK_PING/ACK` and phase-timer create/readback | callback proof plus verified stable timer | `C2_DISPATCH` |
-| `C2_DISPATCH` | main | send exactly one `round_assignment/v1`; arm one 60-minute watchdog | `ROUND_DISPATCHED`, executor ACTIVE, no five-minute polling | main `C3_WAIT`, executor `E1_RUN` |
-| `C3_WAIT` | main | await callback; only one low-frequency watchdog exists | valid callback, watchdog, strict stale/missing-owner proof, or terminal signal | `C4_REPLAN`, `C1_RECOVER_EXECUTOR`, or `C6_FINALIZE` |
+| `C1_HANDSHAKE` | main + executor | exact `CALLBACK_PING/ACK` and mission recurring Heartbeat create/readback | callback proof plus verified repeat-on 15-minute scheduler | `C2_DISPATCH` |
+| `C2_DISPATCH` | main | send exactly one `round_assignment/v1`; leave recurring schedule unchanged | `ROUND_DISPATCHED`, executor ACTIVE | main `C3_WAIT`, executor `E1_RUN` |
+| `C3_WAIT` | main | await callback while recurring ticks provide independent liveness | valid callback, due tick, strict stale/missing-owner proof, or terminal signal | `C4_REPLAN`, `C1_RECOVER_EXECUTOR`, or `C6_FINALIZE` |
 | `C4_REPLAN` | main | accept callback, update strategy, machine-calculate cooldown | `next_dispatch_at`, pending next round, executor IDLE | `C5_COOLDOWN` |
-| `C5_COOLDOWN` | main timer | due wake consumes accepted callback-IDLE proof; dispatch once and rearm watchdog | next round dispatched, retry armed, or cutoff | `C3_WAIT`, `C5_RECOVERY`, or `C6_FINALIZE` |
-| `C5_RECOVERY` | main timer | preserve pending round; retry missing orchestration proof without TikTok work | one verified future retry/recovery wake, recovered dispatch, or strict stale/missing-owner proof | `C5_COOLDOWN`, `C3_WAIT`, `C1_RECOVER_EXECUTOR`, or `C6_FINALIZE` |
+| `C5_COOLDOWN` | main scheduler | first recurring tick at/after due consumes accepted callback-IDLE proof and dispatches once | next round dispatched, recurrence preserved, or cutoff | `C3_WAIT`, `C5_RECOVERY`, or `C6_FINALIZE` |
+| `C5_RECOVERY` | main scheduler | preserve pending round and recurring liveness while awaiting missing proof | future recurring run, recovered dispatch, or strict stale/missing-owner proof | `C5_COOLDOWN`, `C3_WAIT`, `C1_RECOVER_EXECUTOR`, or `C6_FINALIZE` |
 | `E0_ACCEPT` | executor | validate assignment and handshake | exact IDs/refs, callback ACK | `E1_RUN` |
 | `E1_RUN` | executor | one 25–45-view search-led round plus interactions | durable checkpoint | `E2_CALLBACK` |
 | `E2_CALLBACK` | executor | send one `round_callback/v1` | accepted send, executor IDLE | wait for `C2_DISPATCH` or stop |
@@ -116,15 +116,17 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 - Main preserves all currently authorized cultivation lanes in every assignment;
   Feed drift and prior-round counts never zero Comment. Comment budget resets
   per round, while candidate quality is evaluated per opened video.
-- Main owns exactly one stable callback-first phase timer; executor owns zero timers.
-- Active execution has no five-minute NOOP loop; only one 60-minute watchdog.
-- Callback updates that exact timer to one due cooldown wake; dispatch rearms
-  the same timer as the next watchdog.
-- Every nonterminal wake must read back exactly one future occurrence before it
-  exits. Bare NOOP and ACTIVE-without-future-run are invalid.
+- Main owns exactly one stable 15-minute mission recurring Heartbeat; executor
+  owns zero timers.
+- Multi-hour missions never use `COUNT=1`, a one-occurrence self-rearm chain,
+  or one timer per round.
+- Callback persists IDLE proof and `next_dispatch_at` without rewriting the
+  recurring schedule; the first due tick dispatches once.
+- Every nonterminal scheduler turn must read back the same recurring Heartbeat
+  with a future run and cleanup `UNTIL` before it exits.
 - A transient executor read failure never invalidates accepted callback-IDLE
-  proof. Missing proof rearms one five-minute state retry; after three failures,
-  retain one 15-minute degraded-recovery wake and notify once.
+  proof. Missing proof preserves the pending round and recurrence; request one
+  status/callback at most once per round and let later ticks retry quietly.
 - Use fresh machine UTC for `next_dispatch_at`; never trust model-estimated or
   out-of-order ledger timestamps.
 - Timer readback without exact automation ID/target/status/next run is not proof.
@@ -149,7 +151,7 @@ main asks the user once. Historical failures never block a clean current run.
 - Any same-run replacement had strict absence/stale proof, incremented
   generation, old/new ID audit, one create attempt, and fresh handshake.
 - Callback ping/ack succeeded before external work.
-- Main phase timer was created/read back under direct user authorization.
+- Main mission recurring Heartbeat was created/read back under direct user authorization.
 - Executor owns one tab/ledger and no automation.
 - Every 25–45-view round ends in one accepted callback and IDLE state.
 - Main chose next clusters, action emphasis, and cooldown from evidence.
@@ -160,7 +162,7 @@ main asks the user once. Historical failures never block a clean current run.
   newer user revocation, browse-only mission, or current explicit Comment hard
   block was recorded.
 - No dispatch happened before `next_dispatch_at` or while executor ACTIVE, and
-  no five-minute executor-active polling occurred.
-- Every pre-cutoff scheduler turn ended with dispatch+watchdog,
-  pending+retry/recovery, or terminal deletion; no naked NOOP existed.
+  no `COUNT=1`, self-rearmed watchdog, or per-round timer occurred.
+- Every pre-cutoff scheduler turn preserved a future recurring run or entered
+  terminal deletion; no silent scheduler death existed.
 - At terminal state, scheduler deletion and executor release were both proven.

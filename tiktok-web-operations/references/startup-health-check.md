@@ -89,9 +89,9 @@ Follow `operating-model.md`:
    `TikTok 执行台`; store only the exact new ID;
 3. send `executor_assignment/v2` and require `ASSIGNMENT_ACCEPTED`;
 4. perform real `CALLBACK_PING/v1` -> `CALLBACK_ACK/v1` to the exact main task;
-5. create one stable main-target phase timer under the direct user mission
-   authorization and read back exact ID, target, phase/one-occurrence state, and
-   next local/UTC run;
+5. create one stable main-target mission recurring Heartbeat under the direct
+   user mission authorization and read back exact ID, target, `ACTIVE` repeat-on
+   15-minute cadence, next local/UTC run, cutoff, and cleanup `UNTIL`;
 6. dispatch round 1 immediately and enter callback wait.
 
 If callback handshake fails, perform no TikTok external work and report

@@ -36,7 +36,7 @@ After fresh creation returns an exact ID, create `executor_assignment/v2` with:
 - coordinator/executor ledger paths, optional accepted resume-cursor ref, and
   dedicated-tab policy;
 - `callback_policy=ROUND_BOUNDARY_TO_EXACT_COORDINATOR`;
-- `automation_policy=COORDINATOR_OWNED_FIXED_SCHEDULER`.
+- `automation_policy=COORDINATOR_OWNED_MISSION_RECURRING_15M`.
 
 The executor validates bytes/hash/identity and records `ASSIGNMENT_ACCEPTED`.
 External work remains forbidden until exact `CALLBACK_PING/v1` and

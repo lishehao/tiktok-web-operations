@@ -40,13 +40,13 @@ scheduler_automation_id: NONE | exact returned id
 scheduler_manager_thread_id: exact coordinator id
 scheduler_target_thread_id: exact coordinator id
 scheduler_status: NONE | PAUSED | ACTIVE | UNVERIFIED | DELETED
-scheduler_phase: NONE | ACTIVE_WATCHDOG | COOLDOWN_WAKE | STATE_RETRY |
-  DEGRADED_RECOVERY
-scheduler_occurrence: NONE | ONE
+scheduler_mode: NONE | MISSION_RECURRING_15M
 scheduler_next_run: NONE | exact local/UTC readback
-scheduler_encoding: COUNT_1 | FINITE_INTERVAL_UNTIL_ONE_FUTURE_RUN
-scheduler_retry_count: nonnegative integer
-scheduler_future_wake_count: 0 | 1
+scheduler_repeat: OFF | ON
+scheduler_interval_minutes: NONE | 15
+scheduler_until_utc: NONE | exact cleanup UNTIL after operation_stop_at
+scheduler_health: NONE | HEALTHY | MISSION_SCHEDULER_EXPIRED |
+  MISBOUND | UNREADABLE
 coordinator_ledger_path: exact private path
 executor_ledger_path: exact private path
 run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
@@ -100,41 +100,39 @@ terminally released creates a new run/executor instead of using this path.
 
 ## Scheduler ownership
 
-The main task alone creates, views, updates, and deletes one stable self-target
-phase timer under the direct user mission authorization. The executor owns zero
-timers. Never poll an active executor every five minutes.
+The main task alone creates, views, repairs, and deletes one stable self-target
+mission scheduler Heartbeat under the direct user mission authorization. The
+executor owns zero timers.
 
-Creation proof requires exact automation ID, exact main-task target,
-phase/one-occurrence state, next local/UTC run, and cutoff. A rendered suggestion
-card, create request, inferred filename, or missing-ID response is not proof and
-becomes `SCHEDULER_CONTINUATION_FAILURE`.
+Creation proof requires exact automation ID, exact main-task target, `ACTIVE`
+status, repeat-on 15-minute cadence, next local/UTC run, cutoff, and a finite
+cleanup `UNTIL` at least one full interval after the cutoff. A rendered
+suggestion card, create request, inferred filename, or missing-ID response is
+not proof and becomes `SCHEDULER_CONTINUATION_FAILURE`.
 
-Do not use a requested `PAUSED` status as proof; direct creation may normalize
-it to `ACTIVE`. Prove stopped polling by enumerating exactly one future run from
-readback. If immediate create rejects `DTSTART` or bare `COUNT=1` reports no
-future run, encode the same semantics with finite
-`INTERVAL=<minutes>;UNTIL=<just after one interval>` and verify it.
-Keep `UNTIL` at least two minutes beyond the intended occurrence and shorter
-than the interval, then enumerate the one remaining future run.
+Prefer
+`RRULE:FREQ=MINUTELY;INTERVAL=15;UNTIL=<operation_stop_at plus 15 minutes in UTC>`
+with no `COUNT`. An equivalent tool-supported finite repeat-on form is allowed
+only when it preserves the same cadence and terminal cleanup occurrence.
 
-After dispatch, ordinary scheduling is paused and the same timer carries only
-one `ACTIVE_WATCHDOG` at dispatch + 60 minutes. A valid callback updates that
-same exact automation in place to one `COOLDOWN_WAKE` at `next_dispatch_at`.
-The due cooldown wake dispatches one round and rearms the same timer as the next
-watchdog. A watchdog never dispatches while executor is active. Never send
-catch-up bursts, create/delete a timer per round, or fall back to five-minute
-NOOP polling.
+Never encode a multi-hour TikTok mission as `COUNT=1`, one future occurrence,
+or a self-rearmed watchdog. The fixed recurring schedule remains unchanged
+across ordinary callback, dispatch, cooldown, active-executor, and transient
+recovery states. Mutable phase and evidence live in the coordinator ledger.
 
 Accepted callback bytes with `executor_state=IDLE` are the dispatch proof until
-consumed by the next assignment. Live task readback is diagnostic; unavailable,
-empty, and `notLoaded` results are not contradictory evidence. If canonical
-proof is missing, keep the pending round and update the same timer to one five-
-minute `STATE_RETRY`; after three consecutive failures, keep one 15-minute
-`DEGRADED_RECOVERY` wake and notify once.
+consumed by the next assignment. Each recurring tick reads a fresh machine
+clock and dispatches exactly one round only when that proof is unconsumed and
+`now >= next_dispatch_at`. Live task readback is diagnostic; unavailable,
+empty, and `notLoaded` results are not contradictory evidence. An active
+executor, early cooldown, or missing proof leaves the recurrence intact and
+does not send duplicate work.
 
-Before every nonterminal scheduler turn returns, require
-`scheduler_future_wake_count=1`. `ACTIVE` plus zero future occurrences is
-`EXPIRED_ORPHAN`, not healthy. A naked NOOP is forbidden.
+Before every nonterminal scheduler turn returns, require the same exact
+repeat-on automation with a future next run and cleanup `UNTIL`. `ACTIVE` plus
+no future occurrence before cutoff is `MISSION_SCHEDULER_EXPIRED`, not healthy;
+repair the same automation in place before dispatch. Never create a replacement
+timer until a corrected exact binding is verified.
 
 At explicit stop, deadline, completion, or terminal release, stop new dispatch,
 request executor release if needed, delete the exact scheduler, and read back
