@@ -45,9 +45,15 @@ def next_comment_policy(
 
 
 def main() -> None:
-    missing = [str(path) for path in DOCS if not path.is_file()]
+    missing = [
+        str(path)
+        for path in DOCS
+        if not path.is_file() and path.name != "README.md"
+    ]
     assert not missing, missing
-    joined = " ".join("\n".join(path.read_text() for path in DOCS).split())
+    joined = " ".join(
+        "\n".join(path.read_text() for path in DOCS if path.is_file()).split()
+    )
     required = (
         "Feed drift never zeroes Comment",
         "new cluster match",

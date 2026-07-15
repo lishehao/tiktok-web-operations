@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.15.2`
+Protocol version: `2026.07.15.3`
 
 This repository distributes two version-locked Codex Skills:
 
