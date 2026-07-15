@@ -10,6 +10,10 @@ This is the authority for TikTok task ownership. TikTok uses
 ```text
 objective: keep one confirmed mission strategically aligned and continuously
 scheduled until stop, cutoff, or completion.
+single_job: decide what/when/stop for the next bounded round.
+inputs: latest user instruction; mission/authority; accepted executor callback;
+fresh machine clock.
+boundary_output: one assignment, timer update, hard-repair request, or finalization.
 owns: install/preflight; profile and mission; exact executor registry; callback
 acceptance; search direction; cooldown; callback-first phase timer; user reports;
 hard-repair conversation; finalization.
@@ -17,8 +21,9 @@ reads: public/installed bundle, current account proof, exact executor callbacks,
 coordinator ledger, scheduler readback.
 writes: canonical assignments, coordinator checkpoints, next_dispatch_at,
 scheduler decisions, user reports.
-never: operate TikTok; own an operating Chrome tab; mutate content; accept a
-callback from a non-registered task/run/round; dispatch while executor active.
+never: operate TikTok; own an operating Chrome tab; select an exact post; write
+an exact comment; mutate content; alter raw executor evidence; accept a callback
+from a non-registered task/run/round; dispatch while executor active.
 ```
 
 The first presentation action is `TikTok 启动台`. After healthy preflight,
@@ -30,13 +35,17 @@ presentation degradation. The executor is never pinned.
 
 ```text
 objective: complete one bounded round assignment accurately and callback.
+single_job: execute the assigned Chrome round and return observed facts.
+inputs: exact assignment; own ledger/resume cursor; live Chrome/TikTok state.
+boundary_output: one callback with evidence plus optional non-binding suggestions,
+then IDLE.
 owns: dedicated Chrome tab; TikTok page state; candidate selection; authorized
 actions; raw evidence ledger; within-round recovery; release proof.
 reads: exact assignment, own ledger tail, live platform state.
 writes: evidence/checkpoints and one structured callback per boundary.
-never: own/update/delete Heartbeat; choose cooldown or next strategy; ask the
-user directly; contact another task; run after callback while idle; broaden
-authority; overlap itself.
+never: own/update/delete Heartbeat; choose or dispatch a next round; choose
+cooldown, mission direction, or authority; ask the user directly; contact
+another task; run after callback while idle; broaden authority; overlap itself.
 ```
 
 ## Single-writer responsibility matrix
@@ -50,6 +59,20 @@ authority; overlap itself.
 | Raw browser evidence and round checkpoint | Executor | Main accepts referenced proof |
 | Round status and `IDLE` transition | Executor callback | Main validates and persists it |
 | User decision or human-only repair request | Main | Executor callbacks evidence only |
+
+At a round boundary, use this fixed pipeline only:
+
+```text
+Executor facts + non-binding suggestions
+  -> Main validates identity/evidence
+  -> Main decides clusters + unchanged authority + cooldown
+  -> Main schedules or dispatches one assignment
+  -> Executor chooses exact posts/actions and executes
+```
+
+Keep one decision layer per task. Do not let both tasks decide the same layer. The executor never turns a
+suggestion into an assignment; the main never reaches into live TikTok to finish
+or correct executor work.
 
 An accepted exact callback with `executor_state=IDLE` is the sole positive idle
 proof until the next dispatch consumes it. The main may use `read_thread` to
@@ -130,6 +153,8 @@ main asks the user once. Historical failures never block a clean current run.
 - Executor owns one tab/ledger and no automation.
 - Every 25–45-view round ends in one accepted callback and IDLE state.
 - Main chose next clusters, action emphasis, and cooldown from evidence.
+- Main made no exact-post/comment/browser decision; Executor made no
+  direction/authority/cooldown/Heartbeat decision.
 - Every cultivation assignment retained four `best_effort_attempt` lanes and an
   `ACTIVE` Comment policy with target/min/max/ceiling `10/7/12/15`, unless a
   newer user revocation, browse-only mission, or current explicit Comment hard

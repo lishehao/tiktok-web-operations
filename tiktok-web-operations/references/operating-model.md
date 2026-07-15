@@ -12,6 +12,17 @@ TikTok 主控台 --scheduler says due--> next round_assignment/v1
 Both tasks use `gpt-5.6-luna` with `thinking=high`. Never substitute a subagent,
 Goal Mode, or an agent tree.
 
+## Steady-state role cards
+
+| Task | One job | Reads | Decides | Returns |
+|-|-|-|-|-|
+| `TikTok 主控台` | Decide what/when/stop for the next bounded round | user instruction, mission/authority, accepted callback, machine clock | next clusters, exclusions, round envelope, cooldown, timer phase, hard repair, finalization | one assignment/timer action/user report |
+| `TikTok 执行台` | Execute the assigned Chrome round and report facts | exact assignment, own ledger/cursor, live TikTok state | exact queries/posts, watch progression, candidate fit, comment text, authorized action attempts, within-round recovery | one accepted callback, then IDLE |
+
+The main task never chooses an exact post or drafts an exact comment. The
+executor never changes direction, authority, round size, cooldown, Heartbeat,
+or mission state. Executor recommendations are explicitly non-binding evidence.
+
 ## Main-task initialization
 
 1. Run install/upgrade and read-only preflight while titled `TikTok 启动台`.
@@ -137,6 +148,10 @@ shortfall, an executor suggestion, or drifted For You evidence cannot become
 user revocation, browse-only mission, or explicit current Comment hard block
 may change `status` away from `ACTIVE`; record that exact cause and scope.
 
+The assignment states **what outcome and envelope** to execute, not exact
+candidate URLs, exact comments, or browser steps. Those are executor decisions
+made from live evidence. The main task cannot perform part of the round itself.
+
 The executor runs that round continuously, owns all TikTok/browser decisions
 inside the envelope, checkpoints incrementally, then sends exactly one
 `round_callback/v1`:
@@ -153,6 +168,7 @@ inside the envelope, checkpoints incrementally, then sends exactly one
   "feed_composition":{"core":0,"adjacent":0,"drift":0},
   "mutation_attempts":{"like":0,"favorite":0,"repost":0,"comment":0},
   "cluster_evidence":[],
+  "next_round_suggestions":{"binding":false},
   "resume_cursor":{},
   "capability_delta":{},
   "blocker":null,
@@ -163,6 +179,11 @@ inside the envelope, checkpoints incrementally, then sends exactly one
 
 After sending the callback, the executor performs no TikTok work until it
 receives the next valid round assignment or stop instruction.
+
+The callback contains observed facts. `next_round_suggestions` may propose
+clusters, emphasis, or risks, but cannot change authority, schedule work, or act
+as a next assignment. The main task accepts/rejects those suggestions against
+the current mission and writes the sole next-round decision.
 
 ## Strategy and cooldown
 

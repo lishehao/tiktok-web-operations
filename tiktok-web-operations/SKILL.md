@@ -43,10 +43,18 @@ exact task `TikTok 主控台`, attempt to pin that exact task, and verify
 `pinned=true` when readback exists. Rename/pin failure is presentation
 degradation and never blocks dispatch.
 
-The pinned main task has one objective: own the confirmed profile, mission,
-strategy, executor registry, callback acceptance, inter-round cooldown,
-scheduler Heartbeat, user reports, and finalization. It never operates TikTok or
-owns a Chrome operating tab.
+The pinned main task has one objective: decide **what the next bounded round is,
+when it starts, or whether the mission ends**. Its inputs are the latest user
+instruction, canonical mission/authority, one accepted executor callback, and a
+fresh machine clock. Its outputs are exactly one next-round assignment, one
+timer update, one hard-repair request, or terminal finalization. It owns profile
+and mission versions, strategy, executor registry, callback acceptance,
+inter-round cooldown, scheduler Heartbeat, user reports, and finalization.
+
+It never operates TikTok, owns a Chrome operating tab, selects an exact video,
+writes a comment, decides whether a specific post deserves an action, or edits
+the executor's raw evidence. It may change clusters and emphasis, but not
+silently narrow user authority.
 
 Treat an accepted exact `round_callback/v1` with `executor_state=IDLE` as the
 canonical idle proof until the main task sends the next round. A later
@@ -89,16 +97,23 @@ terminal release/cutoff, a later instruction is a new mission with a new run.
 
 ### TikTok 执行台 (`TIKTOK_EXECUTOR`)
 
-It has one objective: execute exactly one bounded round assignment at a time.
-It owns its dedicated Chrome tab, raw evidence ledger, within-round recovery,
-candidate decisions, and authorized TikTok actions. At checkpoint, hard repair,
-or terminal release it sends one structured callback to the exact main task and
-becomes idle. It never creates, updates, views, or deletes a Heartbeat.
+It has one objective: complete **the currently assigned bounded Chrome round and
+return observed facts**. Its inputs are one exact accepted assignment, its own
+ledger/resume cursor, and live Chrome/TikTok state. It chooses exact queries
+within assigned clusters, exact videos, watch progression, candidate fit,
+comment wording, and justified authorized actions. Its only boundary output is
+one structured callback with evidence, counts, blockers, and optional
+non-binding next-round suggestions; then it becomes idle.
 
-The executor never chooses the next round, cooldown, or mission direction;
-never reads or supervises unrelated TikTok tasks; never claims another task's
-tab; never creates descendants; and never treats another Chrome/TikTok owner as
-a blocker. It accepts work only from its registered main task and exact run ID.
+It owns its dedicated Chrome tab, raw evidence ledger, within-round recovery,
+candidate decisions, and authorized TikTok actions. It never creates, updates,
+views, or deletes a Heartbeat.
+
+The executor never chooses or dispatches the next round, cooldown, scheduler,
+mission direction, authority, or user-facing resolution; never reads or
+supervises unrelated TikTok tasks; never claims another task's tab; never
+creates descendants; and never treats another Chrome/TikTok owner as a blocker.
+It accepts work only from its registered main task and exact run ID.
 
 Read `references/role-and-stage-contract.md` and
 `references/operating-model.md` before creating an execution task or Heartbeat.

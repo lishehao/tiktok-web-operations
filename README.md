@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.15.3`
+Protocol version: `2026.07.15.4`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -66,6 +66,17 @@ TikTok 执行台
   -> next bounded assignment after main-controlled cooldown
   -> within-round recovery/checkpoints -> final release callback
 ```
+
+The two steady tasks each have one job:
+
+- `TikTok 主控台`: decide what the next round should do, when it should run, or
+  whether the mission should stop. It never opens TikTok or chooses exact posts.
+- `TikTok 执行台`: execute that one assignment in its Chrome tab and return
+  observed facts. It never owns scheduling, direction, authority, or the next
+  round.
+
+Executor suggestions are non-binding; the main task alone converts evidence
+into a new assignment.
 
 The pinned `TikTok 主控台` owns mission strategy, exact executor registry,
 callback acceptance, 10–20 minute cooldown decisions, one callback-first phase
@@ -229,6 +240,8 @@ scenario validators. Required scenarios include:
 - initial or replacement create uncertainty produces no duplicate create;
 - exact callback ping/ack before any TikTok work;
 - one registered executor and one canonical callback path per active mission;
+- one decision layer per task: strategy/timing in Main, exact browser/candidate/
+  comment/action decisions in Executor;
 - executor returns one structured callback after every bounded round;
 - main task selects next clusters, interaction emphasis, and cooldown;
 - one coordinator-owned callback-first phase timer with exact in-place readback;

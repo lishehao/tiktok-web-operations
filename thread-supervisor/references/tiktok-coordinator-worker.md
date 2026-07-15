@@ -30,6 +30,17 @@ The executor owns one dedicated Chrome tab, raw evidence, within-round recovery,
 and one bounded 25-45-view round at a time. It never creates, updates, views, or
 deletes an automation.
 
+Keep the role sentence literal:
+
+- `TikTok 主控台`: decide **what the next round is, when it runs, or whether to
+  stop**. Never select exact posts, write comments, or touch TikTok.
+- `TikTok 执行台`: **execute that one round in Chrome and return facts**. Never
+  choose direction, authority, cooldown, Heartbeat, or the next assignment.
+
+The main-to-executor message is an assignment envelope. The executor-to-main
+message is evidence plus optional `binding=false` suggestions. Neither task may
+perform the other task's missing work.
+
 ## Executor identity and reuse
 
 - Create one fresh executor for a new mission and record its exact returned ID.
