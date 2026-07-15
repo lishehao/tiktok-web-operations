@@ -105,6 +105,11 @@ top-level comment; an exceptional deep candidate may receive one top-level plus
 up to two replies to distinct existing comments, never multiple top-level
 comments. Keep Like/Favorite/Repost coverage active, but spend more contextual
 reasoning on comment candidates.
+Reset the Comment budget for every cultivation round. Feed drift, a previous
+target hit, a quality shortfall, or callback advice may rotate search clusters
+but never removes Comment or writes zero target/min/max into the next
+assignment. Judge a new cluster match per qualified opened video; report actual
+shortfall at checkpoint when no strong candidate appears.
 Allow at most two focused Web searches per round under
 `feed-browsing-and-comments.md`; never let Web research replace qualified video
 consumption or produce copied comment text.

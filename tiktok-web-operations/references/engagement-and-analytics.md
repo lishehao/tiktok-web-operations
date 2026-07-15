@@ -90,6 +90,13 @@ one comment action. A quality shortfall is valid. Selective Web meme/slang resea
 allowed only after live post/comment context and at most twice per round; all
 submitted wording must be original and post-specific.
 
+Reset the comment budget on every cultivation round. Rolling analytics may
+change cluster choice and candidate emphasis, but For You drift, a prior-round
+target hit, or an executor recommendation cannot disable or zero the next
+round's authorized Comment lane. Record a current-round quality shortfall from
+actual candidates instead of predicting it by removing Comment from the
+assignment.
+
 ## Comment reply packet
 
 For a cultivation reply covered by the standing comment envelope, record the

@@ -65,6 +65,15 @@ interaction emphasis, and a 10-20 minute cooldown. Dynamic strategy and pending
 round state stay in the main ledger; raw browser evidence and deduplication stay
 in the executor ledger.
 
+Interaction emphasis is not authority. In an authorized cultivation mission,
+every round assignment retains Like/Favorite/Repost/Comment as four
+`best_effort_attempt` lanes and resets Comment to `ACTIVE` with
+target/min/max/ceiling `10/7/12/15`. A prior target hit, quality shortfall,
+executor recommendation, or drifted For You checkpoint may change search
+clusters but may not zero or globally pause Comment. Treat `new cluster match`
+as a per-opened-video candidate decision. Only a newer user revocation,
+browse-only mission, or current explicit Comment hard block may narrow it.
+
 ## Coordinator phase timer
 
 Create one coordinator-owned self-target phase timer under the user's direct

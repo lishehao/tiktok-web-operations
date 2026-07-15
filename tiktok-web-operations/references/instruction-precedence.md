@@ -23,6 +23,13 @@ to the next round assignment without a second confirmation. Stop/revocation is
 sent immediately and interrupts before the next mutation. Expanded authority is
 used only when the latest user wording actually grants it.
 
+Callback recommendations never outrank the current authority object. A main
+task may rotate clusters or lower candidate emphasis, but may not turn Feed
+drift, a prior comment count, or `new cluster match` advice into a round-wide
+Comment pause. For an authorized cultivation mission, reset the Comment policy
+to `ACTIVE` with target/min/max/ceiling `10/7/12/15` on each new assignment
+unless the user revoked it or a current explicit Comment hard block exists.
+
 Historical warnings, expired rate limits, old failures, and previous recovery
 tiers remain evidence only. Pause a scope only from current page/tool evidence.
 Recoverable technical and lane-local failures auto-recover or suspend the exact

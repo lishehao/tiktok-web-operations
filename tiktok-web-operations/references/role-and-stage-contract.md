@@ -43,7 +43,7 @@ authority; overlap itself.
 
 | State or resource | Sole writer | Other role may |
 |-|-|-|
-| Profile, mission, next clusters, cooldown | Main | Executor reads assignment |
+| Profile, mission, next clusters, cooldown | Main | Executor reads assignment; Main cannot narrow current user authority from callback advice |
 | Exact executor ID, generation, same-run replacement record | Main | Executor validates assignment identity |
 | Phase timer and future-wake proof | Main | Executor does not inspect it |
 | Chrome tab, TikTok page, mutations | Executor | Main never touches them |
@@ -90,6 +90,9 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 - Accept exactly one callback for the expected run/round sequence.
 - Executor callbacks and becomes idle after every completed round.
 - Main chooses strategy and 10–20 minute cooldown from callback evidence.
+- Main preserves all currently authorized cultivation lanes in every assignment;
+  Feed drift and prior-round counts never zero Comment. Comment budget resets
+  per round, while candidate quality is evaluated per opened video.
 - Main owns exactly one stable callback-first phase timer; executor owns zero timers.
 - Active execution has no five-minute NOOP loop; only one 60-minute watchdog.
 - Callback updates that exact timer to one due cooldown wake; dispatch rearms
@@ -127,6 +130,10 @@ main asks the user once. Historical failures never block a clean current run.
 - Executor owns one tab/ledger and no automation.
 - Every 25–45-view round ends in one accepted callback and IDLE state.
 - Main chose next clusters, action emphasis, and cooldown from evidence.
+- Every cultivation assignment retained four `best_effort_attempt` lanes and an
+  `ACTIVE` Comment policy with target/min/max/ceiling `10/7/12/15`, unless a
+  newer user revocation, browse-only mission, or current explicit Comment hard
+  block was recorded.
 - No dispatch happened before `next_dispatch_at` or while executor ACTIVE, and
   no five-minute executor-active polling occurred.
 - Every pre-cutoff scheduler turn ended with dispatch+watchdog,

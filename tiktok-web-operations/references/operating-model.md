@@ -109,6 +109,33 @@ validates exact bytes/hash/identity before Chrome work.
 The main task sends one `round_assignment/v1` containing run/round IDs, three
 search clusters, exclusions, 25–45 qualified-view boundary, For You sample,
 interaction emphasis, current authority ref, deadline, and resume cursor.
+For an authorized cultivation mission it also contains the authoritative lane
+envelope below; emphasis may rank candidates but may not delete or zero a lane:
+
+```json
+{
+  "mutation_lanes": {
+    "like": "best_effort_attempt",
+    "favorite": "best_effort_attempt",
+    "repost": "best_effort_attempt",
+    "comment": "best_effort_attempt"
+  },
+  "parallel_engagement": true,
+  "comment_policy": {
+    "status": "ACTIVE",
+    "target": 10,
+    "min": 7,
+    "max": 12,
+    "ceiling": 15
+  }
+}
+```
+
+Reset `comment_policy` for every round. Previous comment volume, a quality
+shortfall, an executor suggestion, or drifted For You evidence cannot become
+`PAUSED_UNTIL_NEW_CLUSTER_MATCH` or zero comment values. Only a current newer
+user revocation, browse-only mission, or explicit current Comment hard block
+may change `status` away from `ACTIVE`; record that exact cause and scope.
 
 The executor runs that round continuously, owns all TikTok/browser decisions
 inside the envelope, checkpoints incrementally, then sends exactly one
@@ -141,7 +168,11 @@ receives the next valid round assignment or stop instruction.
 
 The main task accepts callbacks only for its exact run/executor and expected
 round sequence. From rolling evidence it chooses the next search clusters and
-interaction emphasis. It then reads a fresh machine clock and stores:
+interaction emphasis. Treat executor recommendations as evidence, not authority:
+`cooldown comments until new cluster match` means rotate search and judge each
+new opened post, never freeze the entire next round. For You drift affects the
+held-out validation plan only. The main then reads a fresh machine clock and
+stores:
 
 ```text
 cooldown_minutes: integer 10..20

@@ -224,6 +224,12 @@ native next/down control. If it fails, mark only the validation lane
 `partial|unavailable` and continue healthy search training. Do not add random
 delays, cursor jitter, or fake human behavior.
 
+Feed drift never zeroes Comment. Feed composition may change the next search
+clusters or validation frequency, but never narrows mutation authority. A drifted For You checkpoint cannot pause
+Comment, set its next-round target/min/max to zero, or remove it from an
+authorized cultivation assignment. Evaluate `new cluster match` per opened
+search-origin video; it is not a whole-round prerequisite.
+
 ## Mutation lanes
 
 Keep Like, Favorite, Repost, proactive comment, cultivation reply, comment Like,
@@ -258,6 +264,14 @@ A non-persistent or unverified result does not suspend a lane or prevent future
 attempts on new posts. An uncertain mutation freezes only that exact
 target/action and is never retried; search/view and independent lanes continue.
 
+The main task must copy the current authority into every round assignment. For
+an authorized cultivation mission without a current exact-lane hard block,
+write all four lanes as `best_effort_attempt` and keep Comment `ACTIVE`; a prior
+callback recommendation is strategy advice, not authority. Only a newer user
+revocation, browse-only mission, or current explicit Comment hard block may
+disable it. Prior-round attempt counts, Feed drift, quality shortfall, or a
+request to rotate clusters may never become a round-wide Comment freeze.
+
 Record interaction results only as `attempted | unavailable | hard_blocked`.
 `attempted` means the visible native click/send was issued once; it is not a
 claim of server persistence or success. Do not perform post-action waiting,
@@ -277,6 +291,14 @@ For a normal 35-target / 25–45-view round, use
 top-level proactive comments and replies in this total. This is a quality range:
 if fewer than seven genuinely strong conversational openings exist, record the
 shortfall and do not publish generic filler.
+
+Reset this budget at the start of every cultivation round. Include the four
+values explicitly in each `round_assignment/v1`; never carry forward
+`comment_mode=PAUSED_UNTIL_NEW_CLUSTER_MATCH` or zero values merely because the
+previous round reached target or its For You sample drifted. A round can finish
+with zero actual comment attempts only as a reported current-round quality,
+availability, safety, or hard-block shortfall—not because the assignment erased
+the authorized lane in advance.
 
 Most qualifying videos receive zero or one top-level comment. On an exceptional
 strong-core video, inspect the live discussion more deeply and allow up to three

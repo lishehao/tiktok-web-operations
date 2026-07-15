@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.15.1`
+Protocol version: `2026.07.15.2`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -160,6 +160,10 @@ The primary training path is directed search, not Feed browsing:
    If live context does not yield a strong joke,
    permit at most two focused Web searches per round for current meme/slang
    context, then write an original line rather than copying a result.
+   The budget resets every round. A prior target hit or drifted For You sample
+   cannot set the next assignment's Comment values to zero; `new cluster match`
+   is judged per opened search video, and candidate scarcity becomes an honest
+   checkpoint shortfall rather than a pre-emptive lane freeze.
 6. After two units or roughly 20–30 qualified views, 5–10 continuous For You
    items are sampled as held-out validation.
 7. At every completed 25–45-view round, persist a checkpoint and callback the
@@ -243,6 +247,9 @@ scenario validators. Required scenarios include:
 - comment-priority 7–12 target range, at most three comment mutations on one
   exceptional video, selective Web meme research, and no-copy originality/
   safety checks.
+- comment-lane continuity across rounds: Feed drift and callback advice cannot
+  erase current cultivation authority or zero the per-round `10/7/12/15`
+  Comment policy.
 
 The release is complete only when local source, GitHub main/codeload, and the ZIP
 artifact are byte-identical for managed files.

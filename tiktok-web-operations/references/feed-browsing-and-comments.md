@@ -18,6 +18,11 @@ Treat `刷视频` as read-only browsing unless the user separately authorizes an
 6. When the feed drifts, run two search-training blocks (normally 20–30 qualified opened/watched core posts) before another 5–10 item For You validation. Treat any change as observed correlation, not proof of TikTok's ranking mechanism.
 7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Under an authorized cultivation envelope, Like/Favorite/Repost/Comment use independent best-effort attempts while the qualified post is open; TikTok Repost remains distinct from generic Share.
 
+For You drift never zeroes Comment or pauses it across the next search block.
+Treat `new cluster match` as a per-video eligibility check. When a new
+search-origin strong-core post supports a safe, original joke, the active
+Comment lane may act immediately even if the prior For You sample was all drift.
+
 Do not manufacture human-like pauses or scrolling patterns to evade detection.
 Treat timed rate limits as automatic waits; treat feature restrictions as exact-
 lane skips. Only persistent human CAPTCHA/login/account lock or unavailable sole
@@ -45,6 +50,12 @@ for 10 total comment attempts with a flexible 7–12 range and absolute ceiling
 15. Count top-level comments and replies together. If fewer than seven strong
 conversational openings exist, record the quality shortfall and continue; never
 fill the range with generic praise or a repeated template.
+
+This is a per-round budget. Reset it for every new cultivation assignment;
+reaching 10 in one round does not consume later rounds. Keep the lane active
+when the next round has no immediate candidate, report actual shortfall at the
+checkpoint, and re-evaluate each later strong-core post rather than pre-setting
+the assignment to zero.
 
 Most videos receive zero or one proactive top-level comment. For an exceptional
 strong-core video with an active, safe discussion, read roughly 8–20 relevant
