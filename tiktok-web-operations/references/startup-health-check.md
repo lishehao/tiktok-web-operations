@@ -87,12 +87,14 @@ Follow `operating-model.md`:
 1. require confirmed profile and exact canonical refs;
 2. at a new-mission boundary, generate one new run ID and fresh-create exactly one unpinned
    `TikTok 执行台`; store only the exact new ID;
-3. send `executor_assignment/v2` and require `ASSIGNMENT_ACCEPTED`;
-4. perform real `CALLBACK_PING/v1` -> `CALLBACK_ACK/v1` to the exact main task;
-5. create one stable main-target mission recurring Heartbeat under the direct
+3. set that exact new ID's title to `TikTok 执行台` and verify same-ID readback
+   when supported; record non-blocking title degradation if unavailable;
+4. send `executor_assignment/v2` and require `ASSIGNMENT_ACCEPTED`;
+5. perform real `CALLBACK_PING/v1` -> `CALLBACK_ACK/v1` to the exact main task;
+6. create one stable main-target mission recurring Heartbeat under the direct
    user mission authorization and read back exact ID, target, `ACTIVE` repeat-on
    15-minute cadence, next local/UTC run, cutoff, and cleanup `UNTIL`;
-6. dispatch round 1 immediately and enter callback wait.
+7. dispatch round 1 immediately and enter callback wait.
 
 If callback handshake fails, perform no TikTok external work and report
 `CALLBACK_UNAVAILABLE`. If the scheduler is only suggested or lacks exact
@@ -101,6 +103,8 @@ ID/readback, do not claim multi-hour unattended continuation; report
 
 Historical same-title tasks are not candidates. A fresh create failure/unknown
 result ends this launch without title search, reuse, unarchive, or replacement.
+Title normalization failure does not change this rule and never authorizes a
+title search or duplicate create.
 
 After launch, keep that exact executor for all rounds and all continuation or
 direction messages within the same active mission. Do not repeat profile setup,

@@ -23,7 +23,8 @@ def main():
                 "round_callback/v1", "gpt-5.6-luna", "thinking\":\"high",
                 "executor_generation", "predecessor_executor_thread_id",
                 "resume_cursor_ref", "old_executor_thread_id",
-                "new_executor_thread_id")
+                "new_executor_thread_id", "executor_title_status",
+                "executor_archive_status")
     missing = [x for x in required if x not in joined]
     assert not missing, missing
     assignment = {
@@ -58,6 +59,7 @@ def main():
                                    "exact_executor_required":True,
                                    "callback_sequence_required":True,
                                    "same_run_generation_increment":True,
-                                   "resume_cursor_carried":True}}, sort_keys=True))
+                                   "resume_cursor_carried":True,
+                                   "presentation_lifecycle_exact_id_only":True}}, sort_keys=True))
 
 if __name__ == "__main__": main()

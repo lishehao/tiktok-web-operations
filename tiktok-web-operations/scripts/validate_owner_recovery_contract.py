@@ -86,6 +86,14 @@ def dispatch(event):
             "create_attempts": 1, "same_run": True,
             "result": "ORCHESTRATION_BLOCKER_NO_SECOND_CREATE",
         },
+        "replacement_bound_old_unreleased": {
+            "create_attempts": 0, "same_run": True,
+            "result": "REQUEST_OLD_RELEASE_KEEP_OLD_UNARCHIVED",
+        },
+        "replacement_bound_old_released": {
+            "create_attempts": 0, "same_run": True,
+            "result": "ARCHIVE_OLD_EXACT_ID_NEVER_CURRENT_OWNER",
+        },
         "new_instruction_after_terminal_release": {
             "create_attempts": 1, "same_run": False,
             "result": "NEW_RUN_FRESH_EXECUTOR",
@@ -107,6 +115,7 @@ def main():
         "LIVENESS_UNVERIFIED_TRANSIENT", "executor_generation",
         "old_executor_thread_id", "new_executor_thread_id", "notLoaded",
         "at most one", "fresh callback handshake", "terminal",
+        "Archive the old exact ID only after", "never archive the newly bound current owner",
     )
     missing = [token for token in required if token.lower() not in joined.lower()]
     assert not missing, missing
@@ -119,6 +128,7 @@ def main():
         "registered_id_missing", "stale_owner_tombstone",
         "retired_during_active_mission", "replacement_create_failed",
         "replacement_create_unknown", "replacement_assignment_failed",
+        "replacement_bound_old_unreleased", "replacement_bound_old_released",
         "new_instruction_after_terminal_release",
     )
     scenarios = {event: dispatch(event) for event in events}
@@ -137,6 +147,12 @@ def main():
     )
     assert scenarios["replacement_assignment_failed"]["result"].endswith(
         "NO_SECOND_CREATE"
+    )
+    assert scenarios["replacement_bound_old_unreleased"]["result"].endswith(
+        "KEEP_OLD_UNARCHIVED"
+    )
+    assert scenarios["replacement_bound_old_released"]["result"] == (
+        "ARCHIVE_OLD_EXACT_ID_NEVER_CURRENT_OWNER"
     )
     assert scenarios["new_instruction_after_terminal_release"]["same_run"] is False
     assert scenarios["old_title_match"]["old"] == "IGNORED_UNTOUCHED"

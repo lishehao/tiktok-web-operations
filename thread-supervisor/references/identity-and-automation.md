@@ -26,7 +26,12 @@ executor_replacement_reason: NONE | REGISTERED_EXECUTOR_ID_MISSING |
 executor_replaced_at_utc: NONE | exact UTC timestamp
 last_accepted_resume_cursor_ref: NONE | exact canonical ref
 executor_title: TikTok 执行台
+executor_title_status: PENDING | VERIFIED | DEGRADED_UNAVAILABLE
+executor_title_repair_attempted: FALSE | TRUE
 executor_state: NEW | ACCEPTED | ACTIVE | IDLE | HARD_REPAIR | RELEASED
+executor_archive_status: NOT_DUE | PENDING_RELEASE | ARCHIVED |
+  DEGRADED_UNAVAILABLE
+executor_archived_at_utc: NONE | exact UTC timestamp
 executor_idle_proof: NONE | CALLBACK_ACCEPTED
 executor_idle_proof_round_seq: NONE | positive integer
 callback_handshake: NONE | PING_SENT | ACK_VERIFIED
@@ -56,6 +61,8 @@ run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 
 - main identity: exact current task ID plus same-ID title/pin readback;
 - executor identity: exact fresh `create_thread` return plus assignment acceptance;
+- executor presentation: exact returned ID plus same-ID `TikTok 执行台`
+  title readback, or explicit non-blocking degraded status;
 - callback identity: sender/receiver/run/round IDs match registry and sequence;
 - scheduler identity: exact automation ID plus
   `targetThreadId == scheduler_manager_thread_id == coordinator_thread_id`;
@@ -70,6 +77,14 @@ For a new mission, call `create_thread` once and recognize only its exact new
 returned ID. Do not select a historical same-title task. A failed/unknown create
 does not authorize title search, unarchive, reuse, or a duplicate replacement.
 Record `FRESH_TASK_CREATION_FAILED|UNKNOWN` in the main task.
+
+Immediately after a successful create, the main task calls `set_thread_title`
+for the exact returned ID with `TikTok 执行台` and reads back that same ID/title
+when supported. The title is presentation, never identity. Tool unavailability
+or failure records `DEGRADED_EXECUTOR_TITLE_UNAVAILABLE` and does not block
+assignment. The main may make one exact-ID title repair at the first safe IDLE
+boundary; it never searches by title or retries on every scheduler tick. The
+executor remains unpinned and never changes its own title/archive state.
 
 After the executor is registered, the main task may read/message that exact task
 for assignment, callback validation, dispatch, and stop. It does not inspect
@@ -93,10 +108,13 @@ For replacement-eligible proof, create at most one executor with the same run
 ID, increment `executor_generation`, record old/new exact IDs, reason, UTC, and
 last accepted resume cursor, and send a fresh `executor_assignment/v2`. Require
 `ASSIGNMENT_ACCEPTED` plus a new callback handshake, then atomically replace the
-registry binding. Do not search by title, unarchive the old owner, or recreate
-the main-owned timer. Failed/unknown replacement creation or assignment is an
-orchestration blocker and never permits a second create. A mission that already
-terminally released creates a new run/executor instead of using this path.
+registry binding. Normalize the new title by exact returned ID. Only after the
+new binding is verified may the main request the old owner's release and archive
+that old exact ID after release proof. Do not search by title, unarchive the old
+owner, archive the current replacement, or recreate the main-owned timer.
+Failed/unknown replacement creation or assignment is an orchestration blocker
+and never permits a second create. A mission that already terminally released
+creates a new run/executor instead of using this path.
 
 ## Scheduler ownership
 
@@ -136,7 +154,12 @@ timer until a corrected exact binding is verified.
 
 At explicit stop, deadline, completion, or terminal release, stop new dispatch,
 request executor release if needed, delete the exact scheduler, and read back
-its absence/deleted state.
+its absence/deleted state. Reconcile release/tab/ledger proof, then archive the
+exact registered executor ID and read back archive state when supported. Never
+archive an active, STOP_REQUESTED, unreleased, or IDLE-but-live executor, and
+never archive by title. Archive-tool failure is
+`DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`: keep factual terminal state, report the
+presentation gap, and never claim archive success.
 
 Other domains may still use `launcher_self_owned_executor`; do not import that
 topology into TikTok.

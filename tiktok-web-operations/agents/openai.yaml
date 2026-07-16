@@ -1,4 +1,4 @@
 interface:
   display_name: "TikTok Web Operations"
   short_description: "Preflight, choose direction, then run TikTok"
-  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: make the setup task the pinned TikTok main task, fresh-create one executor, prove callback, and keep strategy, cooldown, one 15-minute mission recurring Heartbeat, and user reporting in the main task while the executor performs one bounded Chrome round at a time."
+  default_prompt: "Use $tiktok-web-operations with $thread-supervisor: make the setup task the pinned TikTok main task, fresh-create one executor, normalize its exact-ID title, prove callback, and keep strategy, cooldown, one 15-minute mission recurring Heartbeat, terminal archive, and user reporting in the main task while the executor performs one bounded Chrome round at a time."

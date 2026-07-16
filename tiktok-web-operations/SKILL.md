@@ -64,7 +64,12 @@ a due dispatch. Only explicit newer contradictory evidence requires
 reconciliation.
 
 After profile confirmation for a new mission, fresh-create exactly one unpinned `TikTok 执行台`,
-record its exact returned ID, prove a callback handshake, create/read-back one
+record its exact returned ID, immediately set that exact task title to
+`TikTok 执行台`, and verify same-ID title readback when supported. Do not select
+or repair an executor by title. If title mutation is unavailable, record
+`DEGRADED_EXECUTOR_TITLE_UNAVAILABLE`, continue, and make at most one exact-ID
+repair attempt at the first safe executor-IDLE boundary. Prove a callback
+handshake, create/read-back one
 coordinator-targeted mission recurring Heartbeat under the user's direct mission
 authorization, then dispatch bounded rounds. A rename/pin failure is
 `DEGRADED_RENAME_UNAVAILABLE|PIN_UNAVAILABLE`; it does not block setup.
@@ -94,6 +99,15 @@ the last accepted resume cursor, repeats `CALLBACK_PING/ACK`, and atomically
 updates the registry before dispatch. If replacement creation or assignment is
 failed/uncertain, do not try again; report one orchestration blocker. After a
 terminal release/cutoff, a later instruction is a new mission with a new run.
+
+At stop, cutoff, or completion, stop new dispatch, obtain exact executor
+`RUN_RELEASED` plus owned-tab release proof, delete/read back the exact mission
+Heartbeat, and reconcile both ledgers. Only then archive the exact registered
+executor task and verify same-ID archive readback when supported. Never archive
+an ACTIVE, IDLE-but-live, STOP_REQUESTED, unreleased, or newly bound replacement
+executor. Archive unavailability is
+`DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`: report it without blocking terminal
+mission truth or pretending the task was archived.
 
 ### TikTok 执行台 (`TIKTOK_EXECUTOR`)
 
@@ -443,9 +457,11 @@ the executor ledger and coordinator state/cooldown decisions in the main ledger;
 never put mutable evidence in the Heartbeat prompt.
 
 At deadline, explicit stop, or objective completion: the main task stops new
-dispatch, sends a stop instruction if the executor is active, deletes its exact
-scheduler Heartbeat, requires executor tab-release/final-ledger callback, and
-reports the final result. Never repeat an uncertain mutation.
+dispatch, sends a stop instruction if the executor is active, requires executor
+tab-release/final-ledger callback, deletes and reads back its exact scheduler
+Heartbeat, reconciles both ledgers, and then archives the exact registered
+executor task. Archive unavailability is an explicit presentation degradation,
+not false archive success. Never repeat an uncertain mutation.
 
 Use Chinese for user reports while preserving exact URLs, handles, hashtags,
 error codes, and UI labels.

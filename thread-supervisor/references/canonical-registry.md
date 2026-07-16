@@ -56,12 +56,17 @@ Direction, authority, and mission are independently versioned by the main task.
 The executor never edits those objects; it reports observations. Mutable
 strategy, cooldown, scheduler ID, and pending round stay in the main ledger.
 Raw browser evidence and target/action deduplication stay in the executor ledger.
+Exact-ID presentation lifecycle also stays in the main ledger:
+`executor_title_status`, one bounded title-repair flag,
+`executor_archive_status`, and optional archive timestamp. These fields never
+replace task identity, assignment acceptance, callback proof, or release proof.
 
 Initial generation is 1 with no predecessor. Normal rounds and same-mission
 user continuations preserve the same executor ID and generation. A permitted
 same-run stale/missing-owner replacement increments generation, records exact
 old/new IDs, reason, UTC, and resume cursor, then replaces the canonical binding
-only after assignment acceptance and a fresh callback handshake. Transient
+only after assignment acceptance and a fresh callback handshake. The old exact
+task may be archived only after separate old-owner release proof. Transient
 `notLoaded`/read/tool/network failures never change generation.
 
 ## Reconciliation

@@ -34,22 +34,26 @@ or mission state. Executor recommendations are explicitly non-binding evidence.
 4. Generate a new run ID and fresh-create exactly one unpinned `TikTok 执行台`.
    Record only the exact new ID returned by that call; never select a historical
    same-title task.
-5. Send `executor_assignment/v2` with exact main/executor/run IDs and callback
+5. Call `set_thread_title` for that exact returned ID with `TikTok 执行台`, then
+   read back the same ID/title when supported. If unavailable, persist
+   `DEGRADED_EXECUTOR_TITLE_UNAVAILABLE`, continue, and allow only one exact-ID
+   repair attempt at the first executor-IDLE boundary. Never search by title.
+6. Send `executor_assignment/v2` with exact main/executor/run IDs and callback
    target. Require `ASSIGNMENT_ACCEPTED`.
-6. Prove a real callback handshake before external work:
+7. Prove a real callback handshake before external work:
 
 ```text
 TikTok 主控台 -> CALLBACK_PING/v1
 TikTok 执行台 -> CALLBACK_ACK/v1 -> exact TikTok 主控台
 ```
 
-7. Create one stable main-task-targeted mission recurring Heartbeat under the
+8. Create one stable main-task-targeted mission recurring Heartbeat under the
    direct user mission authorization. Require exact automation ID, exact
    main-task target, `ACTIVE` repeat-on 15-minute schedule, next local/UTC run,
    mission cutoff, and cleanup `UNTIL` readback. If creation produces only a
    suggestion card or lacks an exact ID/readback, record
    `SCHEDULER_CONTINUATION_FAILURE`; never claim unattended continuation.
-8. Dispatch `round_assignment/v1` for round 1 immediately.
+9. Dispatch `round_assignment/v1` for round 1 immediately.
 
 ## Same-mission continuation and owner recovery
 
@@ -75,10 +79,13 @@ For a permitted replacement: keep `run_id`, increment `executor_generation`,
 record `old_executor_thread_id`, `new_executor_thread_id`, exact reason, and UTC
 timestamp, carry the last accepted resume cursor, issue one new canonical
 `executor_assignment/v2`, and repeat assignment acceptance plus callback
-handshake. Atomically register the new exact ID before dispatch and retire the
-old registry binding. The main-owned timer is updated in place; it is never
-recreated for owner replacement. A failed/unknown replacement create or failed
-assignment ends replacement with one orchestration blocker and no second create.
+handshake. Normalize the replacement title by its exact returned ID under the
+same presentation rule. Atomically register and validate the new exact ID before
+dispatch, then request old-owner release. Archive the old exact ID only after
+its release proof; never archive the newly bound current owner. The main-owned
+timer is updated in place; it is never recreated for owner replacement. A
+failed/unknown replacement create or failed assignment ends replacement with
+one orchestration blocker and no second create.
 
 After `RUN_RELEASED`, cutoff, completion, or explicit terminal stop, a later
 operating instruction is a new mission: repeat the profile boundary as needed,
@@ -254,6 +261,11 @@ smallest affected scope. Human-only login/CAPTCHA/account-lock/control blockers
 return to the main task, which asks the user once.
 
 At stop/deadline/completion the main task stops dispatch, sends one stop command
-when needed, deletes its exact scheduler, requires the executor's
-`RUN_RELEASED` callback with owned-tab release proof, reconciles both ledgers,
-and reports the final result.
+when needed, requires the executor's `RUN_RELEASED` callback with owned-tab
+release proof, deletes and reads back its exact scheduler, and reconciles both
+ledgers. It then archives only the exact registered executor ID and reads back
+that same task's archive state when supported. `set_thread_archived` failure or
+unavailability becomes `DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`; it does not
+change the mission's factual terminal state and must not be reported as archive
+success. Never archive before release, by title, or while the executor is the
+current owner of a live mission.

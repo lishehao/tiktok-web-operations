@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.15.5`
+Protocol version: `2026.07.16.1`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -53,7 +53,8 @@ TikTok 启动台
 
 TikTok 主控台
   -> resolve explicit mission or confirm a missing account image
-  -> fresh-create/assign one TikTok 执行台 -> callback handshake
+  -> fresh-create one executor -> exact-ID title/readback as TikTok 执行台
+  -> assign TikTok 执行台 -> callback handshake
   -> create/read-back one stable 15-minute mission recurring Heartbeat
   -> dispatch bounded round -> accept callback -> choose cooldown/direction
   -> callback supplies canonical IDLE proof and sets next_dispatch_at
@@ -65,6 +66,7 @@ TikTok 执行台
   -> callback main task and become idle
   -> next bounded assignment after main-controlled cooldown
   -> within-round recovery/checkpoints -> final release callback
+  -> main archives this exact task only after release and timer cleanup
 ```
 
 The two steady tasks each have one job:
@@ -88,7 +90,17 @@ Every new mission initially fresh-creates exactly one executor and recognizes
 only that create call's returned ID. The same active mission then reuses that
 exact registered executor across every round and every continuation instruction
 sent in `TikTok 主控台`; a round callback is not a reason to create another task.
+Because thread creation cannot supply the final title, the main task immediately
+sets the exact returned ID to `TikTok 执行台` and verifies same-ID title readback
+when supported. It never resolves an executor by title. Title-tool failure is a
+non-blocking presentation degradation with at most one exact-ID repair attempt
+at the first safe IDLE boundary.
+
 Historical same-title tasks remain untouched and are never fallback owners.
+At terminal stop/cutoff/completion, the exact executor is archived only after
+`RUN_RELEASED`, owned-tab release, scheduler deletion, and ledger reconciliation.
+An active or unreleased executor is never archived. Archive-tool failure is
+reported as presentation degradation and never turns into fake success.
 
 Only an absent registered ID or an exact registered executor proven
 `STALE_OWNER_TOMBSTONE`, retired, archived, or released while the mission is
@@ -224,7 +236,8 @@ Every accepted callback/coordinator receipt has exactly three lines:
 ```
 
 At stop/cutoff, the main task deletes its exact scheduler after requesting
-executor release and reconciling the final callback.
+executor release and reconciling the final callback, then archives the exact
+released executor ID. It never archives a live task or discovers one by title.
 
 ## Validation
 
@@ -236,6 +249,10 @@ scenario validators. Required scenarios include:
 - direction/duration and `用默认设置开始` replies dispatch without another question;
 - healthy preflight same-task rename to pinned `TikTok 主控台`;
 - pin failure is non-blocking presentation degradation and executors remain unpinned;
+- fresh executor create is followed by exact-ID `TikTok 执行台` title mutation
+  and readback, or one explicit non-blocking degraded status;
+- generated bootstrap titles are never left as silent success, and no title
+  search is used for identity or repair;
 - profile proposal required before executor creation;
 - bare continue without a visible proposal cannot start;
 - confirmed profile version is the only assignment direction reference;
@@ -275,6 +292,11 @@ scenario validators. Required scenarios include:
 - comment-lane continuity across rounds: Feed drift and callback advice cannot
   erase current cultivation authority or zero the per-round `10/7/12/15`
   Comment policy.
+- active, STOP_REQUESTED, IDLE-but-live, and unreleased executors are never
+  archived; terminal archive happens only after `RUN_RELEASED`, tab release,
+  scheduler deletion, and ledger reconciliation;
+- replacement validates the new exact owner before releasing and archiving the
+  old exact owner; archive failure is explicit degradation, never fake success.
 
 The release is complete only when local source, GitHub main/codeload, and the ZIP
 artifact are byte-identical for managed files.

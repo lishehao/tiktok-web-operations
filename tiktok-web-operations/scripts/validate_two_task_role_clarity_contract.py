@@ -22,6 +22,7 @@ def owner(decision: str) -> str:
     main = {
         "profile", "mission", "direction", "authority", "next_clusters",
         "round_envelope", "cooldown", "heartbeat", "hard_repair", "finalize",
+        "executor_title", "executor_archive",
     }
     executor = {
         "exact_query", "exact_post", "watch_progression", "candidate_fit",
@@ -58,6 +59,7 @@ def main() -> None:
     scenarios = {
         key: owner(key) for key in (
             "direction", "authority", "next_clusters", "cooldown", "heartbeat",
+            "executor_title", "executor_archive",
             "exact_query", "exact_post", "candidate_fit", "comment_text",
             "action_attempt", "within_round_recovery", "raw_evidence",
         )
@@ -65,6 +67,8 @@ def main() -> None:
     assert scenarios["comment_text"] == "TIKTOK_EXECUTOR"
     assert scenarios["cooldown"] == "TIKTOK_COORDINATOR"
     assert scenarios["authority"] == "TIKTOK_COORDINATOR"
+    assert scenarios["executor_title"] == "TIKTOK_COORDINATOR"
+    assert scenarios["executor_archive"] == "TIKTOK_COORDINATOR"
     assert scenarios["raw_evidence"] == "TIKTOK_EXECUTOR"
     print(json.dumps({
         "status": "PASS",

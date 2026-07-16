@@ -29,7 +29,12 @@ from a non-registered task/run/round; dispatch while executor active.
 The first presentation action is `TikTok 启动台`. After healthy preflight,
 rename that same exact task `TikTok 主控台`, attempt to pin it, and keep the task
 as the mission's user-facing control surface. Rename/pin failure is non-blocking
-presentation degradation. The executor is never pinned.
+presentation degradation. The executor is never pinned. Immediately after an
+executor create returns, the main task sets that exact returned ID's title to
+`TikTok 执行台` and reads back the same ID when supported. Title search is never
+an identity or repair path. If title mutation is unavailable, the main records
+`DEGRADED_EXECUTOR_TITLE_UNAVAILABLE`, continues the mission, and may attempt
+one exact-ID repair at the first safe executor-IDLE boundary.
 
 ### TIKTOK_EXECUTOR — `TikTok 执行台`
 
@@ -54,6 +59,7 @@ another task; run after callback while idle; broaden authority; overlap itself.
 |-|-|-|
 | Profile, mission, next clusters, cooldown | Main | Executor reads assignment; Main cannot narrow current user authority from callback advice |
 | Exact executor ID, generation, same-run replacement record | Main | Executor validates assignment identity |
+| Executor title and terminal archive state | Main, exact registered ID only | Executor never renames, pins, archives, or discovers by title |
 | Mission recurring Heartbeat and future-run proof | Main | Executor does not inspect it |
 | Chrome tab, TikTok page, mutations | Executor | Main never touches them |
 | Raw browser evidence and round checkpoint | Executor | Main accepts referenced proof |
@@ -85,7 +91,7 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 |-|-|-|-|-|
 | `C0_BOOTSTRAP` | task titled `TikTok 启动台` | install/upgrade, read-only preflight, required user repair | healthy dependencies/account | `C0_MAIN_READY` |
 | `C0_MAIN_READY` | same task | rename `TikTok 主控台`, pin/readback, profile lock | main identity plus confirmed profile | `C1_CREATE` |
-| `C1_CREATE` | main | at a new-mission boundary, fresh-create one executor and canonical assignment | exact IDs, generation 1, and `ASSIGNMENT_ACCEPTED` | `C1_HANDSHAKE` |
+| `C1_CREATE` | main | at a new-mission boundary, fresh-create one executor, normalize exact-ID title, and send canonical assignment | exact IDs, title verified or explicit degraded status, generation 1, and `ASSIGNMENT_ACCEPTED` | `C1_HANDSHAKE` |
 | `C1_RECOVER_EXECUTOR` | main | only for missing exact registered ID or proven stale/retired owner during the active mission, create one same-run replacement | old/new IDs, incremented generation, accepted assignment, fresh callback handshake | resume `C2_DISPATCH`; otherwise orchestration blocker |
 | `C1_HANDSHAKE` | main + executor | exact `CALLBACK_PING/ACK` and mission recurring Heartbeat create/readback | callback proof plus verified repeat-on 15-minute scheduler | `C2_DISPATCH` |
 | `C2_DISPATCH` | main | send exactly one `round_assignment/v1`; leave recurring schedule unchanged | `ROUND_DISPATCHED`, executor ACTIVE | main `C3_WAIT`, executor `E1_RUN` |
@@ -98,7 +104,7 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 | `E2_CALLBACK` | executor | send one `round_callback/v1` | accepted send, executor IDLE | wait for `C2_DISPATCH` or stop |
 | `E3_HARD_REPAIR` | executor | stop affected work and callback exact evidence | main/user repair clears state | next assignment or `E4_RELEASE` |
 | `E4_RELEASE` | executor | stop, reconcile ledger, release owned tab, callback | `RUN_RELEASED` | terminal |
-| `C6_FINALIZE` | main | stop dispatch, delete scheduler, require release proof | scheduler absent and executor released | terminal |
+| `C6_FINALIZE` | main | stop dispatch, require release proof, delete scheduler, reconcile, then archive exact executor | scheduler absent, executor released, and exact task archived or explicit archive degradation | terminal |
 
 ## Callback and scheduler invariants
 
@@ -132,6 +138,12 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 - Timer readback without exact automation ID/target/status/next run is not proof.
 - User stop, deadline, or completion deletes the scheduler only after stopping
   new dispatch and requesting executor release.
+- Executor task archival is terminal cleanup, never a stop mechanism: require
+  `RUN_RELEASED`, owned-tab release, scheduler deletion, and ledger
+  reconciliation before archiving the exact registered ID.
+- Same-run replacement binds and validates the new executor before requesting
+  old-owner release; archive only the released old exact ID, never the current
+  replacement.
 
 ## Failure routing
 
@@ -148,6 +160,11 @@ main asks the user once. Historical failures never block a clean current run.
 - No executor or TikTok work existed before profile confirmation.
 - Exactly one canonical executor ID is registered at a time; its initial
   generation was fresh-created and reused across normal rounds.
+- The fresh executor title was normalized by exact ID, or one explicit
+  non-blocking title degradation was recorded; no task was selected by title.
+- No active or unreleased executor was archived. Terminal archive proof follows
+  release and scheduler cleanup, or the result explicitly records
+  `DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`.
 - Any same-run replacement had strict absence/stale proof, incremented
   generation, old/new ID audit, one create attempt, and fresh handshake.
 - Callback ping/ack succeeded before external work.

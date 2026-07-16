@@ -44,6 +44,9 @@ perform the other task's missing work.
 ## Executor identity and reuse
 
 - Create one fresh executor for a new mission and record its exact returned ID.
+- Immediately set that exact ID's title to `TikTok 执行台` and verify same-ID
+  readback when supported; title failure is non-blocking degradation, never a
+  reason to search by title or create another executor.
 - Require assignment acceptance and a real callback handshake before external
   work.
 - Reuse the registered executor for normal rounds and active-mission
@@ -129,4 +132,8 @@ At explicit stop, deadline, completion, or terminal release:
 2. Request executor release when needed.
 3. Require worker resource-release proof.
 4. Delete the exact coordinator timer and read back deleted/absent state.
-5. Finalize only after the registry, executor, tab, and timer states reconcile.
+5. Reconcile the registry, executor, tab, ledger, and timer states.
+6. Archive only the exact released executor ID and read back archive state when
+   supported. Never archive a live current owner or any task found by title.
+7. Finalize with archive proof or explicit
+   `DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`; never fabricate cleanup success.
