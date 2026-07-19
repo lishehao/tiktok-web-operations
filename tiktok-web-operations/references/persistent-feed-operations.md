@@ -71,18 +71,21 @@ weight.
 
 Search cards are candidate discovery, not recommendation training evidence.
 Record `search_results_assessed` separately from `qualified_search_views`. A
-qualified search view requires all of: opened from a search/bridge surface,
-stable post URL/creator identity, playback or visible watch progression, and
-premise/payoff understanding. Directly opening an already-known URL does not
-replace the search-origin proof.
+qualified search view must pass `qualified-view-contract.md`: core relevance,
+search/bridge origin, unique stable identity, multiple forward playback
+observations, the duration-based continuous-watch floor, and concrete
+premise/payoff evidence. Absolute player position at page open is not watched
+time. Directly opening an already-known URL does not replace search-origin
+proof, and an action attempt never upgrades a partial view.
 
 ## Operating round and search-training units
 
 An operating round targets 35 qualified watched videos with an allowed range of
 25–45. Normally use 25–35 qualified search-origin views plus 5–10 sequential For
-You validation views. If the Feed lane is unavailable, use search-origin views
-for the whole round. Thumbnails, duplicates, clear drift, failed loads, and
-unverified playback do not count.
+You validation samples. If the Feed lane is unavailable or sampled items do not
+pass the strict qualified-view gate, use search-origin views to fill the round.
+Thumbnails, duplicates, clear drift, failed loads, and unverified playback do
+not count as qualified views.
 
 After 25 qualified views the executor may end at the next natural boundary when
 inventory quality, runtime yield, or cutoff makes that sensible. At 45 it must
@@ -125,7 +128,7 @@ unit and do not yield merely because one unit completed.
 1. Lock the audience ontology before browsing: current core clusters, adjacent boundary, exclusions, language/region, and active capability matrix.
 2. Select three distinct approved search clusters. Do not use three near-duplicate queries from the same microtopic.
 3. For each cluster, classify the first five result cards in order. Count product/storefront, stale, adjacent, and irrelevant results in the assessment denominator.
-4. Open and consume every suitable strong-core result among those five, normally three to five per cluster. Verify the exact post page, observe playback progression, and watch enough to understand the premise/payoff. Record observed/total time when exposed, without inventing a universal dwell rule.
+4. Open and consume every suitable strong-core result among those five, normally three to five per cluster. Verify the exact post page and source, then collect the strict evidence in `qualified-view-contract.md`. Record start/end progress, continuous observed watch time, total duration, required floor, and concrete premise/payoff. A long video showing only `00:01` is `opened_only`, never qualified.
 5. Return through normal page navigation to the same search context; do not substitute a direct URL list or merely inspect thumbnails/captions.
 6. Record two separate denominators: all assessed result cards and the number of qualified consumed core posts. A complete unit normally contains 9–15 qualified search views; if fewer or zero exist, write an honest completed/no-action unit and rotate weak clusters rather than opening irrelevant posts to fill a quota or escalating.
 7. When `autonomous_comment_mode` is active, comment only on a strong core post
@@ -204,7 +207,10 @@ For every transition store `position_before`, `identity_before`, `action`, `posi
 
 The purpose is interface fidelity, not stealth. Never randomize timing, move the pointer artificially, insert fake indecision, or claim to be human. Respect CAPTCHA, verification, warnings, and rate limits. Detect platform warnings only from explicit system UI; never treat ordinary caption, hashtag, comment, or search-result words as system warnings.
 
-For search training, watch long enough to understand the content and record actual progression when exposed. Do not encode a universal dwell-time formula: video length, clarity, replay need, and the research objective vary. Record whether the premise/payoff was understood, not a fabricated human-behavior score.
+For search training, use the duration-based minimum evidence floor in
+`qualified-view-contract.md`, then continue beyond it whenever the concrete
+premise/payoff remains unclear. The floor is an audit gate, not a fabricated
+human-behavior score or a reason to stop watching immediately when reached.
 
 ## Search-seed policy
 
@@ -256,7 +262,15 @@ asking for the same authorization again. Pause only from current evidence.
 
 ## Ledger and capability matrix
 
-For each viewed item record timestamp, source surface, ordered position when available, URL, freshness, creator, topic cluster, relevance label, premise/payoff understood, action candidate, and risk. For search-origin posts also record `opened_from_search=true`, stable post identity, playback progression evidence, and `qualified_search_view=true|false`. Keep `search_results_assessed`, `qualified_search_views`, and For You composition separate. Persist incrementally and validate each JSONL line immediately so a runtime failure or malformed append cannot erase/corrupt the block.
+For each viewed item record timestamp, source surface, ordered position, URL,
+freshness, creator, topic cluster, relevance label, concrete premise/payoff,
+action candidate, and risk. Also record every field required by
+`qualified-view-contract.md`, including start/end progress, continuous watch,
+duration, required floor, observations, `view_status`, and rejection reason.
+Keep `search_results_assessed`, `opened_only`, `classified_sample`,
+`qualified_search_views`, For You `sampled`, and For You qualified counts
+separate. Persist incrementally and validate each JSONL line immediately so a
+runtime failure or malformed append cannot erase or corrupt the block.
 
 Track each operating action as `attempted`, `unavailable`, or `hard_blocked`, with
 account, browser/runtime, URL, timestamp, action issued, immediate visible

@@ -10,13 +10,16 @@ Treat `刷视频` as read-only browsing unless the user separately authorizes an
    You only as a held-out recommendation check. A search card/thumbnail is not a
    consumed view, and a direct URL list loses search-origin evidence.
 3. Inspect one post at a time: creator, caption/on-screen premise, language, sound, visible context, comment culture, engagement signals, and account relevance.
-4. Watch enough to understand the setup and payoff. Use only the currently
-   approved native transition method after the relevant evidence is captured.
+4. Apply `qualified-view-contract.md`. Record multiple forward playback
+   observations, continuous time after the first observation, the duration
+   floor, and concrete setup/payoff evidence before setting
+   `qualified_view=true`. Use only the currently approved native transition
+   method after the relevant evidence is captured.
    Skip without forcing a comment when the context is unclear, stale, unsafe,
    irrelevant, or the route/action is prohibited. Do not ask to bypass a rule.
 5. Label the post `core`, `adjacent`, `irrelevant`, or `harmful_to_direction`; keep the post URL and a one-line reason. Stop when the sample is sufficient for the objective or the user-supplied time limit ends.
 6. When the feed drifts, run two search-training blocks (normally 20–30 qualified opened/watched core posts) before another 5–10 item For You validation. Treat any change as observed correlation, not proof of TikTok's ranking mechanism.
-7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the video was viewed. Under an authorized cultivation envelope, Like/Favorite/Repost/Comment use independent best-effort attempts while the qualified post is open; TikTok Repost remains distinct from generic Share.
+7. Do not like, favorite, repost, use `Not interested`, follow, share, like a comment, or publish a comment merely because the page opened or the video was classified. Under an authorized cultivation envelope, Like/Favorite/Repost/Comment use independent best-effort attempts only after the strict qualified-view gate passes while the post remains open; TikTok Repost remains distinct from generic Share.
 
 For You drift never zeroes Comment or pauses it across the next search block.
 Treat `new cluster match` as a per-video eligibility check. When a new

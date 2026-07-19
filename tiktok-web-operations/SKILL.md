@@ -131,6 +131,8 @@ It accepts work only from its registered main task and exact run ID.
 
 Read `references/role-and-stage-contract.md` and
 `references/operating-model.md` before creating an execution task or Heartbeat.
+Every executor must also read `references/qualified-view-contract.md` before its
+first browsing round and apply that contract to every opened video.
 
 ## Entrypoints
 
@@ -216,8 +218,10 @@ range of 25–45. This is a work-size boundary, not an exact quota:
 
 - normally 25–35 strong-core search-origin views plus 5–10 sequential For You
   validation views;
-- if For You is unavailable, search-origin views may fill the whole round;
-- thumbnails, duplicates, clear drift, and failed loads do not count;
+- if For You is unavailable or sampled items fail the qualified-view gate,
+  search-origin views may fill the whole round;
+- thumbnails, duplicates, adjacent/drift content, failed loads, and
+  `opened_only|classified_sample` records do not count;
 - after 25 qualified views, finish at the next natural boundary when quality or
   runtime conditions justify it; never exceed 45 before a durable checkpoint;
 - a normal 35-view round may contain multiple search units and makes exactly one
@@ -227,9 +231,11 @@ range of 25–45. This is a work-size boundary, not an exact quota:
 2. Assess the first five results per cluster and open every suitable strong-core
    result. A normal unit contains 9–15 qualified search-origin views; fewer is an
    honest no-action unit, not a blocker.
-3. Watch enough to understand premise/payoff and record actual progression when
-   available. Search cards and direct-known URLs do not count as qualified
-   training views.
+3. Apply `STRICT_QUALIFIED_VIEW_V2`: record two or more playback observations,
+   continuous watch time after the first observation, duration-based watch
+   floor, and concrete premise/payoff evidence. A page-open progress value,
+   action click, caption paraphrase, or one-second autoplay does not qualify a
+   view. Search cards and direct-known URLs do not count as search-origin proof.
 4. Immediately after each qualified view is understood and before navigating
    away, evaluate all four eligible Like/Favorite/Repost/Comment lanes. Execute
    justified native actions once in that same browsing flow; do not defer
@@ -455,6 +461,13 @@ each five-card assessment, mutation attempt, For You checkpoint, round callback,
 scheduler wake decision, and next-round dispatch. Store raw browsing evidence in
 the executor ledger and coordinator state/cooldown decisions in the main ledger;
 never put mutable evidence in the Heartbeat prompt.
+
+Before a round callback, validate that every claimed qualified view has the
+required `qualified-view-contract.md` fields and that the unique qualifying
+ledger-row count exactly equals `qualified_views.total`. Keep `opened`,
+`classified_sample`, For You `sampled`, and `qualified` counts separate. Fail
+closed on missing or contradictory watch evidence; do not fill a round by
+upgrading partial views.
 
 At deadline, explicit stop, or objective completion: the main task stops new
 dispatch, sends a stop instruction if the executor is active, requires executor

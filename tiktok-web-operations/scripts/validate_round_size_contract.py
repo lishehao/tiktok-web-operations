@@ -20,7 +20,8 @@ def main():
     joined = " ".join("\n".join(p.read_text() for p in FILES if p.is_file()).split())
     required = ("targets 35 qualified", "25–45", "25–35", "5–10",
                 "thumbnails", "duplicates", "do not count",
-                "callback", "10–20 minute", "next_dispatch_at")
+                "callback", "10–20 minute", "next_dispatch_at",
+                "STRICT_QUALIFIED_VIEW_V2", "classified_sample")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     scenarios = {str(n): boundary(n, natural=(n in {25,35,44})) for n in (0,24,25,34,35,44,45,50)}

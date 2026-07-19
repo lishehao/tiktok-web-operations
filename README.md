@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.16.1`
+Protocol version: `2026.07.19.1`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -170,8 +170,14 @@ The primary training path is directed search, not Feed browsing:
 2. Five result cards assessed per cluster.
 3. Each operating round targets 35 qualified views, with an allowed 25–45
    range: normally 25–35 search-origin views plus 5–10 For You validation views.
-   For You failure may be replaced by search views. Duplicates, drift, failed
-   loads, and thumbnails do not count.
+   For You failure or sampled-item qualification shortfall may be replaced by
+   search views. Duplicates, drift, failed loads, and thumbnails do not count.
+   A qualified view must use `STRICT_QUALIFIED_VIEW_V2`: unique source/identity,
+   multiple forward playback observations, continuous watch after the first
+   observation meeting the duration-based floor, and concrete premise/payoff.
+   Page-open progress, a one-second autoplay, caption-only classification, or an
+   action click never qualifies a view. For You sampled identities and qualified
+   views remain separate counts.
 4. While every qualified video is still open, evaluate Like, Favorite, Repost,
    and Comment together and immediately issue justified native actions once. Do
    not postpone interaction until after the viewing round and do not wait/reload/
@@ -284,6 +290,10 @@ scenario validators. Required scenarios include:
 - independent lanes and independent runs;
 - network/Chrome recovery with callback only at a bounded-round boundary;
 - 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;
+- strict qualified-view classification: page-open/one-second autoplay fails,
+  short/medium/long duration floors pass only with multiple forward observations
+  and concrete premise/payoff, and For You sampled identities remain separate
+  from qualified views;
 - concurrent Like/Favorite/Repost/Comment attempt coverage during viewing, with
   `attempted|unavailable|hard_blocked` reporting and no persistence checks.
 - comment-priority 7–12 target range, at most three comment mutations on one

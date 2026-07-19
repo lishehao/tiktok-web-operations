@@ -74,6 +74,14 @@ The main task accepts it only when coordinator, executor, run, round, schema,
 hash, sender, and sequence match. Duplicate, late, misbound, or out-of-sequence
 callbacks perform no dispatch.
 
+Also require `qualified_view_contract=STRICT_QUALIFIED_VIEW_V2` and exact
+ledger reconciliation before accepting the counts. A stable page, caption,
+action attempt, or absolute progress value is not consumption proof. The
+qualified total must equal unique ledger rows that contain source proof,
+multiple forward playback observations, continuous watch meeting the
+duration-based floor, and concrete premise/payoff evidence. Keep For You
+`sampled` identities separate from qualified views.
+
 After acceptance, the main task chooses the next three search clusters,
 interaction emphasis, and a 10-20 minute cooldown. Dynamic strategy and pending
 round state stay in the main ledger; raw browser evidence and deduplication stay

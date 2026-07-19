@@ -127,6 +127,9 @@ validates exact bytes/hash/identity before Chrome work.
 The main task sends one `round_assignment/v1` containing run/round IDs, three
 search clusters, exclusions, 25–45 qualified-view boundary, For You sample,
 interaction emphasis, current authority ref, deadline, and resume cursor.
+Every assignment also sets
+`"qualified_view_contract":"STRICT_QUALIFIED_VIEW_V2"`; the executor may not
+replace it with a looser page-open or progress-present rule.
 For an authorized cultivation mission it also contains the authoritative lane
 envelope below; emphasis may rank candidates but may not delete or zero a lane:
 
@@ -172,6 +175,8 @@ inside the envelope, checkpoints incrementally, then sends exactly one
   "executor_thread_id":"<exact executor id>",
   "status":"ROUND_COMPLETED|ROUND_BLOCKED|RUN_RELEASED",
   "qualified_views":{"search":0,"for_you":0,"total":0},
+  "view_evidence_summary":{"opened":0,"classified_sample":0,"qualified":0,"watch_floor_rejected":0,"invalid":0},
+  "qualified_view_contract":"STRICT_QUALIFIED_VIEW_V2",
   "feed_composition":{"core":0,"adjacent":0,"drift":0},
   "mutation_attempts":{"like":0,"favorite":0,"repost":0,"comment":0},
   "cluster_evidence":[],
@@ -191,6 +196,13 @@ The callback contains observed facts. `next_round_suggestions` may propose
 clusters, emphasis, or risks, but cannot change authority, schedule work, or act
 as a next assignment. The main task accepts/rejects those suggestions against
 the current mission and writes the sole next-round decision.
+
+The main task accepts qualified-view counts only when the ledger tail validates
+against `qualified-view-contract.md`: unique rows with `qualified_view=true`
+must equal the callback total and each must contain stable identity, exact source
+proof, multiple playback observations, continuous watch/floor fields, and
+concrete premise/payoff. For You `sampled` is a separate denominator and may
+include early-skipped drift; it must not inflate qualified views.
 
 ## Strategy and cooldown
 
