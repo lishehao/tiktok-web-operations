@@ -30,6 +30,7 @@ def transition(event: str) -> str:
         "active_executor": "ARCHIVE_FORBIDDEN",
         "idle_live_executor": "ARCHIVE_FORBIDDEN",
         "stop_requested": "ARCHIVE_FORBIDDEN_PENDING_RELEASE",
+        "release_uncertain": "ARCHIVE_FORBIDDEN_RELEASE_UNKNOWN",
         "released_scheduler_present": "DELETE_READBACK_RECONCILE_BEFORE_ARCHIVE",
         "terminal_reconciled": "ARCHIVE_EXACT_RELEASED_ID_READBACK",
         "archive_tool_unavailable": "TERMINAL_WITH_EXPLICIT_ARCHIVE_DEGRADATION",
@@ -70,6 +71,7 @@ def main() -> None:
         "active_executor",
         "idle_live_executor",
         "stop_requested",
+        "release_uncertain",
         "released_scheduler_present",
         "terminal_reconciled",
         "archive_tool_unavailable",
@@ -83,6 +85,7 @@ def main() -> None:
     assert scenarios["title_tool_unavailable"].startswith("CONTINUE_DEGRADED")
     assert scenarios["active_executor"] == "ARCHIVE_FORBIDDEN"
     assert scenarios["idle_live_executor"] == "ARCHIVE_FORBIDDEN"
+    assert scenarios["release_uncertain"] == "ARCHIVE_FORBIDDEN_RELEASE_UNKNOWN"
     assert scenarios["terminal_reconciled"] == "ARCHIVE_EXACT_RELEASED_ID_READBACK"
     assert scenarios["replacement_created_unbound"] == "KEEP_OLD_UNARCHIVED"
     assert scenarios["replacement_bound_old_released"] == "ARCHIVE_OLD_EXACT_ID_ONLY"

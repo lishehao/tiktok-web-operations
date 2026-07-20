@@ -15,14 +15,23 @@ Before cutoff, every scheduler turn must finish with the same verified recurring
 Heartbeat and a future next run, whether it dispatches or waits. Transient
 `read_thread` failure, empty response, `notLoaded`, active executor, early
 cooldown, and missing callback proof do not erase accepted state or alter the
-recurrence. Request missing callback/status at most once per round; later ticks
+recurrence. Request missing callback/status at most once per expected boundary; later ticks
 wait quietly.
+
+An executor that exhausts one same-Chrome recovery pass returns
+`ROUND_YIELDED/RECOVERY_PENDING` and IDLE. The main preserves that round's ID,
+sequence, counts, remaining budgets, cursor, dedup set, and frozen action keys.
+Each due tick may dispatch one `RECOVERY_FIRST` resume of the same round;
+repeated failure increments `retry_epoch` and yields again. This cross-wake loop
+continues without deleting the Heartbeat or creating a new executor/round.
 
 For a misbound/duplicate/misconfigured scheduler, do no dispatch. Repair the
 exact binding in place; if replacement is unavoidable, verify the corrected
 replacement before disabling the old one. Never create a per-round substitute.
-Explicit stop, `operation_stop_at`, objective completion, or terminal release
-deletes the main task's exact scheduler after executor release is requested.
+Explicit stop, `operation_stop_at`, or objective completion stops new TikTok
+work and requests release. Keep the finite cleanup wake until `RUN_RELEASED` or
+cleanup `UNTIL`; at unresolved expiry record `RELEASE_UNCERTAIN`, delete/read
+back the timer, and do not archive.
 
 Treat `ACTIVE` plus no future occurrence before cutoff as
 `MISSION_SCHEDULER_EXPIRED`. While the mission is live, repair the same exact
@@ -37,6 +46,9 @@ reviving missed work.
   comment budget; a failure in either remains scoped to the exact action.
 - Missing persistence or post-action proof never disables a lane. Record
   `attempted`; only the exact uncertain target/action is not retried.
+- Write `MUTATION_INTENT` plus a stable `action_key` before the native call. A
+  tool timeout after the call may have been issued becomes `MUTATION_UNKNOWN`;
+  that key is never issued again after recovery.
 - Two consecutive native For You transition failures disable only held-out Feed
   validation; qualified search training continues.
 - Empty candidates produce a completed no-action checkpoint and cluster

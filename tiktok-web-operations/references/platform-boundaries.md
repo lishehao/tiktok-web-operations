@@ -35,7 +35,8 @@ content/account warning, feature restriction, login mismatch, or a post/comment
 that may already have submitted but cannot be verified. Timed rate limits auto-
 wait; copyright/feature restrictions abandon only that publication/action;
 uncertain submission freezes only that exact mutation. Stop the whole mission
-and ask the user only for the hard-blocker whitelist in
-`blocker-minimization.md`.
+only for an explicit terminal condition. For the live human-repair whitelist in
+`blocker-minimization.md`, stop affected TikTok work, ask once through the main
+task, preserve the Heartbeat, and allow later read-only rechecks.
 
 Warnings and removals override planned cadence. Do not recover by opening or switching to another account.

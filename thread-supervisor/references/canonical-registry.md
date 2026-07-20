@@ -42,15 +42,27 @@ The executor validates bytes/hash/identity and records `ASSIGNMENT_ACCEPTED`.
 External work remains forbidden until exact `CALLBACK_PING/v1` and
 `CALLBACK_ACK/v1` proof succeeds.
 
-Each `round_assignment/v1` includes run/round IDs, three clusters, exclusions,
-view boundary, For You plan, action emphasis, authority ref, deadline, and
-resume cursor. Each `round_callback/v1` includes exact IDs/sequence, status,
+Each `round_assignment/v1` includes run/round IDs, `round_seq`, the expected
+per-round `boundary_seq`, three clusters, exclusions, view boundary, For You
+plan, action emphasis, authority ref, deadline, and resume cursor. Each
+`round_callback/v1` echoes the exact `boundary_seq` and includes status,
 view/feed/action counts, cluster evidence, cursor, capability delta, blocker,
 executor state, and ledger-tail ref.
 
-The main task accepts a callback only when exact IDs, run, expected round,
-schema, hash, and sender match. Duplicate, late, misbound, or out-of-sequence
-callbacks perform no dispatch.
+For a transient Chrome boundary, `round_callback/v1` uses
+`status=ROUND_YIELDED` plus recovery state, retry epoch, next retry time, frozen
+action keys, and the accepted resume cursor. The next assignment preserves the
+same round ID/sequence, increments `boundary_seq`, and uses
+`resume_mode=RECOVERY_FIRST`; it never resets counts or budgets. After a
+completed round, increment `round_seq` and reset `boundary_seq=1`. Before every
+mutation, store a deterministic
+`MUTATION_INTENT/action_key`; an unknown tool return freezes that key.
+
+The main task accepts a callback only when exact IDs, run, expected
+`round_id`/`round_seq`/`boundary_seq`, schema, hash, and sender match. Duplicate,
+late, misbound, or out-of-sequence callbacks perform no dispatch. A repeated
+yield in the same logical round is therefore a new boundary, not a duplicate
+round callback.
 
 Direction, authority, and mission are independently versioned by the main task.
 The executor never edits those objects; it reports observations. Mutable

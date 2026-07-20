@@ -36,6 +36,15 @@ def transition(event: str) -> dict[str, object]:
         "dispatch": {"action": "DISPATCH_ONE", "schedule": "UNCHANGED"},
         "callback": {
             "action": "STORE_IDLE_AND_NEXT_DISPATCH_AT",
+            "round_seq": "INCREMENT",
+            "boundary_seq": "RESET_TO_1",
+            "schedule": "UNCHANGED",
+        },
+        "round_yielded": {
+            "action": "STORE_RECOVERY_PENDING_SAME_ROUND",
+            "round_seq": "UNCHANGED",
+            "boundary_seq": "INCREMENT",
+            "next_dispatch": "RECOVERY_FIRST",
             "schedule": "UNCHANGED",
         },
         "due_callback_idle": {
@@ -69,7 +78,14 @@ def transition(event: str) -> dict[str, object]:
             "action": "MISSION_SCHEDULER_EXPIRED_REPAIR_IN_PLACE",
             "dispatch_allowed_before_repair": False,
         },
-        "cutoff": {"action": "DELETE_HEARTBEAT_FINALIZE"},
+        "cutoff": {
+            "action": "STOP_TIKTOK_REQUEST_RELEASE_KEEP_CLEANUP_WAKE",
+            "schedule": "UNCHANGED_UNTIL_RELEASE_OR_CLEANUP_UNTIL",
+        },
+        "cleanup_released": {"action": "DELETE_READBACK_RECONCILE_ARCHIVE"},
+        "cleanup_expired_unreleased": {
+            "action": "RELEASE_UNCERTAIN_DELETE_READBACK_NO_ARCHIVE"
+        },
     }[event]
 
 
@@ -111,6 +127,14 @@ def main() -> None:
         "notLoaded",
         "MISSION_SCHEDULER_EXPIRED",
         "DONT_NOTIFY",
+        "ROUND_YIELDED",
+        "RECOVERY_FIRST",
+        "boundary_seq",
+        "pending_boundary_seq",
+        "ROUND_PROGRESS",
+        "CHECKPOINT_OR_YIELD/v1",
+        "PROGRESS_UNVERIFIED",
+        "RELEASE_UNCERTAIN",
     )
     absent = [term for term in required if term.lower() not in joined.lower()]
     assert not absent, absent
@@ -129,6 +153,7 @@ def main() -> None:
         "create",
         "dispatch",
         "callback",
+        "round_yielded",
         "due_callback_idle",
         "callback_delivery_lost",
         "active_executor_tick",
@@ -137,6 +162,8 @@ def main() -> None:
         "transient_read_failure",
         "active_no_future_occurrence",
         "cutoff",
+        "cleanup_released",
+        "cleanup_expired_unreleased",
     )
     scenarios = {event: transition(event) for event in events}
     cutoff = datetime(2026, 7, 15, 13, 29, 11, tzinfo=timezone.utc)
@@ -145,13 +172,24 @@ def main() -> None:
     assert scenarios["create"]["interval_minutes"] == 15
     assert scenarios["create"]["count_one"] is False
     assert scenarios["callback"]["schedule"] == "UNCHANGED"
+    assert scenarios["callback"]["round_seq"] == "INCREMENT"
+    assert scenarios["callback"]["boundary_seq"] == "RESET_TO_1"
+    assert scenarios["round_yielded"] == {
+        "action": "STORE_RECOVERY_PENDING_SAME_ROUND",
+        "round_seq": "UNCHANGED",
+        "boundary_seq": "INCREMENT",
+        "next_dispatch": "RECOVERY_FIRST",
+        "schedule": "UNCHANGED",
+    }
     assert scenarios["callback_delivery_lost"]["action"] == "NEXT_RECURRING_TICK_RECOVERS"
     assert scenarios["due_callback_idle"]["requires_live_thread_read"] is False
     assert scenarios["active_executor_tick"]["action"] == "NO_DISPATCH"
     assert scenarios["active_executor_tick"]["notify"] is False
     assert scenarios["missing_callback"]["action"] == "REQUEST_ONCE_THEN_WAIT"
     assert scenarios["active_no_future_occurrence"]["dispatch_allowed_before_repair"] is False
-    assert scenarios["cutoff"]["action"] == "DELETE_HEARTBEAT_FINALIZE"
+    assert scenarios["cutoff"]["action"] == "STOP_TIKTOK_REQUEST_RELEASE_KEEP_CLEANUP_WAKE"
+    assert scenarios["cleanup_released"]["action"] == "DELETE_READBACK_RECONCILE_ARCHIVE"
+    assert scenarios["cleanup_expired_unreleased"]["action"].endswith("NO_ARCHIVE")
     assert rrule == "RRULE:FREQ=MINUTELY;INTERVAL=15;UNTIL=20260715T134411Z"
     assert "COUNT=" not in rrule
     assert cleanup_until - cutoff == timedelta(minutes=15)

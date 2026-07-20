@@ -18,6 +18,8 @@ def route(event: str):
         "preflight_healthy":"SAME_TASK_MAIN_RENAME_PIN",
         "assignment_accepted":"CALLBACK_HANDSHAKE_THEN_ROUND1",
         "round_complete":"EXECUTOR_CALLBACK_IDLE",
+        "round_yielded":"EXECUTOR_CALLBACK_IDLE_SAME_ROUND_RECOVERY_PENDING",
+        "recovery_due":"MAIN_RECOVERY_FIRST_SAME_ROUND",
         "callback_accepted":"MAIN_REPLAN_STORE_DUE_KEEP_RECURRENCE",
         "before_due":"MAIN_TICK_NO_DISPATCH_KEEP_RECURRENCE",
         "wake_due_callback_idle":"MAIN_DISPATCH_FROM_CALLBACK_PROOF_KEEP_RECURRENCE",
@@ -34,7 +36,8 @@ def route(event: str):
         "task_not_loaded":"MAIN_RETAIN_OWNER_KEEP_RECURRENCE",
         "terminal_new_instruction":"MAIN_NEW_RUN_FRESH_EXECUTOR",
         "terminal_reconciled":"MAIN_ARCHIVE_EXACT_RELEASED_EXECUTOR",
-        "deadline":"MAIN_STOP_DELETE_MISSION_HEARTBEAT_RELEASE",
+        "deadline":"MAIN_STOP_TIKTOK_REQUEST_RELEASE_KEEP_CLEANUP_WAKE",
+        "cleanup_expired_unreleased":"MAIN_RELEASE_UNCERTAIN_DELETE_NO_ARCHIVE",
     }[event]
 
 def main():
@@ -42,15 +45,19 @@ def main():
     joined = "\n".join(p.read_text() for p in FILES if p.is_file())
     required = ("TIKTOK_COORDINATOR", "TIKTOK_EXECUTOR", "C0_BOOTSTRAP",
                 "C1_HANDSHAKE", "C2_DISPATCH", "C3_WAIT", "C4_REPLAN",
-                "C1_RECOVER_EXECUTOR", "C5_COOLDOWN", "C5_RECOVERY", "C6_FINALIZE", "E1_RUN",
+                "C1_RECOVER_EXECUTOR", "C5_COOLDOWN", "C5_RECOVERY", "C6_FINALIZE",
+                "C6_RELEASE_UNCERTAIN", "E1_RUN",
+                "E1_RECOVERY",
                 "E2_CALLBACK", "E3_HARD_REPAIR", "E4_RELEASE",
                 "Single-writer responsibility matrix", "one bounded round",
-                "DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE")
+                "DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE", "boundary_seq",
+                "ROUND_PROGRESS", "CHECKPOINT_OR_YIELD/v1",
+                "PROGRESS_UNVERIFIED")
     missing = [x for x in required if x.lower() not in joined.lower()]
     assert not missing, missing
     events = ("profile_unconfirmed","profile_confirmed","executor_created",
               "executor_title_unavailable","preflight_healthy",
-              "assignment_accepted","round_complete","callback_accepted",
+              "assignment_accepted","round_complete","round_yielded","recovery_due","callback_accepted",
               "before_due","wake_due_callback_idle",
               "wake_due_read_unavailable_callback_idle",
               "wake_due_missing_idle_proof",
@@ -58,9 +65,11 @@ def main():
               "network_fault","captcha","direction_change","deadline")
     events = events[:-1] + ("same_mission_continue", "registered_owner_missing",
                            "task_not_loaded", "terminal_new_instruction",
-                           "terminal_reconciled", "deadline")
+                           "terminal_reconciled", "deadline", "cleanup_expired_unreleased")
     scenarios = {e: route(e) for e in events}
     assert scenarios["round_complete"] == "EXECUTOR_CALLBACK_IDLE"
+    assert scenarios["round_yielded"] == "EXECUTOR_CALLBACK_IDLE_SAME_ROUND_RECOVERY_PENDING"
+    assert scenarios["recovery_due"] == "MAIN_RECOVERY_FIRST_SAME_ROUND"
     assert scenarios["before_due"] == "MAIN_TICK_NO_DISPATCH_KEEP_RECURRENCE"
     assert scenarios["wake_due_callback_idle"] == "MAIN_DISPATCH_FROM_CALLBACK_PROOF_KEEP_RECURRENCE"
     assert scenarios["wake_due_read_unavailable_callback_idle"] == scenarios["wake_due_callback_idle"]
@@ -74,6 +83,7 @@ def main():
     assert scenarios["terminal_new_instruction"] == "MAIN_NEW_RUN_FRESH_EXECUTOR"
     assert scenarios["executor_created"] == "MAIN_SET_EXACT_ID_TITLE_READBACK"
     assert scenarios["terminal_reconciled"] == "MAIN_ARCHIVE_EXACT_RELEASED_EXECUTOR"
+    assert scenarios["cleanup_expired_unreleased"].endswith("NO_ARCHIVE")
     print(json.dumps({"status":"PASS","steady_role_count":2,"scenarios":scenarios}, sort_keys=True))
 
 if __name__ == "__main__": main()

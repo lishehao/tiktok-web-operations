@@ -17,7 +17,7 @@ two-task coordinator/worker topology. Also read `canonical-registry.md` and
 ```text
 TikTok 启动台 --healthy same-task transition--> pinned TikTok 主控台
 TikTok 主控台 --bounded round_assignment/v1--> TikTok 执行台
-TikTok 执行台 --ROUND_COMPLETED|BLOCKED|RELEASED callback--> TikTok 主控台
+TikTok 执行台 --ROUND_COMPLETED|YIELDED|BLOCKED|RELEASED callback--> TikTok 主控台
 TikTok 主控台 --15-minute recurring scheduler tick when due--> next round
 ```
 
@@ -29,6 +29,12 @@ reporting. It never owns a TikTok operating tab or performs TikTok mutations.
 The executor owns one dedicated Chrome tab, raw evidence, within-round recovery,
 and one bounded 25-45-view round at a time. It never creates, updates, views, or
 deletes an automation.
+
+During an active round, append a local `ROUND_PROGRESS` ledger row after each
+10 newly qualified views and whenever entering recovery. This is not a callback,
+does not make the executor IDLE, and cannot authorize dispatch. The main may
+read only the known executor-ledger tail on its scheduled wake to update
+`last_executor_progress_at_utc` without touching Chrome.
 
 Keep the role sentence literal:
 
@@ -71,8 +77,18 @@ references, then complete `CALLBACK_PING/v1` and `CALLBACK_ACK/v1`.
 
 At round completion, the executor sends one canonical callback and becomes idle.
 The main task accepts it only when coordinator, executor, run, round, schema,
-hash, sender, and sequence match. Duplicate, late, misbound, or out-of-sequence
-callbacks perform no dispatch.
+hash, sender, `round_seq`, and expected `boundary_seq` match. `boundary_seq`
+starts at 1 for a logical round and identifies each bounded executor segment.
+Duplicate, late, misbound, or out-of-sequence callbacks perform no dispatch.
+
+When one Chrome recovery pass remains unresolved, use
+`status=ROUND_YIELDED`, `recovery_state=RECOVERY_PENDING`, and IDLE. Preserve the
+same round ID/sequence, counts, remaining budgets, resume cursor, dedup set, and
+frozen action keys. The first due scheduler tick sends one
+`resume_mode=RECOVERY_FIRST` assignment for that same round with the next
+`boundary_seq`. Repeated yields increment both `retry_epoch` and boundary
+sequence; they never create a new logical round, executor, timer, or budget
+reset. A completed round increments `round_seq` and resets `boundary_seq=1`.
 
 Also require `qualified_view_contract=STRICT_QUALIFIED_VIEW_V2` and exact
 ledger reconciliation before accepting the counts. A stable page, caption,
@@ -113,11 +129,20 @@ Keep that exact Heartbeat unchanged across ordinary callbacks and rounds:
   proof exists and `now >= next_dispatch_at`.
 - An active executor, early cooldown, missing callback, or transient read/tool/
   network fault performs no dispatch and leaves the recurrence intact.
-- Request a missing status/callback at most once per round; later ticks wait
+- If an ACTIVE boundary has no new validated `ROUND_PROGRESS` or callback for
+  60 minutes, send one exact `CHECKPOINT_OR_YIELD/v1` request for that boundary.
+  If no evidence follows, record `PROGRESS_UNVERIFIED`; do not duplicate the
+  request, dispatch, interrupt an uncertain mutation, replace a merely unreadable
+  owner, or delete the Heartbeat. Later progress or the normal cutoff resolves it.
+- An accepted `ROUND_YIELDED` callback dispatches one recovery-first resume of
+  the same round at/after its stored retry time; the Heartbeat remains unchanged.
+- Request a missing status/callback at most once per expected boundary; later ticks wait
   without duplicate messages. No-change ticks use `DONT_NOTIFY` only after
   recurring readback succeeds.
-- At/after cutoff, send no new work, request release when needed, delete the
-  exact Heartbeat, and finalize.
+- At/after cutoff, send no new TikTok work and request release. Keep the finite
+  cleanup occurrence until `RUN_RELEASED` or cleanup `UNTIL`. At unresolved
+  expiry record `RELEASE_UNCERTAIN`, delete/read back the Heartbeat, and leave
+  the executor unarchived.
 
 Before every nonterminal scheduler turn returns, require the same exact
 `ACTIVE`, repeat-on 15-minute Heartbeat with a future run and cleanup `UNTIL`.
@@ -136,10 +161,12 @@ evidence.
 
 At explicit stop, deadline, completion, or terminal release:
 
-1. Stop new dispatch.
+1. Stop new TikTok dispatch.
 2. Request executor release when needed.
-3. Require worker resource-release proof.
-4. Delete the exact coordinator timer and read back deleted/absent state.
+3. Retain the finite cleanup wake while awaiting worker resource-release proof.
+4. On proof, delete the exact coordinator timer and read back deleted/absent
+   state. On cleanup expiry without proof, record `RELEASE_UNCERTAIN`, delete
+   the timer, and do not archive.
 5. Reconcile the registry, executor, tab, ledger, and timer states.
 6. Archive only the exact released executor ID and read back archive state when
    supported. Never archive a live current owner or any task found by title.

@@ -58,8 +58,8 @@ def main() -> None:
         "global English with North American bias",
         "Defaults fill missing proposal fields",
         "auto-recheck",
-        "freeze exact target/action",
-        "main task asks the user",
+        "freeze exact `action_key`",
+        "main asks once",
         "callback",
         "executor never creates a timer",
     )

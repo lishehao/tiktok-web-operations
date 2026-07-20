@@ -101,10 +101,12 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 | `C5_RECOVERY` | main scheduler | preserve pending round and recurring liveness while awaiting missing proof | future recurring run, recovered dispatch, or strict stale/missing-owner proof | `C5_COOLDOWN`, `C3_WAIT`, `C1_RECOVER_EXECUTOR`, or `C6_FINALIZE` |
 | `E0_ACCEPT` | executor | validate assignment and handshake | exact IDs/refs, callback ACK | `E1_RUN` |
 | `E1_RUN` | executor | one 25–45-view search-led round plus interactions | durable checkpoint | `E2_CALLBACK` |
-| `E2_CALLBACK` | executor | send one `round_callback/v1` | accepted send, executor IDLE | wait for `C2_DISPATCH` or stop |
+| `E1_RECOVERY` | executor | run one bounded same-Chrome recovery pass for the current round | restored health, or `ROUND_YIELDED` with a valid recovery checkpoint | resume `E1_RUN` or `E2_CALLBACK` |
+| `E2_CALLBACK` | executor | send one `round_callback/v1` for the expected `boundary_seq` of a completed, yielded, hard-repair, or release boundary | callback bytes/hash stored, executor IDLE; uncertain delivery is recorded without blind resend | wait for `C2_DISPATCH` or stop |
 | `E3_HARD_REPAIR` | executor | stop affected work and callback exact evidence | main/user repair clears state | next assignment or `E4_RELEASE` |
 | `E4_RELEASE` | executor | stop, reconcile ledger, release owned tab, callback | `RUN_RELEASED` | terminal |
-| `C6_FINALIZE` | main | stop dispatch, require release proof, delete scheduler, reconcile, then archive exact executor | scheduler absent, executor released, and exact task archived or explicit archive degradation | terminal |
+| `C6_FINALIZE` | main | stop TikTok dispatch, request release, retain cleanup wake | `RUN_RELEASED` proof, or cleanup `UNTIL` expires unresolved | delete/reconcile/archive after proof, or `C6_RELEASE_UNCERTAIN` |
+| `C6_RELEASE_UNCERTAIN` | main | record unknown release/tab state, delete/read back scheduler, forbid archive | timer absent plus explicit `RELEASE_UNCERTAIN` | terminal |
 
 ## Callback and scheduler invariants
 
@@ -116,7 +118,8 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 - Same-run replacement is allowed once only for an absent registered ID or a
   proven stale/retired executor; keep the run ID, increment generation, record
   old/new IDs, and repeat assignment plus callback handshake.
-- Accept exactly one callback for the expected run/round sequence.
+- Accept exactly one callback for the expected run, round ID/sequence, and
+  per-round `boundary_seq`; duplicates do not consume IDLE proof.
 - Executor callbacks and becomes idle after every completed round.
 - Main chooses strategy and 10–20 minute cooldown from callback evidence.
 - Main preserves all currently authorized cultivation lanes in every assignment;
@@ -128,16 +131,26 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
   or one timer per round.
 - Callback persists IDLE proof and `next_dispatch_at` without rewriting the
   recurring schedule; the first due tick dispatches once.
+- `ROUND_YIELDED` preserves the same round ID/sequence, counts, remaining
+  budgets, dedup set, frozen action keys, and resume cursor. A due tick sends one
+  `RECOVERY_FIRST` resume with the next `boundary_seq`, not a new round or budget
+  reset. Completion advances `round_seq` and resets `boundary_seq=1`.
 - Every nonterminal scheduler turn must read back the same recurring Heartbeat
   with a future run and cleanup `UNTIL` before it exits.
 - A transient executor read failure never invalidates accepted callback-IDLE
   proof. Missing proof preserves the pending round and recurrence; request one
-  status/callback at most once per round and let later ticks retry quietly.
+  status/callback at most once per expected boundary and let later ticks retry quietly.
+- Executor writes local `ROUND_PROGRESS` every 10 qualified views and on
+  recovery entry. Sixty minutes with no new validated progress permits one
+  boundary-scoped `CHECKPOINT_OR_YIELD/v1`; `PROGRESS_UNVERIFIED` never permits
+  duplicate dispatch, owner replacement, or Heartbeat deletion.
 - Use fresh machine UTC for `next_dispatch_at`; never trust model-estimated or
   out-of-order ledger timestamps.
 - Timer readback without exact automation ID/target/status/next run is not proof.
-- User stop, deadline, or completion deletes the scheduler only after stopping
-  new dispatch and requesting executor release.
+- User stop, deadline, or completion stops new TikTok work and requests release;
+  the finite cleanup wake remains until `RUN_RELEASED` or cleanup `UNTIL`.
+- At cleanup expiry without release/tab proof, record `RELEASE_UNCERTAIN`,
+  delete/read back the timer, and leave the executor unarchived.
 - Executor task archival is terminal cleanup, never a stop mechanism: require
   `RUN_RELEASED`, owned-tab release, scheduler deletion, and ledger
   reconciliation before archiving the exact registered ID.
@@ -149,10 +162,13 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
 
 Ordinary candidate, route, page, network, evidence, and lane failures stay
 inside the current bounded round. An uncertain mutation freezes only that exact
-target/action. When a failure ends the round, executor callbacks the smallest
-scope. Persistent login/account mismatch, CAPTCHA, explicit lock/ban,
-credential need, or sole Chrome-control failure returns to the main task; the
-main asks the user once. Historical failures never block a clean current run.
+`action_key`. After one failed recovery pass, executor returns `ROUND_YIELDED`
+with `RECOVERY_PENDING`; later Heartbeats retry that same round without resetting
+counts or budgets. Persistent login/account mismatch, CAPTCHA, explicit
+lock/ban, credential need, or sole Chrome-control failure returns
+`HUMAN_REPAIR_PENDING` to the main task; the main asks once while the Heartbeat
+remains a quiet read-only recheck carrier. Historical failures never block a
+clean current run.
 
 ## Audit checklist
 
@@ -170,7 +186,8 @@ main asks the user once. Historical failures never block a clean current run.
 - Callback ping/ack succeeded before external work.
 - Main mission recurring Heartbeat was created/read back under direct user authorization.
 - Executor owns one tab/ledger and no automation.
-- Every 25–45-view round ends in one accepted callback and IDLE state.
+- Every 25–45-view completed round ends in one accepted callback and IDLE state;
+  a transient `ROUND_YIELDED` checkpoint resumes the same round.
 - Main chose next clusters, action emphasis, and cooldown from evidence.
 - Main made no exact-post/comment/browser decision; Executor made no
   direction/authority/cooldown/Heartbeat decision.
@@ -182,4 +199,6 @@ main asks the user once. Historical failures never block a clean current run.
   no `COUNT=1`, self-rearmed watchdog, or per-round timer occurred.
 - Every pre-cutoff scheduler turn preserved a future recurring run or entered
   terminal deletion; no silent scheduler death existed.
-- At terminal state, scheduler deletion and executor release were both proven.
+- At terminal state, scheduler deletion and executor release were both proven,
+  or cleanup expiry was explicitly recorded as `RELEASE_UNCERTAIN` with no
+  executor archive claim.

@@ -166,14 +166,20 @@ The executor runs that round continuously, owns all TikTok/browser decisions
 inside the envelope, checkpoints incrementally, then sends exactly one
 `round_callback/v1`:
 
+It appends `ROUND_PROGRESS` to its own ledger after each 10 newly qualified
+views and on entry to recovery. Progress rows are liveness evidence only: they
+never create IDLE proof, change strategy, or authorize another assignment.
+
 ```json
 {
   "schema":"round_callback/v1",
   "run_id":"<uuid>",
+  "round_id":"<uuid>",
   "round_seq":1,
+  "boundary_seq":1,
   "coordinator_thread_id":"<exact main task id>",
   "executor_thread_id":"<exact executor id>",
-  "status":"ROUND_COMPLETED|ROUND_BLOCKED|RUN_RELEASED",
+  "status":"ROUND_COMPLETED|ROUND_YIELDED|ROUND_BLOCKED|RUN_RELEASED",
   "qualified_views":{"search":0,"for_you":0,"total":0},
   "view_evidence_summary":{"opened":0,"classified_sample":0,"qualified":0,"watch_floor_rejected":0,"invalid":0},
   "qualified_view_contract":"STRICT_QUALIFIED_VIEW_V2",
@@ -182,6 +188,7 @@ inside the envelope, checkpoints incrementally, then sends exactly one
   "cluster_evidence":[],
   "next_round_suggestions":{"binding":false},
   "resume_cursor":{},
+  "recovery":{"state":"HEALTHY|RECOVERY_PENDING|HUMAN_REPAIR_PENDING","retry_epoch":0,"next_retry_not_before_utc":null,"frozen_action_keys":[]},
   "capability_delta":{},
   "blocker":null,
   "executor_state":"IDLE|HARD_REPAIR|RELEASED",
@@ -189,8 +196,29 @@ inside the envelope, checkpoints incrementally, then sends exactly one
 }
 ```
 
+`boundary_seq` identifies the bounded executor segment inside one logical
+round. It starts at 1. Every `round_assignment/v1` carries the expected value
+and its callback echoes it. After an accepted `ROUND_YIELDED`, the main keeps
+the same `round_id`/`round_seq` and increments `boundary_seq` for the recovery
+assignment. After `ROUND_COMPLETED`, the next logical round gets a new
+`round_id`, increments `round_seq`, and resets `boundary_seq` to 1. A duplicate
+or late boundary never consumes IDLE proof or causes dispatch.
+
 After sending the callback, the executor performs no TikTok work until it
 receives the next valid round assignment or stop instruction.
+
+`ROUND_YIELDED` is a durable transient checkpoint, not a completed or globally
+blocked round. The main preserves the same round ID/sequence, counts, remaining
+view/comment/mutation budgets, dedup set, frozen action keys, and resume cursor.
+At the first due scheduler tick it sends one
+`resume_mode=RECOVERY_FIRST` assignment for that same round. The executor runs
+one recovery pass from `runtime-and-recovery.md`; unresolved health increments
+`retry_epoch` and yields again. Never reset budgets, create a new round, or
+repeat an uncertain action to compensate for recovery time.
+
+Reserve `ROUND_BLOCKED` for assignment/evidence validation failure or a current
+`HUMAN_REPAIR_PENDING` condition. Chrome, network, render, route, playback, and
+tool transients use `ROUND_YIELDED`, not `ROUND_BLOCKED`.
 
 The callback contains observed facts. `next_round_suggestions` may propose
 clusters, emphasis, or risks, but cannot change authority, schedule work, or act
@@ -207,22 +235,61 @@ include early-skipped drift; it must not inflate qualified views.
 ## Strategy and cooldown
 
 The main task accepts callbacks only for its exact run/executor and expected
-round sequence. From rolling evidence it chooses the next search clusters and
-interaction emphasis. Treat executor recommendations as evidence, not authority:
-`cooldown comments until new cluster match` means rotate search and judge each
-new opened post, never freeze the entire next round. For You drift affects the
-held-out validation plan only. The main then reads a fresh machine clock and
-stores:
+`round_id`/`round_seq`/`boundary_seq`. It first stores only the common acceptance
+timestamp:
 
 ```text
-cooldown_minutes: integer 10..20
 callback_accepted_at_utc: exact machine timestamp
-next_dispatch_at_utc: callback_accepted_at_utc + cooldown_minutes
-pending_round_seq: current round + 1
-executor_state: IDLE
-idle_proof: CALLBACK_ACCEPTED
-idle_proof_round_seq: current round
 ```
+
+Then update state by callback status, never through one generic `current + 1`
+rule:
+
+```text
+ROUND_COMPLETED:
+  executor_state: IDLE
+  idle_proof: CALLBACK_ACCEPTED
+  idle_proof_round_id: callback round_id
+  idle_proof_round_seq: callback round_seq
+  idle_proof_boundary_seq: callback boundary_seq
+  cooldown_minutes: integer 10..20
+  next_dispatch_at_utc: callback_accepted_at_utc + cooldown_minutes
+  pending_round_seq: callback round_seq + 1
+  pending_boundary_seq: 1
+
+ROUND_YIELDED:
+  executor_state: IDLE
+  idle_proof: CALLBACK_ACCEPTED
+  idle_proof_round_id: callback round_id
+  idle_proof_round_seq: callback round_seq
+  idle_proof_boundary_seq: callback boundary_seq
+  cooldown_minutes: NONE
+  next_dispatch_at_utc: max(callback_accepted_at_utc,
+                            recovery.next_retry_not_before_utc)
+  pending_round_id: callback round_id
+  pending_round_seq: callback round_seq
+  pending_boundary_seq: callback boundary_seq + 1
+  pending_resume_mode: RECOVERY_FIRST
+
+ROUND_BLOCKED:
+  executor_state: HARD_REPAIR
+  idle_proof: NONE
+  pending_dispatch: NONE
+  scheduler_action: KEEP_FOR_READ_ONLY_RECHECK
+
+RUN_RELEASED:
+  executor_state: RELEASED
+  idle_proof: NONE
+  pending_dispatch: NONE
+  next_stage: C6_FINALIZE
+```
+
+Only `ROUND_COMPLETED` triggers strategy selection. From its rolling evidence
+the main chooses the next search clusters and interaction emphasis. Treat
+executor recommendations as evidence, not authority:
+`cooldown comments until new cluster match` means rotate search and judge each
+new opened post, never freeze the entire next round. For You drift affects the
+held-out validation plan only.
 
 Use 15 minutes normally, 10 for read-only/low-yield work, and 20 for mutation-
 or recovery-heavy work. This is workload pacing, not randomized stealth.
@@ -242,22 +309,35 @@ registry/ledger paths, dispatch gates, and cutoff; mutable phase, strategy, and
 evidence stay in the main ledger.
 
 1. After every `ROUND_DISPATCHED`, leave the recurring schedule unchanged.
-2. When the exact callback arrives, compute the 10–20 minute cooldown, persist
-   canonical callback-IDLE proof and `next_dispatch_at`, and leave the recurring
-   schedule unchanged.
+2. When the exact callback arrives, persist canonical callback-IDLE proof and
+   status-specific pending state only for `ROUND_COMPLETED|ROUND_YIELDED`.
+   `ROUND_BLOCKED|RUN_RELEASED` never creates dispatch proof. Compute a 10–20 minute cooldown only for
+   `ROUND_COMPLETED`; for `ROUND_YIELDED`, preserve the same logical round and
+   use its recovery retry time. Leave the recurring schedule unchanged.
 3. On every tick, read a fresh machine clock. Dispatch exactly one next-round
-   assignment only when the callback-IDLE proof is unconsumed and
+   or same-round recovery assignment only when callback-IDLE proof is unconsumed and
    `now >= next_dispatch_at`. A live task read remains optional diagnostic
    evidence, not a prerequisite.
 4. If the executor is active, the cooldown is early, or required proof is
    missing, perform no dispatch and preserve the recurrence. Request one missing
-   callback/status at most once per round; later ticks wait without duplicates.
+   callback/status at most once per expected boundary; later ticks wait without duplicates.
    After successful recurring readback, unchanged ticks use `DONT_NOTIFY`.
+   For an ACTIVE boundary, inspect only its known ledger tail. Sixty minutes
+   without a new validated `ROUND_PROGRESS` or callback permits one
+   `CHECKPOINT_OR_YIELD/v1` request for that boundary. Absent a response, record
+   `PROGRESS_UNVERIFIED`; do not duplicate work, interrupt an uncertain
+   mutation, or infer a stale owner.
 5. Retain the exact owner and scheduler across `notLoaded`, empty read,
    host/network/tool faults, and ordinary round blockers. Enter same-run owner
    replacement only with strict missing/stale proof.
-6. At/after cutoff, send no new work, request release when needed, delete the
-   exact Heartbeat, and finalize. Never send catch-up rounds.
+6. An accepted `ROUND_YIELDED` callback is canonical IDLE proof for one
+   recovery-first resume of the same round at/after
+   `next_retry_not_before_utc`; it is not a completed-round strategy reset.
+7. At/after cutoff, send no new TikTok work and request release. Keep the
+   existing finite cleanup wake until `RUN_RELEASED` or cleanup `UNTIL`. On
+   proven release, delete/read back the Heartbeat and finalize. At cleanup
+   expiry without proof, record `RELEASE_UNCERTAIN`, delete/read back the timer,
+   and never archive or claim tab release. Never send catch-up rounds.
 
 Before every nonterminal scheduler turn returns, require the same exact
 repeat-on Heartbeat with a future next run and cleanup `UNTIL`. `status=ACTIVE`
@@ -272,12 +352,14 @@ handled inside the executor's bounded round. If they end the round, callback the
 smallest affected scope. Human-only login/CAPTCHA/account-lock/control blockers
 return to the main task, which asks the user once.
 
-At stop/deadline/completion the main task stops dispatch, sends one stop command
-when needed, requires the executor's `RUN_RELEASED` callback with owned-tab
-release proof, deletes and reads back its exact scheduler, and reconciles both
-ledgers. It then archives only the exact registered executor ID and reads back
-that same task's archive state when supported. `set_thread_archived` failure or
-unavailability becomes `DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`; it does not
-change the mission's factual terminal state and must not be reported as archive
-success. Never archive before release, by title, or while the executor is the
-current owner of a live mission.
+At stop/deadline/completion the main task stops TikTok dispatch, sends one stop
+command when needed, and uses the configured cleanup occurrence to require the
+executor's `RUN_RELEASED` callback with owned-tab release proof. On proof, delete
+and read back the exact scheduler, reconcile both ledgers, then archive only the
+exact registered executor ID and read back that same task's archive state when
+supported. At cleanup expiry without proof, record `RELEASE_UNCERTAIN`, delete
+the timer, and leave the executor unarchived. `set_thread_archived` failure after
+proven release becomes `DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`; it does not
+change factual terminal state and must not be reported as archive success.
+Never archive before release, by title, or while the executor is the current
+owner of a live mission.

@@ -33,8 +33,10 @@ profile_confirmation_evidence: NONE | exact user turn/ref
    record `DEGRADED_RENAME_UNAVAILABLE` and continue.
 2. Download and validate the canonical GitHub bundle; apply
    `version-management.md`. Never mix two bundle versions.
-3. Create one disposable Chrome tab and prove Chrome control. Classify and
-   bounded-recover errors using `runtime-and-recovery.md`.
+3. Prove the existing Chrome browser binding, then create one disposable tab.
+   An empty tab list is normal after cleanup; only an explicit disconnect
+   invalidates the browser binding. Classify errors and run one recovery pass
+   using `runtime-and-recovery.md`.
 4. Open TikTok read-only; prove exact logged-in handle and absence of a current
    blocking challenge/warning. Never enter credentials or codes.
 5. Prove thread create/read/title/message tools and `automation_update` exist.
@@ -49,6 +51,14 @@ profile_confirmation_evidence: NONE | exact user turn/ref
 Do not inspect unrelated TikTok tasks. Another Chrome/TikTok owner is not a
 blocker. Active-runtime inspection is allowed only for version replacement
 safety, not operational coordination.
+
+Before mission authorization, preflight never creates a retry Heartbeat. If one
+bounded pass still shows a transient Chrome/network/render fault, record
+`PREFLIGHT_RECOVERY_PENDING` rather than TikTok/account risk and retry in the
+current setup turn when the control surface permits. Ask the user only for the
+hard-repair whitelist. After an authorized mission scheduler exists, all later
+Chrome retries use the persistent cross-wake contract in
+`runtime-and-recovery.md`.
 
 ## Bootstrap profile lock
 

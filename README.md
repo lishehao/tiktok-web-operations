@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.19.1`
+Protocol version: `2026.07.20.1`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -204,7 +204,15 @@ The primary training path is directed search, not Feed browsing:
 For You movement uses one continuous native feed without reload/reset between
 items. Feed failure disables only validation; healthy search training continues.
 Page/network/Chrome/lane failures are scoped and auto-recovered inside the
-round. A round-ending or human-only blocker callbacks the exact main task.
+round. One executor turn performs one bounded recovery pass. If still unhealthy,
+it returns `ROUND_YIELDED/RECOVERY_PENDING`; the main Heartbeat later resumes the
+same round/cursor/counts/budgets with `RECOVERY_FIRST`. This repeats across wakes
+without creating a new task, round, timer, or duplicate mutation. Empty tab lists,
+stale tabs, explicit browser disconnects, read-only tool timeouts, mutation-call
+timeouts, DNS/network/proxy/TLS, 403/429/5xx, client blocking, blank hydration,
+media stalls, and empty search shells have separate routes. A deterministic
+pre-action `MUTATION_INTENT/action_key` prevents uncertain clicks or comments
+from being issued again after recovery.
 
 ## Mission recurring scheduler
 
@@ -230,8 +238,10 @@ Every nonterminal scheduler turn reads back the same exact `ACTIVE`, repeat-on,
 15-minute main-target Heartbeat with a future run and cleanup `UNTIL`. An
 `ACTIVE` schedule with no future run before cutoff is
 `MISSION_SCHEDULER_EXPIRED` and must be repaired in place before dispatch.
-At/after cutoff the main task sends no new work, requests executor release, and
-deletes the exact Heartbeat.
+At/after cutoff the main task sends no new TikTok work and requests executor
+release. It keeps the finite cleanup wake until `RUN_RELEASED` or cleanup
+`UNTIL`. If release remains unknown at expiry, it records `RELEASE_UNCERTAIN`,
+deletes/read-backs the Heartbeat, and leaves the executor unarchived.
 
 Every accepted callback/coordinator receipt has exactly three lines:
 
@@ -241,9 +251,11 @@ Every accepted callback/coordinator receipt has exactly three lines:
 下轮计划：<one bounded purpose>
 ```
 
-At stop/cutoff, the main task deletes its exact scheduler after requesting
-executor release and reconciling the final callback, then archives the exact
-released executor ID. It never archives a live task or discovers one by title.
+At stop/cutoff, the main requests executor release and keeps the cleanup wake.
+After reconciling `RUN_RELEASED`, it deletes/read-backs the scheduler and
+archives the exact released executor ID. Cleanup expiry without proof records
+`RELEASE_UNCERTAIN`, deletes the scheduler, and never archives. It never
+discovers an executor by title.
 
 ## Validation
 
@@ -289,6 +301,9 @@ scenario validators. Required scenarios include:
   scheduler death;
 - independent lanes and independent runs;
 - network/Chrome recovery with callback only at a bounded-round boundary;
+- persistent Chrome recovery across Heartbeats: one pass per turn, same-round
+  `ROUND_YIELDED`/`RECOVERY_FIRST`, scoped probes, exact mutation action keys,
+  no blind callback/dispatch resend, and release-uncertain no-archive cleanup;
 - 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;
 - strict qualified-view classification: page-open/one-second autoplay fails,
   short/medium/long duration floors pass only with multiple forward observations

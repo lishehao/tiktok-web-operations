@@ -37,6 +37,12 @@ issue each visible native action once on a fitting post, and record only
 `attempted|unavailable|hard_blocked`. Do not wait for settlement, reload/reopen,
 inspect account tabs, or gate future new-post attempts on persistence.
 
+Resolve controls by semantic role, accessible name, selected/pressed state,
+and stable surrounding context. Labels may be localized; English strings such
+as `Repost` or `Undo repost` are examples, not the sole selector. If an exact
+control cannot be distinguished from its inverse, skip that lane for the
+candidate rather than guessing.
+
 Comment drafting is not comment publication. Use either exact per-item
 confirmation or a currently active standing autonomous-comment envelope. Submit
 once and record `attempted`; do not reload the post to verify.
@@ -65,10 +71,12 @@ likes, follows, favorites, reposts, post likes, `Not interested`, publishing,
 profile edits, or DMs; those retain their own authority.
 
 Autonomous comments require the standing account/direction/language/voice
-envelope, not a reload persistence test. Submit once and record attempted.
-Submission uncertainty freezes only that exact comment; later new-post attempts
-remain allowed. Timed throttle auto-waits. Ask the user directly in the executor
-only for the hard-blocker whitelist in `blocker-minimization.md`.
+envelope, not a reload persistence test. Write the deterministic
+`MUTATION_INTENT/action_key`, submit once, and record attempted. Submission
+uncertainty freezes only that exact key; later new-post attempts remain allowed.
+Timed throttle auto-waits. The executor never asks the user directly: it
+callbacks the exact main task for the hard-blocker whitelist in
+`blocker-minimization.md`.
 
 Never use all positive actions on every relevant post. Choose the smallest signal justified by the content and the current capability matrix; otherwise the operation becomes repetitive engagement manipulation rather than audience calibration.
 

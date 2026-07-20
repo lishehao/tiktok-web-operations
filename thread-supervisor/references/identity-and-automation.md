@@ -28,19 +28,34 @@ last_accepted_resume_cursor_ref: NONE | exact canonical ref
 executor_title: TikTok 执行台
 executor_title_status: PENDING | VERIFIED | DEGRADED_UNAVAILABLE
 executor_title_repair_attempted: FALSE | TRUE
-executor_state: NEW | ACCEPTED | ACTIVE | IDLE | HARD_REPAIR | RELEASED
+executor_state: NEW | ACCEPTED | ACTIVE | IDLE | RECOVERY_PENDING |
+  HARD_REPAIR | RELEASED | RELEASE_UNCERTAIN
 executor_archive_status: NOT_DUE | PENDING_RELEASE | ARCHIVED |
   DEGRADED_UNAVAILABLE
 executor_archived_at_utc: NONE | exact UTC timestamp
 executor_idle_proof: NONE | CALLBACK_ACCEPTED
+executor_idle_proof_round_id: NONE | exact round id
 executor_idle_proof_round_seq: NONE | positive integer
+executor_idle_proof_boundary_seq: NONE | positive integer
 callback_handshake: NONE | PING_SENT | ACK_VERIFIED
+expected_round_id: exact round id
 expected_round_seq: positive integer
+expected_boundary_seq: positive integer
 last_callback_ref: NONE | exact canonical ref
+pending_round_id: NONE | exact round id
 pending_round_seq: NONE | positive integer
+pending_boundary_seq: NONE | positive integer
+round_started_at_utc: NONE | exact machine timestamp
+last_executor_progress_at_utc: NONE | exact validated ledger timestamp
+progress_request_boundary_seq: NONE | positive integer
+executor_progress_state: NONE | ADVANCING | CHECKPOINT_REQUESTED |
+  PROGRESS_UNVERIFIED
 cooldown_minutes: NONE | integer 10..20
 callback_accepted_at_utc: NONE | exact machine timestamp
 next_dispatch_at_utc: NONE | exact machine timestamp
+recovery_round_id: NONE | exact current yielded round id
+recovery_retry_epoch: NONE | nonnegative integer
+recovery_next_retry_not_before_utc: NONE | exact machine timestamp
 scheduler_automation_id: NONE | exact returned id
 scheduler_manager_thread_id: exact coordinator id
 scheduler_target_thread_id: exact coordinator id
@@ -63,7 +78,8 @@ run_terminal_state: RUNNING | STOP_REQUESTED | RUN_RELEASED
 - executor identity: exact fresh `create_thread` return plus assignment acceptance;
 - executor presentation: exact returned ID plus same-ID `TikTok 执行台`
   title readback, or explicit non-blocking degraded status;
-- callback identity: sender/receiver/run/round IDs match registry and sequence;
+- callback identity: sender/receiver/run/round IDs plus expected
+  `round_seq`/`boundary_seq` match the registry;
 - scheduler identity: exact automation ID plus
   `targetThreadId == scheduler_manager_thread_id == coordinator_thread_id`;
 - external tab: handle created and recorded by the exact executor.
@@ -152,12 +168,15 @@ no future occurrence before cutoff is `MISSION_SCHEDULER_EXPIRED`, not healthy;
 repair the same automation in place before dispatch. Never create a replacement
 timer until a corrected exact binding is verified.
 
-At explicit stop, deadline, completion, or terminal release, stop new dispatch,
-request executor release if needed, delete the exact scheduler, and read back
-its absence/deleted state. Reconcile release/tab/ledger proof, then archive the
-exact registered executor ID and read back archive state when supported. Never
-archive an active, STOP_REQUESTED, unreleased, or IDLE-but-live executor, and
-never archive by title. Archive-tool failure is
+At explicit stop, deadline, or completion, stop new TikTok dispatch and request
+executor release if needed. Keep the already-configured finite cleanup wake
+until `RUN_RELEASED` or cleanup `UNTIL`. On release proof, delete the exact
+scheduler, read back absence/deleted state, reconcile release/tab/ledger proof,
+then archive the exact registered executor ID. At cleanup expiry without proof,
+record `RELEASE_UNCERTAIN`, delete/read back the scheduler, and leave the
+executor unarchived. Never archive an active, STOP_REQUESTED, unreleased,
+IDLE-but-live, or release-uncertain executor, and never archive by title.
+Archive-tool failure after proven release is
 `DEGRADED_EXECUTOR_ARCHIVE_UNAVAILABLE`: keep factual terminal state, report the
 presentation gap, and never claim archive success.
 

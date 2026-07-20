@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Validate comment weighting, bounded meme research, and originality."""
+from __future__ import annotations
+
 import json
 from pathlib import Path
 

@@ -272,10 +272,13 @@ Keep `search_results_assessed`, `opened_only`, `classified_sample`,
 separate. Persist incrementally and validate each JSONL line immediately so a
 runtime failure or malformed append cannot erase or corrupt the block.
 
-Track each operating action as `attempted`, `unavailable`, or `hard_blocked`, with
-account, browser/runtime, URL, timestamp, action issued, immediate visible
-response when readily available, and reason. Do not call `attempted` successful
-or persisted.
+Before each native action append `MUTATION_INTENT` with a deterministic
+`action_key` derived from run ID, stable video ID, lane, and comment
+parent/top-level identity. Then track the action as `attempted`, `unavailable`,
+or `hard_blocked`, with account, browser/runtime, URL, timestamp, action issued,
+immediate visible response when readily available, and reason. A tool timeout
+after issue appends `MUTATION_UNKNOWN` for that key. Do not call `attempted`
+successful or persisted, and never issue an existing unknown key again.
 
 ## Stop and handoff
 

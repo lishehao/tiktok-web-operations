@@ -117,8 +117,9 @@ The standing envelope must record:
 
 In autonomous mode, comment only when the post is `core` to the active audience direction, the setup/payoff is understood, the visible comment culture supports playful participation, and a strong original joke survives the safety checks. Skip rather than ask when the fit is merely adjacent, emotionally sensitive, politically charged, directed at a vulnerable person, unclear, stale, repetitive, or dependent on insulting a real person.
 
-Record the URL, parent-comment identity when replying, and exact final text in
-the ledger before submitting. Never reuse wording mechanically across posts.
+Record the URL, stable video ID, parent-comment identity when replying, exact
+final text, and deterministic `MUTATION_INTENT/action_key` in the ledger before
+submitting. Never reuse wording mechanically across posts.
 Do not optimize for comment volume. Multiple comment actions on one post are
 permitted only by the exceptional-video depth rule above.
 
@@ -129,7 +130,8 @@ For each candidate, prepare up to three materially different short options only 
 In `per_item_confirmation`, present the exact creator/post URL and exact final text and confirm the bounded batch at action time. In `autonomous_comment_mode`, verify that every standing-envelope field matches; do not request per-comment confirmation. Then:
 
 1. Submit each distinct top-level comment or reply once.
-2. Record `attempted` plus an immediate visible response when readily available.
+2. Record `attempted` plus an immediate visible response when readily available;
+   a tool timeout after issue becomes `MUTATION_UNKNOWN` for that action key.
 3. Do not wait, reload/reopen, or inspect account-level state.
 
 An attempted comment does not prove persistence. Freeze only the exact comment

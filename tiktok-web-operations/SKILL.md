@@ -132,7 +132,9 @@ It accepts work only from its registered main task and exact run ID.
 Read `references/role-and-stage-contract.md` and
 `references/operating-model.md` before creating an execution task or Heartbeat.
 Every executor must also read `references/qualified-view-contract.md` before its
-first browsing round and apply that contract to every opened video.
+first browsing round and apply that contract to every opened video. Read
+`references/runtime-and-recovery.md` before Chrome setup and after any browser,
+tab, navigation, render, playback, or tool timeout.
 
 ## Entrypoints
 
@@ -372,18 +374,26 @@ targeted harassment, protected-trait attacks, and sexualization of minors.
   TikTok tasks. Another task using Chrome, TikTok, or the same account is not a blocker.
 - Classify stale binding/browser disconnect, DNS/network `ERR_*`, proxy/TLS,
   HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render faults separately.
-- In the same logged-in Chrome: record code+URL, bounded retry, create/rebind a
-  fresh owned tab if needed, probe TikTok home and a neutral HTTPS site, then
-  re-confirm account and target before continuing.
+- Empty tab list means tab lifecycle, not browser disconnect. Discard stale tab
+  bindings; invalidate the browser binding only on an explicit disconnect.
+- Run one bounded same-Chrome recovery pass: record code+URL+stage, retry the
+  read once, create/rebind a fresh owned tab if needed, probe TikTok home and a
+  neutral HTTPS site, then re-confirm account and target before continuing.
 - Describe only a `可能原因` from the exact code and probes. Never clear cookies,
   switch browser, change proxy/TLS, or retry an uncertain mutation.
+- Write pre-action `MUTATION_INTENT`/`action_key`; a mutation-call timeout becomes
+  `SUBMISSION_UNCERTAIN`, freezing that key without repeat or verification.
 
 Ordinary technical, candidate, route, evidence, and single-lane failures are
 local outcomes. Auto-recover, rotate, or checkpoint without asking the user. A
-failure that ends the bounded round callbacks the exact main task with its
-smallest scope. Only the main task asks the user to fix a persistent login/account
-mismatch, CAPTCHA/challenge, explicit account lock/ban, credential requirement,
-or unavailable sole allowed Chrome control.
+transient failure that exhausts one pass yields `ROUND_YIELDED` with
+`RECOVERY_PENDING`, preserves the same round/cursor/counts/budgets, and returns
+IDLE. The unchanged main Heartbeat later dispatches one `RECOVERY_FIRST` resume;
+retries continue across wakes until health, stop, cutoff, or current human-only
+repair. Only the main task asks once for a persistent login/account mismatch,
+CAPTCHA/challenge, explicit account lock/ban, credential requirement, or
+unavailable sole allowed Chrome control; the Heartbeat remains the quiet recheck
+carrier.
 
 ## Coordinator callback and mission scheduler
 
@@ -410,8 +420,10 @@ executor never creates, views, updates, or deletes this Heartbeat.
 The recurring schedule is a liveness carrier, not a dispatch instruction. On
 every wake the main task reads a fresh machine clock and applies this gate:
 
-1. At/after `operation_stop_at`, send no new work, request executor release when
-   needed, delete the exact Heartbeat, and finalize.
+1. At/after `operation_stop_at`, send no new TikTok work and request executor
+   release. Keep the preconfigured cleanup wake until `RUN_RELEASED` or finite
+   cleanup `UNTIL`; only then delete/read back the exact Heartbeat. Never archive
+   when release or tab proof is uncertain.
 2. If an accepted exact callback provides unconsumed `executor_state=IDLE`, a
    pending round exists, and `now >= next_dispatch_at`, dispatch exactly one
    round and consume that idle proof.
@@ -422,16 +434,20 @@ every wake the main task reads a fresh machine clock and applies this gate:
    quiet scheduler checkpoint, verify the recurrence, and use `DONT_NOTIFY` so
    a no-change tick does not spam the user.
 5. If the executor is idle without an accepted callback, request one status or
-   callback at most once per missing round; later ticks keep waiting without
+   callback at most once per expected `boundary_seq`; later ticks keep waiting without
    duplicate messages. Transient unreadable task/tool/network state keeps the
    registered owner and the recurring Heartbeat.
 6. Strict stale/missing-owner proof may enter the one-attempt same-run owner
    replacement path. Ordinary callback, Chrome, route, candidate, or mutation
    failure never deletes or pauses the Heartbeat.
-
-Callback arrival may wake the main task early. Accept and persist the callback,
-choose clusters/cooldown, and set `next_dispatch_at`, but do not rewrite the
-recurring schedule. The next periodic tick is the independent recovery path if
+7. An accepted `ROUND_YIELDED` callback preserves the same round, cursor,
+   counters, remaining budgets, and frozen action keys. At/after its
+   `next_retry_not_before`, dispatch exactly one `RECOVERY_FIRST` resume rather
+   than a new round, using the next `boundary_seq`.
+Callback arrival may wake the main task early. Accept and persist the callback. For
+`ROUND_COMPLETED`, choose clusters/cooldown and advance the logical round;
+for `ROUND_YIELDED`, keep the same round and increment only `boundary_seq` for
+`RECOVERY_FIRST`. Do not rewrite the recurring schedule. The next periodic tick is the independent recovery path if
 callback delivery or an earlier main-task turn does not continue.
 
 Before every nonterminal scheduler turn returns, read back the same exact
@@ -470,11 +486,14 @@ closed on missing or contradictory watch evidence; do not fill a round by
 upgrading partial views.
 
 At deadline, explicit stop, or objective completion: the main task stops new
-dispatch, sends a stop instruction if the executor is active, requires executor
-tab-release/final-ledger callback, deletes and reads back its exact scheduler
-Heartbeat, reconciles both ledgers, and then archives the exact registered
-executor task. Archive unavailability is an explicit presentation degradation,
-not false archive success. Never repeat an uncertain mutation.
+TikTok dispatch, sends a stop instruction if the executor is active, and uses
+the finite cleanup wake to obtain executor tab-release/final-ledger callback.
+After `RUN_RELEASED`, delete/read back the exact scheduler, reconcile both
+ledgers, and then archive the exact registered executor task. If cleanup `UNTIL`
+arrives without release proof, record `RELEASE_UNCERTAIN`, delete/read back the
+scheduler, and do not archive or claim tab release. Archive unavailability after
+proven release is an explicit presentation degradation, not false success.
+Never repeat an uncertain mutation.
 
 Use Chinese for user reports while preserving exact URLs, handles, hashtags,
 error codes, and UI labels.
