@@ -366,23 +366,26 @@ targeted harassment, protected-trait attacks, and sexualization of minors.
 ## Chrome and recovery
 
 - Use only the user's existing Chrome profile and TikTok login. Never enter,
-  store, or bypass credentials.
+  store, or bypass credentials, switch browsers, clear cookies, or change
+  proxy/TLS.
 - Every executor creates and owns a dedicated tab. Never reuse a tab ID from a
   prompt, prior turn, memory, or another task.
 - The main task reads/messages only its exact registered executor. The executor
   reads/messages only its exact registered main task. Neither inspects unrelated
   TikTok tasks. Another task using Chrome, TikTok, or the same account is not a blocker.
-- Classify stale binding/browser disconnect, DNS/network `ERR_*`, proxy/TLS,
-  HTTP status, `ERR_BLOCKED_BY_CLIENT`, and blank/render faults separately.
-- Empty tab list means tab lifecycle, not browser disconnect. Discard stale tab
-  bindings; invalidate the browser binding only on an explicit disconnect.
-- Run one bounded same-Chrome recovery pass: record code+URL+stage, retry the
-  read once, create/rebind a fresh owned tab if needed, probe TikTok home and a
-  neutral HTTPS site, then re-confirm account and target before continuing.
-- Describe only a `可能原因` from the exact code and probes. Never clear cookies,
-  switch browser, change proxy/TLS, or retry an uncertain mutation.
+- `references/runtime-and-recovery.md` is the only detailed Chrome/runtime
+  authority. Load it before Chrome setup and after any browser, tab, navigation,
+  content, React-control, playback, or tool timeout.
+- Metadata health is not content health. If `openTabs`/`list`, `claimTab`, URL,
+  and title work but `goto`, DOM, screenshot, locator, or evaluate time out,
+  classify `CHROME_CONTENT_CHANNEL_TIMEOUT`, not Chrome disconnect, target-tab
+  loss, TikTok account risk, or route failure without stronger probe evidence.
+- Browser actions are atomic: one boundary call performs only one potentially
+  blocking browser action, and navigation timeouts require URL/title/page-state
+  readback before any repeat navigation.
 - Write pre-action `MUTATION_INTENT`/`action_key`; a mutation-call timeout becomes
-  `SUBMISSION_UNCERTAIN`, freezing that key without repeat or verification.
+  `SUBMISSION_UNCERTAIN`/`MUTATION_UNKNOWN`, freezing that exact key without
+  repeat or verification while independent posts and lanes may continue.
 
 Ordinary technical, candidate, route, evidence, and single-lane failures are
 local outcomes. Auto-recover, rotate, or checkpoint without asking the user. A

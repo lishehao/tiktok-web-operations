@@ -41,8 +41,43 @@ def recover(event: str) -> dict[str, Any]:
         },
         "browser_disconnected": {
             "action": "RECONNECT_SAME_CHROME_THEN_OWNED_TAB",
+            "binding_invalidated": "BROWSER",
             "same_turn_pass": True,
             "scheduler": "UNCHANGED",
+        },
+        "metadata_healthy_neutral_goto_timeout": {
+            "error_class": "CHROME_CONTENT_CHANNEL_TIMEOUT",
+            "control_plane": "HEALTHY",
+            "tab_metadata": "HEALTHY",
+            "scope": "GLOBAL_CONTENT_CHANNEL",
+            "not_classes": (
+                "CHROME_DISCONNECTED",
+                "TARGET_TAB_NOT_FOUND",
+                "ACCOUNT_RISK",
+                "TIKTOK_ROUTE_FAULT",
+            ),
+            "scheduler": "UNCHANGED",
+        },
+        "navigation_timeout_loaded": {
+            "action": "READ_BACK_URL_TITLE_PAGE_STATE_CONTINUE_NO_REPEAT_GOTO",
+            "repeat_navigation": False,
+            "scheduler": "UNCHANGED",
+        },
+        "visible_textarea_hidden_input": {
+            "action": "USE_VISIBLE_TEXTAREA_IGNORE_HIDDEN_INPUT",
+            "selector": 'textarea[name=q][placeholder="Find anything"]',
+            "hidden_selector_rejected": "input[name=q]",
+        },
+        "react_fill_empty_state_not_cleared": {
+            "action": "META_A_BACKSPACE_READBACK_VALUE_AND_ENABLED_STATE",
+            "fill_empty_sufficient": False,
+        },
+        "one_boundary_action_per_call": {
+            "action": "ONE_POTENTIALLY_BLOCKING_BROWSER_ACTION",
+            "forbidden_combo": "GOTO_PLUS_DOM_OR_SCREENSHOT_OR_EVALUATE",
+            "outer_budget": "CONFIGURABLE_OR_MEASURED_NOT_PLATFORM_TRUTH",
+            "observed_outer_budget_seconds": 120,
+            "ambient_network_disable": "OPTIONAL_IF_SUPPORTED_AND_READ_BACK",
         },
         "read_only_tool_timeout": {
             "action": "ONE_RECOVERY_PASS_THEN_ROUND_YIELDED",
@@ -52,6 +87,7 @@ def recover(event: str) -> dict[str, Any]:
         "mutation_tool_timeout": {
             "action": "SUBMISSION_UNCERTAIN_FREEZE_ACTION_KEY",
             "mutation_retry": False,
+            "reopen_for_verification": False,
             "scheduler": "UNCHANGED",
         },
         "dns_or_network_persistent": {
@@ -209,11 +245,26 @@ def validate_contract() -> dict[str, dict[str, Any]]:
     required_terms = (
         "one bounded recovery pass per active executor turn",
         "cross-wake retry",
+        "Chrome health as five separate layers",
+        "CHROME_CONTENT_CHANNEL_TIMEOUT",
+        "content/navigation channel",
+        "potentially blocking browser action",
+        "After a navigation timeout",
+        "Promise.race",
+        "120 seconds",
+        "BROWSER_USE_DISABLE_AMBIENT_NETWORK=1",
+        "visible `textarea[name=q][placeholder=\"Find anything\"]`",
+        "hidden `input[name=q]`",
+        "Meta+A",
+        "Backspace",
+        "minimal snapshot or locator projection",
+        "Model switching is not Chrome recovery",
         "empty tab list",
         "explicit browser-disconnected",
         "READ_ONLY",
         "UNKNOWN_AFTER_TIMEOUT",
         "SUBMISSION_UNCERTAIN",
+        "MUTATION_UNKNOWN",
         "MUTATION_INTENT",
         "action_key",
         "ROUND_YIELDED",
@@ -240,6 +291,9 @@ def validate_contract() -> dict[str, dict[str, Any]]:
 
     events = (
         "empty_tab_list", "stale_tab", "browser_disconnected",
+        "metadata_healthy_neutral_goto_timeout", "navigation_timeout_loaded",
+        "visible_textarea_hidden_input", "react_fill_empty_state_not_cleared",
+        "one_boundary_action_per_call",
         "read_only_tool_timeout", "mutation_tool_timeout",
         "dns_or_network_persistent", "http_403_target_only", "http_429",
         "http_429_no_retry_after", "http_5xx", "blocked_by_client",
@@ -250,12 +304,35 @@ def validate_contract() -> dict[str, dict[str, Any]]:
         "cleanup_expired_unreleased",
     )
     scenarios = {event: recover(event) for event in events}
-    for event in events[:12]:
+    for event in (
+        "empty_tab_list", "stale_tab", "browser_disconnected",
+        "metadata_healthy_neutral_goto_timeout", "navigation_timeout_loaded",
+        "read_only_tool_timeout", "mutation_tool_timeout",
+        "dns_or_network_persistent", "http_403_target_only", "http_429",
+        "http_429_no_retry_after", "http_5xx", "blocked_by_client",
+        "blank_or_delayed_hydration",
+    ):
         scenario = scenarios[event]
         if "scheduler" in scenario:
             assert scenario["scheduler"] == "UNCHANGED"
     assert scenarios["empty_tab_list"]["action"].endswith("KEEP_BROWSER_BINDING")
+    assert scenarios["stale_tab"]["action"].startswith("DISCARD_TAB_BINDING")
+    assert scenarios["browser_disconnected"]["binding_invalidated"] == "BROWSER"
+    assert scenarios["metadata_healthy_neutral_goto_timeout"]["error_class"] == (
+        "CHROME_CONTENT_CHANNEL_TIMEOUT"
+    )
+    assert "CHROME_DISCONNECTED" in scenarios[
+        "metadata_healthy_neutral_goto_timeout"
+    ]["not_classes"]
+    assert scenarios["navigation_timeout_loaded"]["repeat_navigation"] is False
+    assert scenarios["visible_textarea_hidden_input"]["hidden_selector_rejected"] == (
+        "input[name=q]"
+    )
+    assert scenarios["react_fill_empty_state_not_cleared"]["fill_empty_sufficient"] is False
+    assert scenarios["one_boundary_action_per_call"]["observed_outer_budget_seconds"] == 120
+    assert scenarios["one_boundary_action_per_call"]["outer_budget"].startswith("CONFIGURABLE")
     assert scenarios["mutation_tool_timeout"]["mutation_retry"] is False
+    assert scenarios["mutation_tool_timeout"]["reopen_for_verification"] is False
     assert scenarios["dns_or_network_persistent"]["next_assignment"] == "RECOVERY_FIRST"
     assert scenarios["http_403_target_only"]["human_question"] is False
     assert scenarios["http_429_no_retry_after"]["action"].startswith("WAIT_UNTIL_NEXT_15M")

@@ -7,7 +7,10 @@ the exact registered main task. Never contact an unrelated TikTok task.
 ## Contents
 
 - Recovery invariant
+- Chrome health layers
+- Atomic browser boundary
 - Error classes and edge cases
+- UI controls and React state
 - Required recovery record
 - One bounded same-Chrome recovery pass
 - Persistent retry across Heartbeats
@@ -31,12 +34,63 @@ terminal release. The executor never creates a recovery timer. Repeated recovery
 wakes continue until health proof, user stop, cutoff, or a live human-repair
 condition. Do not loop indefinitely inside one model turn or send catch-up work.
 
+## Chrome health layers
+
+Treat Chrome health as five separate layers:
+
+1. Browser control plane: `openTabs`, `listTabs`, and `newTab` prove only that
+   the controller can talk to Chrome. An empty tab list is tab lifecycle
+   evidence, not a browser disconnect.
+2. Tab metadata plane: `claimTab`, URL, and title prove only the binding and
+   metadata surface. If a tab is stale, closed, or missing, discard only that
+   tab binding. Invalidate the browser binding only on an explicit
+   browser-disconnected/browser-client-unavailable error.
+3. Content/navigation channel: `goto`/`navigate`, DOM, locator, screenshot, and
+   evaluate prove page content access. If control and tab metadata are healthy
+   but these content operations time out, classify
+   `CHROME_CONTENT_CHANNEL_TIMEOUT`; do not report `CHROME_DISCONNECTED`,
+   `TARGET_TAB_NOT_FOUND`, TikTok route failure, or account risk from that
+   evidence alone.
+4. Scope probes: classify target, TikTok home, and neutral HTTPS behavior only
+   after running the probes as separate browser-boundary calls.
+5. Account layer: account identity is evaluated only after page content is
+   readable. `UNKNOWN` is not an account mismatch and never proves risk control.
+
+If `openTabs`/`claimTab`/URL/title succeed, but TikTok content reads and a new
+neutral HTTPS page such as `https://example.com/` both time out at
+navigation/content operations, the correct class is global
+`CHROME_CONTENT_CHANNEL_TIMEOUT`.
+
+## Atomic browser boundary
+
+Make every browser-boundary call atomic: one call may perform only one
+potentially blocking browser action. Split `newTab`, `goto`/`navigate`,
+DOM/locator projection, screenshot, and evaluate into separate calls. Do not
+combine navigation plus DOM read, screenshot, or mutation in one boundary.
+
+After a navigation timeout, first read back URL, title, and the smallest
+available page-state signal in a separate call. A navigation can return timeout
+even when the page actually loaded. If readback proves the target page loaded,
+continue from that state instead of repeating navigation.
+
+Never use `Promise.race()` or equivalent wrapper timeouts to fake cancellation
+around browser calls. They do not cancel the underlying `goto`, DOM, screenshot,
+or evaluate request and may leave hung work that pollutes recovery.
+
+Outer call budgets are runtime measurements, not platform truths. In the current
+observed wrapper, browser calls may need about 120 seconds of outer budget to
+avoid killing work during ambient/network delay, but another runtime must use a
+configured or measured value. If the current browser wrapper explicitly supports
+`BROWSER_USE_DISABLE_AMBIENT_NETWORK=1`, it may be enabled only as a verified
+optional optimization; never set it blindly and never treat it as health proof.
+
 ## Error classes and edge cases
 
 | Class | Evidence examples | Immediate interpretation |
 |-|-|-|
 | tab binding | stale/closed/missing tab; empty tab list | discard only the tab binding; an empty list after cleanup does not invalidate the browser binding |
 | browser control | explicit browser disconnected; browser-client/tool unavailable | reconnect the same Chrome extension/runtime; never switch browser |
+| content channel timeout | control plus tab metadata are healthy, but goto/DOM/locator/screenshot/evaluate time out | `CHROME_CONTENT_CHANNEL_TIMEOUT`; recover same Chrome, scope-probe with separate calls, and do not blame target tab, Chrome disconnect, account mismatch, or TikTok risk without stronger proof |
 | read-only tool timeout | navigation, DOM, screenshot, or playback read timed out before mutation | safe to run the bounded recovery pass; no mutation freeze |
 | mutation tool timeout | click/send was issued or may have been issued and the return is unknown | `SUBMISSION_UNCERTAIN`; freeze exact `action_key` forever |
 | DNS/network | `ERR_NAME_NOT_RESOLVED`, `ERR_INTERNET_DISCONNECTED`, `ERR_NETWORK_CHANGED`, `ERR_CONNECTION_TIMED_OUT/RESET/CLOSED` | DNS, connectivity, VPN/proxy, or local security interruption may be involved |
@@ -56,6 +110,28 @@ condition. Do not loop indefinitely inside one model turn or send catch-up work.
 
 Never assert a root cause from one symptom. Record `likely_cause` as `可能原因`
 only after exact code plus same-domain and neutral probes.
+
+## UI controls and React state
+
+After every action, fetch a fresh minimal snapshot or locator projection. Do not
+reuse old locators: accessible names, `pressed`/`selected` states, enabled
+states, or React-mounted nodes may change after one click, fill, submit, or
+navigation.
+
+Operate only the exact control that is currently visible and interactive. Avoid
+broad role/name selectors, hidden DOM, and whole-page DOM reads. For TikTok
+search, a hidden `input[name=q]` is not the interactive search box when the live
+control is a visible `textarea[name=q][placeholder="Find anything"]`; choose the
+visible textarea and include this in regression coverage.
+
+For React composer/search fields, `fill("")` can return success while React
+state remains non-empty. Clear text with `Meta+A` then `Backspace`, then read
+back the value plus disabled/enabled state before submitting or assuming the
+field is empty.
+
+Prefer the smallest DOM/locator projection that answers the current question.
+Repeated broad DOM dumps are a recovery risk because they stress the same
+content channel being diagnosed.
 
 ## Required recovery record
 
@@ -107,12 +183,16 @@ healthy. A superficial tab creation or title load is not health proof.
 5. For a stale/closed/missing tab, keep the existing browser binding and create
    a fresh dedicated owned tab. Only an explicit browser-disconnected error
    invalidates the browser binding; reconnect the same Chrome runtime then.
-6. Probe TikTok home and one neutral HTTPS site in temporary owned tabs, then
-   close those probe tabs. Interpret scope:
+6. Probe TikTok home and one neutral HTTPS site in temporary owned tabs as two
+   independent browser-boundary calls, then close those probe tabs. Interpret
+   scope:
    - target failed + TikTok home healthy -> target/route fault; skip or rotate;
    - TikTok failed + neutral healthy -> TikTok/domain/client-filter fault;
-   - both failed -> browser/network/proxy/TLS fault;
-   - probes themselves unavailable -> browser-control fault.
+   - both content operations time out while metadata remains healthy ->
+     `CHROME_CONTENT_CHANNEL_TIMEOUT` for the global content/navigation channel;
+   - metadata or control calls also fail -> browser-control fault;
+   - exact DNS/proxy/TLS/HTTP codes keep their narrower network/proxy/TLS/HTTP
+     classes.
 7. Restore in a fresh owned TikTok tab, re-confirm exact account plus absence of
    a current challenge/warning, and re-read the target identity before work.
    Store expected and observed handles plus the exact proof surface; `UNKNOWN`
@@ -128,6 +208,9 @@ Every result row references its earlier intent through the same `action_key`.
 
 Never claim another task's tab, clear cookies, enter credentials/codes, change
 proxy/TLS, bypass login, switch account/browser, or retry an uncertain action.
+Model switching is not Chrome recovery. Luna/Terra or other model changes may
+alter instruction following or latency, but they do not repair browser backend,
+transport, or content-channel faults.
 
 ## Persistent retry across Heartbeats
 

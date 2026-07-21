@@ -89,6 +89,12 @@ frozen action keys. The first due scheduler tick sends one
 `boundary_seq`. Repeated yields increment both `retry_epoch` and boundary
 sequence; they never create a new logical round, executor, timer, or budget
 reset. A completed round increments `round_seq` and resets `boundary_seq=1`.
+Chrome/runtime diagnosis, including `CHROME_CONTENT_CHANNEL_TIMEOUT`, atomic
+browser-boundary calls, scope probes, UI locator freshness, and mutation
+uncertainty, lives only in
+`tiktok-web-operations/references/runtime-and-recovery.md`. This protocol
+accepts the resulting callback state; it must not replace an owner, rewrite the
+Heartbeat, or duplicate an action because a content channel timed out.
 
 Also require `qualified_view_contract=STRICT_QUALIFIED_VIEW_V2` and exact
 ledger reconciliation before accepting the counts. A stable page, caption,

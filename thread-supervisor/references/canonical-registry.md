@@ -56,7 +56,8 @@ same round ID/sequence, increments `boundary_seq`, and uses
 `resume_mode=RECOVERY_FIRST`; it never resets counts or budgets. After a
 completed round, increment `round_seq` and reset `boundary_seq=1`. Before every
 mutation, store a deterministic
-`MUTATION_INTENT/action_key`; an unknown tool return freezes that key.
+`MUTATION_INTENT/action_key`; an unknown tool return records
+`SUBMISSION_UNCERTAIN`/`MUTATION_UNKNOWN` and freezes that exact key.
 
 The main task accepts a callback only when exact IDs, run, expected
 `round_id`/`round_seq`/`boundary_seq`, schema, hash, and sender match. Duplicate,

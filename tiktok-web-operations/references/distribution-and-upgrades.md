@@ -29,8 +29,10 @@ For every material Skill, reference, agent metadata, installer, or Prompt change
 3. Validate both release Skills with `quick_validate.py` when available and equivalent structural checks otherwise. Run every packaged `tiktok-web-operations/scripts/validate_*.py` validator, including executor presentation/lifecycle, owner recovery, registry, role/stage, recurring Heartbeat, cooldown, round size, parallel engagement, comment priority/continuity, operating objectives, and blocker minimization. These enforce the concise novice handoff, temporary bootstrap to pinned main-task transition, exact-ID executor title normalization, one initial fresh executor per mission, same-mission executor reuse with bounded stale-owner replacement, release-before-archive cleanup, exact callback handshake/sequence, one coordinator-owned 15-minute mission recurring Heartbeat without `COUNT=1`, machine-clock cooldown, 25–45 view rounds, in-view best-effort actions, high-weight original short comments, bounded no-copy Web research, hard-blocker routing, and isolated forward scenarios. During an active older runtime use only isolated staging.
    The persistent Chrome recovery validator additionally enforces one recovery
    pass per turn, same-round cross-wake retry, browser/tab distinction,
-   scoped probes, pre-mutation action keys, uncertain-send deduplication, and
-   release-uncertain no-archive cleanup. Validators must run under Python 3.9+
+   scoped probes, `CHROME_CONTENT_CHANNEL_TIMEOUT`, atomic browser-boundary
+   calls, navigation-timeout readback, visible React controls, pre-mutation
+   action keys, uncertain-send deduplication, and release-uncertain no-archive
+   cleanup. Validators must run under Python 3.9+
    or the bundled workspace Python; avoid unevaluated 3.10-only annotations.
 4. Synchronize both complete Skill directories plus the single root README to the public GitHub repository. Never update only one Skill, only the local copy, or only GitHub.
 5. Keep the local shareable Prompt to the single HTTPS sentence published near the top of the root README. It is only a pointer to install/upgrade, run read-only preflight, and return the guided handoff; all direction, duration, authorization, topology, and operating logic stays in the GitHub README and Skill.
