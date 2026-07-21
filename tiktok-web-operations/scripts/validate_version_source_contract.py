@@ -46,32 +46,39 @@ def decide(
 
 
 def main() -> None:
-    files = (README, VERSION_REFERENCE, DISTRIBUTION_REFERENCE) + MANIFESTS
+    files = (VERSION_REFERENCE, DISTRIBUTION_REFERENCE) + MANIFESTS
     assert all(path.is_file() for path in files), [
         str(path) for path in files if not path.is_file()
     ]
 
-    readme_match = VERSION_PATTERN.search(README.read_text())
-    assert readme_match is not None
-    archive_readme_version = readme_match.group(1)
     manifest_versions = tuple(
         json.loads(path.read_text())["version"] for path in MANIFESTS
     )
-    assert manifest_versions == (
-        archive_readme_version,
-        archive_readme_version,
-    )
+    assert len(set(manifest_versions)) == 1
+    if README.is_file():
+        readme_match = VERSION_PATTERN.search(README.read_text())
+        assert readme_match is not None
+        archive_readme_version = readme_match.group(1)
+        assert manifest_versions == (
+            archive_readme_version,
+            archive_readme_version,
+        )
+        context = "REPOSITORY_BUNDLE"
+    else:
+        archive_readme_version = manifest_versions[0]
+        context = "INSTALLED_SKILLS"
 
     contract = "\n".join(
         path.read_text()
-        for path in (README, VERSION_REFERENCE, DISTRIBUTION_REFERENCE)
+        for path in (VERSION_REFERENCE, DISTRIBUTION_REFERENCE, README)
+        if path.is_file()
     )
     required = (
         "RAW_README_VERSION_DRIFT",
         "bootstrap guidance",
         "codeload",
         "root README inside that same extracted archive",
-        "Do not block",
+        "Raw drift alone",
         "archive-internal disagreement blocks",
     )
     absent = [term for term in required if term.lower() not in contract.lower()]
@@ -104,6 +111,7 @@ def main() -> None:
 
     print(json.dumps({
         "status": "PASS",
+        "context": context,
         "archive_version": archive_readme_version,
         "stale_raw": stale_raw,
         "matching_raw": matching_raw,
