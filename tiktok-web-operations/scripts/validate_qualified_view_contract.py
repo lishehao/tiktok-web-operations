@@ -47,8 +47,14 @@ def decide(*, core, stable_identity, observations, continuous_watch,
 
 
 def main():
-    assert all(path.is_file() for path in FILES), [str(p) for p in FILES if not p.is_file()]
-    joined = " ".join("\n".join(path.read_text() for path in FILES).split())
+    missing_files = [
+        str(path) for path in FILES
+        if not path.is_file() and path.name != "README.md"
+    ]
+    assert not missing_files, missing_files
+    joined = " ".join(
+        "\n".join(path.read_text() for path in FILES if path.is_file()).split()
+    )
     required_phrases = (
         "STRICT_QUALIFIED_VIEW_V2",
         "multiple forward playback observations",

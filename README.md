@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.21.1`
+Protocol version: `2026.07.21.2`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -204,13 +204,15 @@ The primary training path is directed search, not Feed browsing:
 For You movement uses one continuous native feed without reload/reset between
 items. Feed failure disables only validation; healthy search training continues.
 Page/network/Chrome/lane failures are scoped and auto-recovered inside the
-round. One executor turn performs one bounded recovery pass. If still unhealthy,
-it returns `ROUND_YIELDED/RECOVERY_PENDING`; the main Heartbeat later resumes the
-same round/cursor/counts/budgets with `RECOVERY_FIRST`. This repeats across wakes
-without creating a new task, round, timer, or duplicate mutation. Empty tab lists,
-stale tabs, explicit browser disconnects, read-only tool timeouts, mutation-call
-timeouts, DNS/network/proxy/TLS, 403/429/5xx, client blocking, blank hydration,
-media stalls, and empty search shells have separate routes. A deterministic
+round through `tiktok-web-operations/references/runtime-and-recovery.md`. Control
+and tab metadata health do not prove content-channel health: if open/list,
+claim, URL, or title works but `goto`, DOM, screenshot, locator, or evaluate
+times out, classify it as `CHROME_CONTENT_CHANNEL_TIMEOUT` until independent
+TikTok-home and neutral-HTTPS probes narrow the scope. One executor turn performs
+one bounded recovery pass. If still unhealthy, it returns
+`ROUND_YIELDED/RECOVERY_PENDING`; the main Heartbeat later resumes the same
+round/cursor/counts/budgets with `RECOVERY_FIRST`. This repeats across wakes
+without creating a new task, round, timer, or duplicate mutation. A deterministic
 pre-action `MUTATION_INTENT/action_key` prevents uncertain clicks or comments
 from being issued again after recovery.
 
@@ -301,9 +303,12 @@ scenario validators. Required scenarios include:
   scheduler death;
 - independent lanes and independent runs;
 - network/Chrome recovery with callback only at a bounded-round boundary;
-- persistent Chrome recovery across Heartbeats: one pass per turn, same-round
-  `ROUND_YIELDED`/`RECOVERY_FIRST`, scoped probes, exact mutation action keys,
-  no blind callback/dispatch resend, and release-uncertain no-archive cleanup;
+- persistent Chrome recovery across Heartbeats: five-layer health classification,
+  `CHROME_CONTENT_CHANNEL_TIMEOUT`, one browser-boundary action per call,
+  independent TikTok-home and neutral-HTTPS probes, navigation-timeout readback,
+  visible React control handling, same-round `ROUND_YIELDED`/`RECOVERY_FIRST`,
+  exact mutation action keys, no blind callback/dispatch resend, and
+  release-uncertain no-archive cleanup;
 - 10–20 minute inter-round cooldown with machine-clock `next_dispatch_at`;
 - strict qualified-view classification: page-open/one-second autoplay fails,
   short/medium/long duration floors pass only with multiple forward observations

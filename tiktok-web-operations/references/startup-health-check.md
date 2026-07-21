@@ -12,6 +12,7 @@ bundle_action: INSTALL | UPGRADE | NOOP | DEFERRED_ACTIVE_RUNTIME | BLOCKED
 bundle_version:
 skill_validation: PASSED | FAILED
 chrome_control: AVAILABLE | RECONNECTED | UNAVAILABLE
+chrome_content_channel: AVAILABLE | CHROME_CONTENT_CHANNEL_TIMEOUT | UNVERIFIED
 tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
 thread_tools: READY | UNAVAILABLE
@@ -35,8 +36,8 @@ profile_confirmation_evidence: NONE | exact user turn/ref
    `version-management.md`. Never mix two bundle versions.
 3. Prove the existing Chrome browser binding, then create one disposable tab.
    An empty tab list is normal after cleanup; only an explicit disconnect
-   invalidates the browser binding. Classify errors and run one recovery pass
-   using `runtime-and-recovery.md`.
+   invalidates the browser binding. Use `runtime-and-recovery.md` for layered
+   control, tab metadata, content-channel, scope-probe, and account classification.
 4. Open TikTok read-only; prove exact logged-in handle and absence of a current
    blocking challenge/warning. Never enter credentials or codes.
 5. Prove thread create/read/title/message tools and `automation_update` exist.
