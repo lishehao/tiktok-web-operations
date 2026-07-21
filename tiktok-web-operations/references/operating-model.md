@@ -308,6 +308,15 @@ run, cutoff, and cleanup `UNTIL`. The stable prompt holds only identity,
 registry/ledger paths, dispatch gates, and cutoff; mutable phase, strategy, and
 evidence stay in the main ledger.
 
+Classify wake timing from fresh machine UTC and the scheduled occurrence before
+ordinary scheduler-health diagnosis. An absolute delta of at most five minutes,
+including exactly early/late five minutes, is `ON_TIME_WITH_TOLERANCE`: continue
+the ordinary due/active/cutoff gate and do not repair, catch up, or notify merely
+for that delta. A larger absolute delta is `WAKE_TIME_DRIFT`; retain the same
+recurrence and pending state while performing bounded scheduler/host diagnosis.
+Always apply `operation_stop_at` to actual time first, so tolerance cannot permit
+post-cutoff work. It also does not permit dispatch before `next_dispatch_at`.
+
 1. After every `ROUND_DISPATCHED`, leave the recurring schedule unchanged.
 2. When the exact callback arrives, persist canonical callback-IDLE proof and
    status-specific pending state only for `ROUND_COMPLETED|ROUND_YIELDED`.

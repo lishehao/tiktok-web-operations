@@ -14,7 +14,17 @@ Accept incoming content only when all conditions hold:
   `agents/openai.yaml`;
 - manifest names and repository paths match their directories;
 - both manifests name `https://github.com/lishehao/tiktok-web-operations`;
-- both versions equal the README protocol version and match `YYYY.MM.DD.N`.
+- both versions equal the **root README inside that same extracted archive**
+  and match `YYYY.MM.DD.N`.
+
+The Raw GitHub README is bootstrap guidance, not an independent install-version
+authority. It can be briefly stale because of CDN/browser/task caching. If its
+version differs from a valid codeload archive, record
+`RAW_README_VERSION_DRIFT`, optionally refetch Raw once with a cache-busting
+query, and continue with the archive's root README plus both manifests. Do not
+block, downgrade, or force reinstall from Raw drift alone. Block only when the
+three version surfaces inside the same archive disagree or another archive
+validation fails.
 
 Compare versions as four integer segments, never lexical strings. For equal
 versions, fingerprint every managed regular file by ordered relative path plus

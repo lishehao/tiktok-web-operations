@@ -1,6 +1,6 @@
 # TikTok Web Operations
 
-Protocol version: `2026.07.21.3`
+Protocol version: `2026.07.21.4`
 
 This repository distributes two version-locked Codex Skills:
 
@@ -29,20 +29,25 @@ because an update exists.
 
 1. Download only:
    `https://codeload.github.com/lishehao/tiktok-web-operations/zip/refs/heads/main`.
-2. Require repository root entries exactly `README.md`, `thread-supervisor/`,
+2. Treat the Raw README as bootstrap guidance only. The extracted codeload
+   archive's root `README.md` plus its two manifests are the version-locked
+   install truth. If a cached Raw README names another version, record
+   `RAW_README_VERSION_DRIFT` and continue archive validation; do not block or
+   downgrade a valid newer archive.
+3. Require repository root entries exactly `README.md`, `thread-supervisor/`,
    and `tiktok-web-operations/`.
-3. Reject unsafe ZIP paths, symlinks, duplicates, unexpected roots, manifest
+4. Reject unsafe ZIP paths, symlinks, duplicates, unexpected roots, manifest
    mismatch, missing references, or unequal bundle versions.
-4. Validate both `SKILL.md`, both manifests, both `agents/openai.yaml`, all
+5. Validate both `SKILL.md`, both manifests, both `agents/openai.yaml`, all
    relative references, and every packaged validator.
-5. Compare numeric four-part versions and complete managed-tree fingerprints.
-6. Install/upgrade by staging both complete directories and atomically replacing
+6. Compare numeric four-part versions and complete managed-tree fingerprints.
+7. Install/upgrade by staging both complete directories and atomically replacing
    `${CODEX_HOME:-$HOME/.codex}/skills/thread-supervisor` and
    `${CODEX_HOME:-$HOME/.codex}/skills/tiktok-web-operations` together.
-7. If a managed older TikTok runtime is currently active, validate the new
+8. If a managed older TikTok runtime is currently active, validate the new
    bundle but mark local replacement `DEFERRED_ACTIVE_RUNTIME`; never hot-mix
    versions. The next clean install invocation upgrades automatically.
-8. Roll back both directories if either installed Skill fails validation.
+9. Roll back both directories if either installed Skill fails validation.
 
 ## User-visible lifecycle
 
@@ -227,6 +232,14 @@ The preferred encoding is
 `RRULE:FREQ=MINUTELY;INTERVAL=15;UNTIL=<operation_stop_at plus 15 minutes in UTC>`
 with `COUNT` omitted.
 
+Compare each actual wake's fresh machine time with that occurrence's scheduled
+time. An absolute difference of at most five minutes is normal scheduling
+jitter: record `ON_TIME_WITH_TOLERANCE` and continue the ordinary dispatch gate
+without repair, missed-slot handling, catch-up, or user notification. A larger
+difference records `WAKE_TIME_DRIFT` for bounded scheduler diagnosis while
+preserving the recurrence and pending work. This tolerance never overrides
+`operation_stop_at`: actual time at/after cutoff still forbids new TikTok work.
+
 Callbacks remain the primary evidence path, but they are not the only liveness
 path. A valid callback persists canonical IDLE proof, chooses the 10–20 minute
 cooldown, and stores `next_dispatch_at` without rewriting the recurring
@@ -295,12 +308,19 @@ scenario validators. Required scenarios include:
   repeat-on readback and finite cleanup `UNTIL`;
 - executor owns zero Heartbeats and cannot substitute a timer;
 - no `COUNT=1`, one-occurrence, self-rearmed watchdog, or per-round timer;
+- actual Heartbeat wakes at exactly minus/plus five minutes are
+  `ON_TIME_WITH_TOLERANCE` and continue normally; larger absolute drift enters
+  bounded diagnosis without catch-up or recurrence deletion, and cutoff still
+  wins;
 - callback loss or an unconsumed one-shot cannot break continuation;
 - active executor ticks never overlap or duplicate a round;
 - accepted callback-IDLE proof survives unavailable/empty/`notLoaded` task read;
 - every nonterminal wake leaves the same recurring scheduler with a future run;
 - missing proof preserves pending work and the recurrence, never silent
   scheduler death;
+- stale Raw README versus a valid newer codeload bundle records
+  `RAW_README_VERSION_DRIFT` without blocking; only disagreement among the ZIP
+  root README and its two manifests blocks installation;
 - independent lanes and independent runs;
 - network/Chrome recovery with callback only at a bounded-round boundary;
 - persistent Chrome recovery across Heartbeats: five-layer health classification,

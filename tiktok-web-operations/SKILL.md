@@ -420,6 +420,15 @@ Require readback of the exact automation ID, main-task target, `ACTIVE` status,
 cleanup `UNTIL`. A rendered suggestion or request bytes are not proof. The
 executor never creates, views, updates, or deletes this Heartbeat.
 
+For each wake, compare fresh actual machine time with the scheduled occurrence.
+If `abs(actual_wake - scheduled_wake) <= 5 minutes`, record
+`ON_TIME_WITH_TOLERANCE` and continue the normal gate without scheduler repair,
+missed-slot handling, catch-up, or user notification. Larger absolute drift is
+`WAKE_TIME_DRIFT`: diagnose the scheduler/host once while preserving the same
+recurrence, pending work, and dedup state. Wake tolerance is not deadline
+tolerance; evaluate actual time against `operation_stop_at` first and never
+dispatch new TikTok work at/after cutoff.
+
 The recurring schedule is a liveness carrier, not a dispatch instruction. On
 every wake the main task reads a fresh machine clock and applies this gate:
 

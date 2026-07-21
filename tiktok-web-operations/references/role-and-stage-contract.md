@@ -127,6 +127,10 @@ diagnose a missing callback or explicit conflict, but an unavailable, empty, or
   per round, while candidate quality is evaluated per opened video.
 - Main owns exactly one stable 15-minute mission recurring Heartbeat; executor
   owns zero timers.
+- A scheduler wake with `abs(actual_wake - scheduled_wake) <= 5 minutes` is
+  `ON_TIME_WITH_TOLERANCE`: continue the normal gate without repair, missed-slot
+  handling, catch-up, or notification. Larger drift keeps the recurrence and
+  enters bounded diagnosis; actual-time cutoff and `next_dispatch_at` still win.
 - Multi-hour missions never use `COUNT=1`, a one-occurrence self-rearm chain,
   or one timer per round.
 - Callback persists IDLE proof and `next_dispatch_at` without rewriting the

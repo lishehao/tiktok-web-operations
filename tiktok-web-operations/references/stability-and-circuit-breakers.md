@@ -18,6 +18,12 @@ cooldown, and missing callback proof do not erase accepted state or alter the
 recurrence. Request missing callback/status at most once per expected boundary; later ticks
 wait quietly.
 
+Treat an actual wake within plus or minus five minutes of its scheduled
+occurrence as `ON_TIME_WITH_TOLERANCE`. Continue the ordinary gate without timer
+repair, missed-slot escalation, catch-up, or notification. A larger delta is
+`WAKE_TIME_DRIFT` and receives bounded scheduler/host diagnosis while the same
+recurrence and pending state survive. Actual-time cutoff remains exact.
+
 An executor that exhausts one same-Chrome recovery pass returns
 `ROUND_YIELDED/RECOVERY_PENDING` and IDLE. The main preserves that round's ID,
 sequence, counts, remaining budgets, cursor, dedup set, and frozen action keys.

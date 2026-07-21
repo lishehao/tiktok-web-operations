@@ -65,6 +65,10 @@ scheduler_next_run: NONE | exact local/UTC readback
 scheduler_repeat: OFF | ON
 scheduler_interval_minutes: NONE | 15
 scheduler_until_utc: NONE | exact cleanup UNTIL after operation_stop_at
+scheduler_scheduled_wake_at_utc: NONE | exact occurrence readback
+scheduler_actual_wake_at_utc: NONE | exact fresh machine timestamp
+scheduler_wake_delta_seconds: NONE | signed integer
+scheduler_wake_timing: NONE | ON_TIME_WITH_TOLERANCE | WAKE_TIME_DRIFT
 scheduler_health: NONE | HEALTHY | MISSION_SCHEDULER_EXPIRED |
   MISBOUND | UNREADABLE
 coordinator_ledger_path: exact private path
@@ -161,6 +165,15 @@ clock and dispatches exactly one round only when that proof is unconsumed and
 empty, and `notLoaded` results are not contradictory evidence. An active
 executor, early cooldown, or missing proof leaves the recurrence intact and
 does not send duplicate work.
+
+Record scheduled and actual wake UTC plus their signed delta. If the absolute
+delta is at most 300 seconds, including exactly 300 seconds early or late, set
+`scheduler_wake_timing=ON_TIME_WITH_TOLERANCE` and run the ordinary gate without
+repair, missed-slot handling, catch-up, or notification. A larger absolute delta
+sets `WAKE_TIME_DRIFT`; preserve the same recurrence and pending state while
+diagnosing scheduler/host health. In both cases actual-time
+`operation_stop_at` is checked first and `next_dispatch_at` still prevents an
+early dispatch.
 
 Before every nonterminal scheduler turn returns, require the same exact
 repeat-on automation with a future next run and cleanup `UNTIL`. `ACTIVE` plus

@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT.parent
+WAKE_TOLERANCE = timedelta(minutes=5)
 FILES = (
     ROOT / "SKILL.md",
     ROOT / "references/operating-model.md",
@@ -99,6 +100,37 @@ def scheduler_rrule(cutoff: datetime) -> tuple[str, datetime]:
     )
 
 
+def classify_wake(
+    scheduled: datetime, actual: datetime, cutoff: datetime
+) -> dict[str, object]:
+    assert scheduled.tzinfo is not None
+    assert actual.tzinfo is not None
+    assert cutoff.tzinfo is not None
+    delta_seconds = int((actual - scheduled).total_seconds())
+    if actual >= cutoff:
+        return {
+            "timing": "ON_TIME_WITH_TOLERANCE"
+            if abs(delta_seconds) <= WAKE_TOLERANCE.total_seconds()
+            else "WAKE_TIME_DRIFT",
+            "delta_seconds": delta_seconds,
+            "action": "CUTOFF_NO_NEW_WORK",
+            "repair": False,
+        }
+    if abs(delta_seconds) <= WAKE_TOLERANCE.total_seconds():
+        return {
+            "timing": "ON_TIME_WITH_TOLERANCE",
+            "delta_seconds": delta_seconds,
+            "action": "CONTINUE_NORMAL_GATE",
+            "repair": False,
+        }
+    return {
+        "timing": "WAKE_TIME_DRIFT",
+        "delta_seconds": delta_seconds,
+        "action": "BOUNDED_DIAGNOSIS_KEEP_RECURRENCE",
+        "repair": "ONLY_IF_CONFIGURATION_OR_FUTURE_RUN_PROOF_FAILS",
+    }
+
+
 def main() -> None:
     missing_files = [
         str(path) for path in FILES
@@ -138,6 +170,9 @@ def main() -> None:
         "CHECKPOINT_OR_YIELD/v1",
         "PROGRESS_UNVERIFIED",
         "RELEASE_UNCERTAIN",
+        "ON_TIME_WITH_TOLERANCE",
+        "WAKE_TIME_DRIFT",
+        "five minutes",
     )
     absent = [term for term in required if term.lower() not in joined.lower()]
     assert not absent, absent
@@ -171,6 +206,24 @@ def main() -> None:
     scenarios = {event: transition(event) for event in events}
     cutoff = datetime(2026, 7, 15, 13, 29, 11, tzinfo=timezone.utc)
     rrule, cleanup_until = scheduler_rrule(cutoff)
+    scheduled = datetime(2026, 7, 15, 12, 0, 0, tzinfo=timezone.utc)
+    wake_scenarios = {
+        "early_exactly_5m": classify_wake(
+            scheduled, scheduled - timedelta(minutes=5), cutoff
+        ),
+        "late_exactly_5m": classify_wake(
+            scheduled, scheduled + timedelta(minutes=5), cutoff
+        ),
+        "early_over_5m": classify_wake(
+            scheduled, scheduled - timedelta(minutes=5, seconds=1), cutoff
+        ),
+        "late_over_5m": classify_wake(
+            scheduled, scheduled + timedelta(minutes=5, seconds=1), cutoff
+        ),
+        "within_tolerance_after_cutoff": classify_wake(
+            cutoff - timedelta(minutes=1), cutoff + timedelta(minutes=1), cutoff
+        ),
+    }
     assert scenarios["create"]["repeat"] is True
     assert scenarios["create"]["interval_minutes"] == 15
     assert scenarios["create"]["count_one"] is False
@@ -196,7 +249,20 @@ def main() -> None:
     assert rrule == "RRULE:FREQ=MINUTELY;INTERVAL=15;UNTIL=20260715T134411Z"
     assert "COUNT=" not in rrule
     assert cleanup_until - cutoff == timedelta(minutes=15)
-    print(json.dumps({"status": "PASS", "rrule": rrule, "scenarios": scenarios}, sort_keys=True))
+    assert wake_scenarios["early_exactly_5m"]["timing"] == "ON_TIME_WITH_TOLERANCE"
+    assert wake_scenarios["late_exactly_5m"]["timing"] == "ON_TIME_WITH_TOLERANCE"
+    assert wake_scenarios["early_exactly_5m"]["action"] == "CONTINUE_NORMAL_GATE"
+    assert wake_scenarios["late_exactly_5m"]["repair"] is False
+    assert wake_scenarios["early_over_5m"]["timing"] == "WAKE_TIME_DRIFT"
+    assert wake_scenarios["late_over_5m"]["timing"] == "WAKE_TIME_DRIFT"
+    assert wake_scenarios["late_over_5m"]["action"] == "BOUNDED_DIAGNOSIS_KEEP_RECURRENCE"
+    assert wake_scenarios["within_tolerance_after_cutoff"]["action"] == "CUTOFF_NO_NEW_WORK"
+    print(json.dumps({
+        "status": "PASS",
+        "rrule": rrule,
+        "scenarios": scenarios,
+        "wake_scenarios": wake_scenarios,
+    }, sort_keys=True))
 
 
 if __name__ == "__main__":

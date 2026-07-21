@@ -42,6 +42,11 @@ For every material Skill, reference, agent metadata, installer, or Prompt change
 7. Download a fresh public `main` archive from `codeload.github.com` into a new temporary directory. Require exactly the two target Skill directories and three intended repository-root entries, validate both Skills, read back matching versions, compare both trees with release source, and confirm the one-sentence local Prompt exactly matches README.
 8. Report a release only after source validation, ZIP integrity, GitHub readback, and fresh-archive validation all pass. If the installed Skill remains on an older version because an active runtime is fenced, report `published_version`, `installed_version`, and `upgrade_state=DEFERRED_ACTIVE_RUNTIME`; do not imply the local upgrade already happened.
 
+Consumer bootstrap may observe a temporarily stale Raw README. Keep the
+consumer rule explicit: Raw is guidance, while the fresh codeload archive's root
+README and two manifests are the version-locked install truth. Raw drift is a
+non-blocking `RAW_README_VERSION_DRIFT`; archive-internal disagreement blocks.
+
 The consumer-side decision table, lock, fingerprint, force authorization, active-runtime fence, atomic replacement, and rollback rules live only in `version-management.md`; keep README aligned with that protocol instead of creating another installer document.
 
 Consumers install through public HTTPS and do not need Git, GitHub CLI, Python, or a GitHub account. Publisher-side Git or GitHub API is an implementation detail; if local Git is unavailable, use an authenticated GitHub API path and retain the same validation contract.

@@ -132,6 +132,14 @@ exact no-new-work cutoff so a terminal cleanup wake remains possible. Record
 and read back exact automation ID, target, status, interval, repeat-on schedule,
 next local/UTC run, cutoff, and cleanup `UNTIL`.
 
+At each wake, compare fresh actual machine time with the scheduled occurrence.
+An absolute delta no greater than five minutes is
+`ON_TIME_WITH_TOLERANCE`; continue the normal dispatch gate and do not repair,
+mark a missed slot, catch up, or notify merely because of that delta. A larger
+absolute delta is `WAKE_TIME_DRIFT`; keep the exact recurrence and pending work
+while performing bounded scheduler/host diagnosis. Actual-time cutoff and the
+`next_dispatch_at` due gate remain authoritative.
+
 Keep that exact Heartbeat unchanged across ordinary callbacks and rounds:
 
 - A callback persists canonical IDLE proof, next clusters, cooldown, and
