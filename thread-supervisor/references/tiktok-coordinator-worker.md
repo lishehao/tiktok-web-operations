@@ -95,6 +95,11 @@ uncertainty, lives only in
 `tiktok-web-operations/references/runtime-and-recovery.md`. This protocol
 accepts the resulting callback state; it must not replace an owner, rewrite the
 Heartbeat, or duplicate an action because a content channel timed out.
+The coordinator assignment names the required `chrome:control-chrome`
+capability but never embeds a plugin-cache version or a historical
+`browser-client.mjs` path. Runtime-entry discovery belongs to the executor's
+current task and a missing tool surface is not executor absence, browser
+disconnect, or grounds for replacement.
 
 Also require `qualified_view_contract=STRICT_QUALIFIED_VIEW_V2` and exact
 ledger reconciliation before accepting the counts. A stable page, caption,

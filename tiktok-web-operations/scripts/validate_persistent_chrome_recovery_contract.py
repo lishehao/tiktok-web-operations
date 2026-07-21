@@ -45,6 +45,21 @@ def recover(event: str) -> dict[str, Any]:
             "same_turn_pass": True,
             "scheduler": "UNCHANGED",
         },
+        "browser_tool_surface_missing": {
+            "action": "DISCOVER_LOAD_CURRENT_BROWSER_TOOL_SURFACE_ONCE",
+            "error_class": "CHROME_TOOL_SURFACE_UNAVAILABLE",
+            "not_classes": ("CHROME_DISCONNECTED", "TARGET_TAB_NOT_FOUND"),
+            "replace_executor": False,
+        },
+        "historical_runtime_entry_path": {
+            "action": "READ_CURRENT_CHROME_SKILL_RESOLVE_ACTIVE_PLUGIN_ROOT",
+            "versioned_path_reuse": False,
+            "browser_session_invalidated": False,
+        },
+        "runtime_entry_loaded": {
+            "action": "INITIALIZE_ONCE_GET_EXISTING_EXTENSION_BINDING",
+            "health_proof": False,
+        },
         "metadata_healthy_neutral_goto_timeout": {
             "error_class": "CHROME_CONTENT_CHANNEL_TIMEOUT",
             "control_plane": "HEALTHY",
@@ -244,10 +259,18 @@ def validate_contract() -> dict[str, dict[str, Any]]:
         if not path.is_file() and path.name != "README.md"
     ]
     assert not missing_files, missing_files
-    joined = "\n".join(path.read_text() for path in DOCS if path.is_file())
+    joined = " ".join(
+        "\n".join(path.read_text() for path in DOCS if path.is_file()).split()
+    )
     required_terms = (
         "one bounded recovery pass per active executor turn",
         "cross-wake retry",
+        "Runtime entry bootstrap",
+        "currently installed `chrome:control-chrome` Skill",
+        "current runtime entry instructions",
+        "never copy a versioned plugin path",
+        "CHROME_TOOL_SURFACE_UNAVAILABLE",
+        "once per JavaScript session",
         "Chrome health as five separate layers",
         "CHROME_CONTENT_CHANNEL_TIMEOUT",
         "content/navigation channel",
@@ -294,6 +317,8 @@ def validate_contract() -> dict[str, dict[str, Any]]:
 
     events = (
         "empty_tab_list", "stale_tab", "browser_disconnected",
+        "browser_tool_surface_missing", "historical_runtime_entry_path",
+        "runtime_entry_loaded",
         "metadata_healthy_neutral_goto_timeout", "navigation_timeout_loaded",
         "visible_textarea_hidden_input", "react_fill_empty_state_not_cleared",
         "one_boundary_action_per_call",
@@ -321,6 +346,16 @@ def validate_contract() -> dict[str, dict[str, Any]]:
     assert scenarios["empty_tab_list"]["action"].endswith("KEEP_BROWSER_BINDING")
     assert scenarios["stale_tab"]["action"].startswith("DISCARD_TAB_BINDING")
     assert scenarios["browser_disconnected"]["binding_invalidated"] == "BROWSER"
+    assert scenarios["browser_tool_surface_missing"]["error_class"] == (
+        "CHROME_TOOL_SURFACE_UNAVAILABLE"
+    )
+    assert "CHROME_DISCONNECTED" in scenarios[
+        "browser_tool_surface_missing"
+    ]["not_classes"]
+    assert scenarios["browser_tool_surface_missing"]["replace_executor"] is False
+    assert scenarios["historical_runtime_entry_path"]["versioned_path_reuse"] is False
+    assert scenarios["historical_runtime_entry_path"]["browser_session_invalidated"] is False
+    assert scenarios["runtime_entry_loaded"]["health_proof"] is False
     assert scenarios["metadata_healthy_neutral_goto_timeout"]["error_class"] == (
         "CHROME_CONTENT_CHANNEL_TIMEOUT"
     )

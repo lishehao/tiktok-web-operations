@@ -7,6 +7,7 @@ the exact registered main task. Never contact an unrelated TikTok task.
 ## Contents
 
 - Recovery invariant
+- Runtime entry bootstrap
 - Chrome health layers
 - Atomic browser boundary
 - Error classes and edge cases
@@ -33,6 +34,31 @@ The main-owned Heartbeat remains repeat-on until mission cutoff or explicit
 terminal release. The executor never creates a recovery timer. Repeated recovery
 wakes continue until health proof, user stop, cutoff, or a live human-repair
 condition. Do not loop indefinitely inside one model turn or send catch-up work.
+
+## Runtime entry bootstrap
+
+Before the first Chrome call in a new task or after the browser tool runtime has
+been reset, read the currently installed `chrome:control-chrome` Skill and use
+its current runtime entry instructions. Resolve the active Chrome plugin root at
+runtime and import that exact absolute `scripts/browser-client.mjs`; never copy
+a versioned plugin path from another task, an old ledger, or an earlier Skill
+release. A plugin-cache version change invalidates only the saved runtime-entry
+path, not the user's Chrome session.
+
+If the JavaScript or `node_repl` browser tool surface is not exposed in the
+current task, discover/load that exact tool surface once before diagnosing
+Chrome. Until the tool surface is available, record
+`CHROME_TOOL_SURFACE_UNAVAILABLE`; do not report `CHROME_DISCONNECTED`, create a
+replacement executor, switch browsers, or ask the user to relogin. After the
+tool surface is present, initialize the browser runtime once per JavaScript
+session, obtain the existing `extension` browser binding, and then start the
+five-layer health check.
+
+Keep runtime bootstrap atomic too: tool discovery, runtime import/setup,
+browser-binding acquisition, tab enumeration, tab claim, navigation, and page
+content reads are separate boundaries. A successful import proves only the
+tool/runtime entry loaded; it does not prove Chrome, a tab, content access, or
+the TikTok account is healthy.
 
 ## Chrome health layers
 

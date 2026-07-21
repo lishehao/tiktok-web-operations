@@ -12,6 +12,8 @@ bundle_action: INSTALL | UPGRADE | NOOP | DEFERRED_ACTIVE_RUNTIME | BLOCKED
 bundle_version:
 skill_validation: PASSED | FAILED
 chrome_control: AVAILABLE | RECONNECTED | UNAVAILABLE
+chrome_tool_surface: AVAILABLE | CHROME_TOOL_SURFACE_UNAVAILABLE
+chrome_runtime_entry: CURRENT_RESOLVED | STALE_PATH_REJECTED | UNVERIFIED
 chrome_content_channel: AVAILABLE | CHROME_CONTENT_CHANNEL_TIMEOUT | UNVERIFIED
 tiktok_session: LOGGED_IN:@handle | LOGGED_OUT | UNVERIFIED
 account_warning: NONE_VISIBLE | PRESENT | UNVERIFIED
@@ -34,18 +36,23 @@ profile_confirmation_evidence: NONE | exact user turn/ref
    record `DEGRADED_RENAME_UNAVAILABLE` and continue.
 2. Download and validate the canonical GitHub bundle; apply
    `version-management.md`. Never mix two bundle versions.
-3. Prove the existing Chrome browser binding, then create one disposable tab.
+3. Read the currently installed `chrome:control-chrome` Skill, resolve its
+   current plugin/runtime entry, and load the exact browser tool surface. Never
+   reuse a versioned `browser-client.mjs` path copied from another task. Tool
+   discovery/import/setup are separate calls; a missing tool surface is
+   `CHROME_TOOL_SURFACE_UNAVAILABLE`, not a Chrome disconnect.
+4. Prove the existing Chrome browser binding, then create one disposable tab.
    An empty tab list is normal after cleanup; only an explicit disconnect
    invalidates the browser binding. Use `runtime-and-recovery.md` for layered
    control, tab metadata, content-channel, scope-probe, and account classification.
-4. Open TikTok read-only; prove exact logged-in handle and absence of a current
+5. Open TikTok read-only; prove exact logged-in handle and absence of a current
    blocking challenge/warning. Never enter credentials or codes.
-5. Prove thread create/read/title/message tools and `automation_update` exist.
+6. Prove thread create/read/title/message tools and `automation_update` exist.
    Do not pretend that tool presence proves callback or scheduler behavior.
-6. Prove writable canonical/coordinator/executor ledger paths and calculate a
+7. Prove writable canonical/coordinator/executor ledger paths and calculate a
    finite `operation_stop_at` from machine time.
-7. Finalize only the disposable setup tab.
-8. After health proof, rename this same task `TikTok 主控台`, attempt to pin it,
+8. Finalize only the disposable setup tab.
+9. After health proof, rename this same task `TikTok 主控台`, attempt to pin it,
    and read back exact ID plus `pinned=true` when supported. Presentation failure
    does not block the profile gate. Never pin the executor.
 

@@ -30,7 +30,9 @@ For every material Skill, reference, agent metadata, installer, or Prompt change
    The persistent Chrome recovery validator additionally enforces one recovery
    pass per turn, same-round cross-wake retry, browser/tab distinction,
    scoped probes, `CHROME_CONTENT_CHANNEL_TIMEOUT`, atomic browser-boundary
-   calls, navigation-timeout readback, visible React controls, pre-mutation
+   calls, current Chrome runtime-entry discovery without historical versioned
+   paths, tool-surface versus browser-disconnect classification,
+   navigation-timeout readback, visible React controls, pre-mutation
    action keys, uncertain-send deduplication, and release-uncertain no-archive
    cleanup. Validators must run under Python 3.9+
    or the bundled workspace Python; avoid unevaluated 3.10-only annotations.
